@@ -33,6 +33,7 @@ const dom = {
     addKeyToggle: document.getElementById("addKeyToggleBtn"),
     saveNewKey: document.getElementById("saveKeyBtn"), // Reusing ID from HTML update
     saveCard: document.getElementById("saveCardBtn"),
+    openCardFolder: document.getElementById("openCardFolderBtn"),
     generate: document.getElementById("generateBtn"),
   },
   forms: {
@@ -119,6 +120,18 @@ async function init() {
 
   await loadKeys();
 
+  // Check if running in Electron and enable Open Folder button
+  if (window.electronAPI && dom.openFolderBtn) {
+    dom.openFolderBtn.classList.remove("hidden");
+    dom.openFolderBtn.addEventListener("click", async () => {
+      try {
+        await window.electronAPI.openDataFolder();
+      } catch (e) {
+        showStatus("Failed to open folder", "error");
+      }
+    });
+  }
+
   dom.btns.addKeyToggle.addEventListener("click", () => {
     dom.forms.newKey.classList.toggle("hidden");
   });
@@ -157,6 +170,33 @@ async function init() {
       });
     }
   });
+
+  if (window.electronAPI && dom.btns.openCardFolder) {
+    dom.btns.openCardFolder.classList.remove("hidden");
+    dom.btns.openCardFolder.addEventListener("click", async () => {
+      if (!currentProject || !currentCard) return;
+      // Construct relative path: output / projectDir / cardDir
+      // Note: server resolves logic: outputDir + (project.outputRoot||"default") + (card.outputSubfolder||"default")
+      // Frontend needs to match this structure relative to data root
+      // Our dataRoot in Electron is the base.
+      // Wait, server logic:
+      // const projectDir = (project.outputRoot || "default")
+      // const cardDir = (card.outputSubfolder || "default")
+      // const outputFolder = path.resolve(SAFE_OUTPUT_BASE, projectDir, cardDir);
+      // Data Root contains 'output'.
+      // So relative path passed to IPC should be: "output/projectId/cardId"? NO.
+      // It should be: "output/" + (p.root||"default") + "/" + (c.sub||"default")
+      const pRoot = currentProject.outputRoot || "default";
+      const cSub = currentCard.outputSubfolder || "default";
+      const relPath = `output/${pRoot}/${cSub}`;
+
+      try {
+        await window.electronAPI.openDataFolder(relPath);
+      } catch (e) {
+        showStatus("Failed to open folder", "error");
+      }
+    });
+  }
 
   dom.newCardBtn.addEventListener("click", createNewCard);
   dom.btns.saveCard.addEventListener("click", saveCurrentCard);

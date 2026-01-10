@@ -5,10 +5,12 @@ import {
   Menu,
   MenuItemConstructorOptions,
   shell,
+  ipcMain,
 } from "electron";
 import { startServer } from "./server";
 import { autoUpdater } from "electron-updater";
 import log from "electron-log";
+import path from "path";
 
 // --- Auto Updater Setup ---
 log.transports.file.level = "debug";
@@ -207,6 +209,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
     },
     title: "AICardArts",
     backgroundColor: "#1e1e1e",
@@ -241,6 +244,12 @@ app.on("ready", async () => {
 
   // Use a subfolder 'server-data' to keep it clean, or just root
   const dataRoot = userDataPath; // path.join(userDataPath, "data");
+
+  // IPC Handlers
+  ipcMain.handle("open-data-folder", async () => {
+    // Open the dataRoot
+    await shell.openPath(dataRoot);
+  });
 
   await startServer(5432, dataRoot);
 
