@@ -15,6 +15,8 @@ log.transports.file.level = "debug";
 autoUpdater.logger = log;
 autoUpdater.autoDownload = false;
 
+const SERVER_URL = "http://localhost:5432";
+
 let isManualCheck = false;
 
 // Events
@@ -154,6 +156,13 @@ function createMenu() {
         { role: "zoomOut" },
         { type: "separator" },
         { role: "togglefullscreen" },
+        { type: "separator" },
+        {
+          label: "Open in Browser",
+          click: async () => {
+            await shell.openExternal(SERVER_URL);
+          },
+        },
       ],
     },
     // { role: 'windowMenu' }
@@ -205,11 +214,9 @@ function createWindow() {
   });
 
   // Load the app
-  const url = "http://localhost:5432";
-
   // Wait for server to be ready?
   // For simplicity, we just load. server.ts starts listening immediately.
-  mainWindow.loadURL(url);
+  mainWindow.loadURL(SERVER_URL);
 
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
@@ -228,7 +235,14 @@ app.on("ready", async () => {
   // Start backend
   console.log("Starting server...");
   createMenu();
-  await startServer();
+
+  const userDataPath = app.getPath("userData");
+  console.log("Electron User Data Path:", userDataPath);
+
+  // Use a subfolder 'server-data' to keep it clean, or just root
+  const dataRoot = userDataPath; // path.join(userDataPath, "data");
+
+  await startServer(5432, dataRoot);
 
   createWindow();
 });
