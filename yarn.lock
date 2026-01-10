@@ -87,6 +87,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@electron/notarize@npm:^3.1.1":
+  version: 3.1.1
+  resolution: "@electron/notarize@npm:3.1.1"
+  dependencies:
+    debug: ^4.4.0
+    promise-retry: ^2.0.1
+  checksum: 1987e412044bf69ad2418bf5be9e31fee5b2e58a177fff0e86a4329507cf58ba21aa3a805ecc86efc032fd789b13819f54fd47d37f39cca0c1eb4abc06b1791d
+  languageName: node
+  linkType: hard
+
 "@electron/osx-sign@npm:1.3.3":
   version: 1.3.3
   resolution: "@electron/osx-sign@npm:1.3.3"
@@ -614,10 +624,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ai-art-cards@workspace:.":
+"aicardarts@workspace:.":
   version: 0.0.0-use.local
-  resolution: "ai-art-cards@workspace:."
+  resolution: "aicardarts@workspace:."
   dependencies:
+    "@electron/notarize": ^3.1.1
     "@google/generative-ai": ^0.24.1
     "@types/cors": ^2.8.19
     "@types/electron": ^1.6.12

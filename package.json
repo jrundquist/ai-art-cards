@@ -1,5 +1,5 @@
 {
-  "name": "ai-art-cards",
+  "name": "aicardarts",
   "version": "1.0.1",
   "description": "AI Art Cards Generator and Manager",
   "author": "James Rundquist",
@@ -16,19 +16,17 @@
     "electron:dev": "tsc && electron .",
     "dist": "tsc && electron-builder",
     "build:mac": "tsc && electron-builder --mac",
-    "launch:mac": "open 'release/mac-arm64/AI Art Cards.app'",
+    "launch:mac": "open 'release/mac-arm64/AICardArts.app'",
     "release": "./scripts/release.sh"
   },
   "build": {
-    "appId": "com.aiartcards.app",
-    "productName": "AI Art Cards",
+    "appId": "tech.rundquist.aiartcards.app",
+    "productName": "AICardArts",
     "files": [
       "dist/**/*",
       "package.json",
       "src/public/**/*",
-      "data/**/*",
-      "!data/output/**/*",
-      "!data/keys.json"
+      "!data/"
     ],
     "directories": {
       "output": "release"
@@ -45,9 +43,12 @@
         "dmg",
         "zip"
       ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "hardenedRuntime": true,
       "gatekeeperAssess": false
-    }
+    },
+    "afterSign": "scripts/notarize.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -60,6 +61,7 @@
     "mime": "^4.1.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
     "@types/cors": "^2.8.19",
     "@types/electron": "^1.6.12",
     "@types/express": "^5.0.6",
