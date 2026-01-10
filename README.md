@@ -1,4 +1,4 @@
-# AI Art Cards
+# AICardArts
 
 A powerful, local web application for generating and managing consistent AI artwork for card collections (Tarot, TCGs, etc.) using the Google Gemini API.
 
@@ -14,6 +14,9 @@ A powerful, local web application for generating and managing consistent AI artw
     -   View all generated images for a selected card.
     -   Click to view details (Prompt, Date).
     -   Archive unwanted images to hide them from the view.
+-   **Desktop Application**:
+    -   Run as a standalone native app on macOS (and other platforms).
+    -   **Auto-Updates**: Automatically checks for and creates updates via GitHub Releases.
 -   **Secure & Local**:
     -   API Keys are stored locally (`data/keys.json`) and never shared.
     -   Generated images are saved securely to your local disk (`data/output/`).

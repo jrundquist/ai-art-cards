@@ -1,18 +1,20 @@
 # AI Art Cards - Project Info
 
 ## Overview
-AI Art Cards is a local web application for managing and generating consistent AI artwork for card games (e.g., Tarot, Poker, TCGs). It uses a project-based structure where "Cards" belong to "Projects" and inherit configuration settings.
+AI Art Cards is a local web and desktop application for managing and generating consistent AI artwork for card games (e.g., Tarot, Poker, TCGs). It uses a project-based structure where "Cards" belong to "Projects" and inherit configuration settings. It can be run as a standard Node.js web server or as a standalone Electron desktop app.
 
 ## Technology Stack
-- **Runtime**: Node.js
+- **Runtime**: Node.js / Electron
 - **Backend**: Express (TypeScript)
 - **Frontend**: Vanilla JavaScript, HTML5, CSS3 (Variables-based Dark Mode)
+- **Desktop Wrapper**: Electron (with `electron-builder` and `electron-updater`)
 - **AI Service**: Google Gemini API (`gemini-1.5-flash` or `gemini-1.5-pro`) via `@google/generative-ai`
 - **Image Processing**: `exiftool-vendored` for metadata reading
 - **Persistence**: JSON files for configuration, File System for images
 
 ## Directory Structure
 - `src/server.ts`: Main Express application entry point. Handles API routes.
+- `src/electron.ts`: Electron main process entry point.
 - `src/lib/`:
     - `image_generator.ts`: Wrapper around Gemini API. Handles safety checks, prompt enhancement (if any), and image buffer creation.
     - `data_service.ts`: CRUD operations for Projects and Cards. Manages JSON file reading/writing.
@@ -25,6 +27,10 @@ AI Art Cards is a local web application for managing and generating consistent A
     - `cards/*.json`: Card definitions.
     - `keys.json`: Named API keys (Git-ignored).
     - `output/`: **Jailed Root** for all generated images. Subfolders determined by `project.outputRoot` and `card.outputSubfolder`.
+- `release/`: Output directory for Electron builds (DMG, Zip).
+- `scripts/`:
+    - `notarize.js`: macOS notarization script for Gatekeeper.
+    - `release.sh`: Release automation script.
 
 ## Core Concepts
 
