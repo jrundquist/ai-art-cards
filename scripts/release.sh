@@ -42,6 +42,6 @@ yarn dist --publish always
 
 # Push changes and tags
 echo "Pushing to GitHub..."
-git push && git push --tags
+git push
 
 echo "Done! Release published."
