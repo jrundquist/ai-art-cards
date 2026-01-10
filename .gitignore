@@ -11,8 +11,12 @@
 node_modules
 
 # Data
-data/*
-data/keys.json
+data
 
 # macOS
 .DS_Store
+
+release
+dist
+
+.env

@@ -24,9 +24,37 @@ const cardService = dataService;
 let API_KEY = process.env.GEMINI_API_KEY || "";
 
 // Serve Static Frontend
-app.use(express.static(path.join(__dirname, "public")));
+// In dev (ts-node), __dirname is src/. In built (node), it's dist/.
+// We need to find where 'public' actually lives.
+import fsSync from "fs";
+
+// Path resolution strategy:
+// 1. dist/public (If copied during build)
+// 2. ../src/public (ASAR structure: dist/server.js -> ../src/public)
+// 3. process.cwd()/src/public (Dev mode fallback)
+
+const possiblePaths = [
+  path.join(__dirname, "public"),
+  path.join(__dirname, "../src/public"),
+  path.join(process.cwd(), "src", "public"),
+];
+
+let publicDir = possiblePaths.find((p) => fsSync.existsSync(p));
+if (!publicDir) {
+  console.error(
+    "CRITICAL: Could not find 'public' directory. Checked:",
+    possiblePaths
+  );
+  publicDir = path.join(__dirname, "public"); // Fallback to avoid crash
+}
+
+console.log(`Serving static files from: ${publicDir}`);
+
+app.use(express.static(publicDir));
 // Serve static data (images, jsons)
-app.use("/data", express.static(path.join(__dirname, "../data")));
+// For data, strictly use process.cwd() in dev, but in prod we might need userData.
+// For now, let's assume relative to CWD works for 'local' app usage.
+app.use("/data", express.static(path.join(process.cwd(), "data")));
 
 // Helper: Secure Path Resolution
 function resolveSecurePath(segments: string[]): string | null {
@@ -204,10 +232,6 @@ app.get("/api/projects/:projectId/cards", async (req, res) => {
             .filter((f) => !archived.has(f)).length;
           return { ...c, imageCount: count };
         } catch (e) {
-          console.error(
-            `[DEBUG] Error for card ${c.name}:`,
-            (e as Error).message
-          );
           return { ...c, imageCount: 0 };
         }
       })
@@ -249,6 +273,7 @@ app.get("/api/projects/:projectId/cards/:cardId/images", async (req, res) => {
     const files = await fs.readdir(securePath);
     const images = files
       .filter((f: string) => /\.(png|jpg|jpeg|webp)$/i.test(f))
+      .filter((f) => !(card.archivedImages || []).includes(f))
       // Sort by modification time desc? Or name desc (versions)?
       // Let's sort by name desc (v005, v004...)
       .sort((a: string, b: string) =>
@@ -325,6 +350,17 @@ app.post("/api/cards/:cardId/archive", async (req, res) => {
 });
 
 // Start
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// Export for Electron
+export async function startServer() {
+  return new Promise<void>((resolve) => {
+    app.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+      resolve();
+    });
+  });
+}
+
+// Auto-start if run directly
+if (require.main === module) {
+  startServer();
+}

@@ -1,24 +1,72 @@
 {
   "name": "ai-art-cards",
+  "version": "1.0.0",
+  "description": "AI Art Cards Generator and Manager",
+  "author": "James Rundquist",
   "packageManager": "yarn@3.6.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrundquist/ai-art-cards.git"
+  },
+  "main": "dist/electron.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "electron:dev": "tsc && electron .",
+    "dist": "tsc && electron-builder",
+    "build:mac": "tsc && electron-builder --mac",
+    "launch:mac": "open 'release/mac-arm64/AI Art Cards.app'",
+    "release": "./scripts/release.sh"
+  },
+  "build": {
+    "appId": "com.aiartcards.app",
+    "productName": "AI Art Cards",
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "src/public/**/*",
+      "data/**/*",
+      "!data/output/**/*",
+      "!data/keys.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "jrundquist",
+      "repo": "ai-art-cards",
+      "releaseType": "release"
+    },
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    }
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.7.3",
     "exiftool-vendored": "^35.0.0",
     "express": "^5.2.1",
     "mime": "^4.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
+    "@types/electron": "^1.6.12",
     "@types/express": "^5.0.6",
     "@types/mime": "^4.0.0",
     "@types/node": "^25.0.6",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

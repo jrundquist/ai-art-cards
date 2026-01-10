@@ -35,6 +35,37 @@ A powerful, local web application for generating and managing consistent AI artw
     ```
     The application will run at [http://localhost:5432](http://localhost:5432).
 
+4.  **Desktop Application**:
+    This project can also be run as a standalone Desktop App (Electron).
+
+    **To run in dev mode:**
+    ```bash
+    yarn electron:dev
+    ```
+
+    **To build for your OS:**
+    ```bash
+    yarn dist
+    ```
+
+    **To build specifically for macOS (DMG + Zip):**
+    ```bash
+    yarn build:mac
+    ```
+    The packaged app will be created in `release/`. For Mac, look in `release/mac-arm64/` (or `mac/`).
+    You can send the `.zip` or `.dmg` file to your partner.
+
+5.  **Auto-Updater**:
+    The app is configured to check for updates from the GitHub repository (`jrundquist/ai-art-cards`).
+    *   **Release**:
+        1.  Restart your terminal with your GitHub token: `export GH_TOKEN=your_token`
+        2.  Run the automation script:
+            ```bash
+            yarn release
+            ```
+        3.  Follow the prompts to select the version bump (patch, minor, major).
+        4.  The script will automatically build, upload the artifacts to GitHub Releases, and push the tags.
+
 ## User Guide
 
 ### 1. API Keys
