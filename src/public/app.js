@@ -9,6 +9,7 @@ let currentCard = null;
 const dom = {
   projectSelect: document.getElementById("projectSelect"),
   newProjectBtn: document.getElementById("newProjectBtn"),
+  openFolderBtn: document.getElementById("openFolderBtn"),
   editProjectBtn: document.getElementById("editProjectBtn"),
   cardList: document.getElementById("cardList"),
   searchInput: document.getElementById("cardSearchInput"),
@@ -433,6 +434,17 @@ async function loadImagesForCard(projectId, cardId) {
 
     dom.gallery.innerHTML = "";
 
+    if (!Array.isArray(images)) {
+      if (images && images.error) {
+        throw new Error(images.error);
+      }
+      // Fallback if it's not an array and not an explicit error?
+      // Treat as empty or throw? Let's treat as empty but log.
+      console.warn("Expected array of images, got:", images);
+      dom.gallery.innerHTML = '<div class="empty-state">No images yet</div>';
+      return;
+    }
+
     if (images.length === 0) {
       dom.gallery.innerHTML = '<div class="empty-state">No images yet</div>';
       return;
@@ -589,14 +601,16 @@ async function generateArt() {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        data.images.forEach((imgUrl) => {
-          const div = document.createElement("div");
-          div.className = "gallery-item";
-          const img = document.createElement("img");
-          img.src = "/" + imgUrl;
-          div.appendChild(img);
-          dom.gallery.prepend(div);
-        });
+        if (data.images && Array.isArray(data.images)) {
+          data.images.forEach((imgUrl) => {
+            const div = document.createElement("div");
+            div.className = "gallery-item";
+            const img = document.createElement("img");
+            img.src = "/" + imgUrl;
+            div.appendChild(img);
+            dom.gallery.prepend(div);
+          });
+        }
 
         toast.update(`Success #${i + 1}`, "success");
         setTimeout(() => toast.remove(), 4000);
