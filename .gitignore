@@ -1,0 +1,18 @@
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.yarn/cache
+
+# Node
+node_modules
+
+# Data
+data/*
+data/keys.json
+
+# macOS
+.DS_Store

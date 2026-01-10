@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Art Cards</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Art Cards</h2>
+          <div class="project-select-wrapper">
+            <select id="projectSelect">
+              <option value="">Select Project...</option>
+            </select>
+            <button id="newProjectBtn" class="icon-btn" title="New Project">
+              +
+            </button>
+            <button
+              id="editProjectBtn"
+              class="icon-btn"
+              title="Project Settings"
+            >
+              ⚙️
+            </button>
+          </div>
+        </div>
+
+        <div id="cardList" class="card-list">
+          <!-- Cards injected here -->
+        </div>
+
+        <button id="newCardBtn" class="primary-btn full-width">
+          + New Card
+        </button>
+        <div style="padding: 10px 0">
+          <input
+            type="text"
+            id="cardSearchInput"
+            placeholder="Search cards..."
+            style="
+              width: 100%;
+              box-sizing: border-box;
+              padding: 8px;
+              border-radius: 4px;
+              border: 1px solid var(--border);
+              background: var(--bg-input);
+              color: white;
+            "
+          />
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="top-bar">
+          <h1 id="currentCardTitle">Select a Card</h1>
+          <div class="actions key-manager">
+            <select id="keySelect">
+              <option value="">Select API Key...</option>
+            </select>
+            <button id="addKeyToggleBtn" class="icon-btn" title="Add New Key">
+              +
+            </button>
+            <div id="newKeyForm" class="hidden popup-form">
+              <input type="text" id="newKeyName" placeholder="Key Name" />
+              <input
+                type="password"
+                id="newKeyValue"
+                placeholder="Gemini Key"
+              />
+              <button id="saveKeyBtn" class="secondary-btn">Save</button>
+            </div>
+            <!-- Hidden old input compatibility if needed, or just removed -->
+            <input type="hidden" id="apiKeyInput" />
+          </div>
+        </header>
+
+        <div id="editorArea" class="editor-area hidden">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Card Name</label>
+              <input
+                type="text"
+                id="cardNameInput"
+                placeholder="e.g. The Fool"
+              />
+            </div>
+            <div class="form-group">
+              <label>Output Subfolder</label>
+              <input type="text" id="subfolderInput" placeholder="default" />
+            </div>
+
+            <div class="form-group">
+              <label>Aspect Ratio</label>
+              <select id="cardAspectRatio">
+                <option value="">Project Default</option>
+                <option value="Auto">Auto</option>
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="3:4">3:4</option>
+                <option value="4:3">4:3</option>
+                <option value="3:2">3:2</option>
+                <option value="2:3">2:3</option>
+                <option value="5:4">5:4</option>
+                <option value="4:5">4:5</option>
+                <option value="21:9">21:9</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Resolution</label>
+              <select id="cardResolution">
+                <option value="">Project Default</option>
+                <option value="1K">1K</option>
+                <option value="2K">2K</option>
+                <option value="4K">4K</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label>Prompt</label>
+              <textarea
+                id="promptInput"
+                rows="4"
+                placeholder="Describe the image..."
+              ></textarea>
+            </div>
+            <div class="form-group full-width">
+              <label>Preview (Merged)</label>
+              <div id="promptPreview" class="preview-box"></div>
+            </div>
+          </div>
+
+          <div class="generation-controls">
+            <div class="count-input">
+              <label>Count:</label>
+              <input type="number" id="genCount" value="1" min="1" max="10" />
+            </div>
+            <button id="saveCardBtn" class="secondary-btn">Save Card</button>
+            <button id="generateBtn" class="primary-btn glow">
+              Generate Art ✨
+            </button>
+          </div>
+
+          <div id="gallery" class="gallery-grid">
+            <!-- Images go here -->
+          </div>
+        </div>
+        <div id="toast-container" class="toast-container"></div>
+      </main>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="projectModal" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="projectModalTitle">Project Settings</h3>
+        <input type="text" id="newProjectId" placeholder="ID (e.g. tarot)" />
+        <input
+          type="text"
+          id="newProjectName"
+          placeholder="Name (e.g. Tarot Deck)"
+        />
+        <input
+          type="text"
+          id="newProjectRoot"
+          placeholder="Output Dir (relative to data/output, e.g. tarot)"
+        />
+        <textarea id="globalPrefix" placeholder="Global Prefix"></textarea>
+        <textarea id="globalSuffix" placeholder="Global Suffix"></textarea>
+
+        <div class="form-grid" style="margin-top: 10px">
+          <div class="form-group">
+            <label>Default Aspect Ratio</label>
+            <select id="newAspectRatio">
+              <option value="">Auto (Unspecified)</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="3:4">3:4</option>
+              <option value="4:3">4:3</option>
+              <option value="3:2">3:2</option>
+              <option value="2:3" selected>2:3</option>
+              <option value="5:4">5:4</option>
+              <option value="4:5">4:5</option>
+              <option value="21:9">21:9</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Resolution</label>
+            <select id="newResolution">
+              <option value="1K">1K</option>
+              <option value="2K" selected>2K</option>
+              <option value="4K">4K</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancelProjectBtn">Cancel</button>
+          <button id="saveProjectBtn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Details Modal -->
+    <div id="imageModal" class="modal hidden">
+      <div class="modal-content" style="width: 600px">
+        <h3 id="imgModalTitle">Image Details</h3>
+
+        <div style="text-align: center; margin-bottom: 20px">
+          <img
+            id="imgModalPreview"
+            src=""
+            alt="Preview"
+            style="
+              max-width: 100%;
+              max-height: 300px;
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            "
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Filename</label>
+          <div
+            id="imgModalName"
+            style="color: white; word-break: break-all"
+          ></div>
+        </div>
+        <div class="form-group">
+          <label>Created</label>
+          <div
+            id="imgModalDate"
+            style="color: white; font-size: 0.9em; color: var(--text-muted)"
+          ></div>
+        </div>
+        <div class="form-group">
+          <label>Prompt</label>
+          <div
+            id="imgModalPrompt"
+            style="
+              background: rgba(0, 0, 0, 0.3);
+              padding: 10px;
+              border-radius: 4px;
+              max-height: 200px;
+              overflow-y: auto;
+              white-space: pre-wrap;
+              font-size: 0.9em;
+            "
+          ></div>
+        </div>
+
+        <div
+          class="modal-actions"
+          style="justify-content: space-between; margin-top: 20px"
+        >
+          <button
+            id="imgModalArchiveBtn"
+            class="secondary-btn"
+            style="color: #ef4444; border-color: #ef4444"
+          >
+            Archive (Hide)
+          </button>
+          <div style="display: flex; gap: 10px">
+            <a id="imgModalLink" href="#" target="_blank" class="secondary-btn"
+              >Open Original</a
+            >
+            <button id="imgModalCloseBtn" class="primary-btn">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
