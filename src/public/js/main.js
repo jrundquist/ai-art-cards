@@ -85,22 +85,37 @@ async function init() {
     });
   }
 
+  // Key Modal Interactions
   dom.btns.addKeyToggle.addEventListener("click", () => {
-    const isHidden = dom.forms.newKey.classList.toggle("hidden");
-    dom.btns.addKeyToggle.setAttribute("aria-expanded", !isHidden);
+    dom.keyModal.self.classList.remove("hidden");
+    dom.keyModal.name.focus();
   });
 
-  dom.btns.saveNewKey.addEventListener("click", async () => {
-    const name = dom.inputs.newKeyName.value;
-    const key = dom.inputs.newKeyValue.value;
+  dom.keyModal.cancel.addEventListener("click", () => {
+    dom.keyModal.self.classList.add("hidden");
+  });
+
+  // Close on backdrop click
+  dom.keyModal.self.addEventListener("click", (e) => {
+    if (e.target === dom.keyModal.self) {
+      dom.keyModal.self.classList.add("hidden");
+    }
+  });
+
+  // Save Key Logic
+  dom.keyModal.save.addEventListener("click", async () => {
+    const name = dom.keyModal.name.value.trim();
+    const key = dom.keyModal.value.value.trim();
     if (key && name) {
       await api.saveConfig({ apiKey: key, name });
-      dom.forms.newKey.classList.add("hidden");
-      dom.inputs.newKeyName.value = "";
-      dom.inputs.newKeyValue.value = "";
+      dom.keyModal.self.classList.add("hidden");
+      dom.keyModal.name.value = "";
+      dom.keyModal.value.value = "";
       await loadKeys();
-      dom.inputs.keySelect.value = key;
+      dom.inputs.keySelect.value = key; // Select the new key
       showStatus("API Key Saved", "success");
+    } else {
+      showStatus("Please enter both Name and Key", "error");
     }
   });
 
@@ -230,6 +245,7 @@ async function init() {
       dom.imgModal.self.classList.add("hidden");
       dom.modal.self.classList.add("hidden");
       dom.helpModal.self.classList.add("hidden");
+      dom.keyModal.self.classList.add("hidden");
     }
 
     // Help Shortcut

@@ -153,26 +153,11 @@
               class="icon-btn"
               title="Add New Key"
               aria-label="Add New API Key"
-              aria-expanded="false"
-              aria-controls="newKeyForm"
+              aria-haspopup="dialog"
             >
               +
             </button>
-            <div id="newKeyForm" class="hidden popup-form">
-              <input
-                type="text"
-                id="newKeyName"
-                placeholder="Key Name"
-                aria-label="New Key Name"
-              />
-              <input
-                type="password"
-                id="newKeyValue"
-                placeholder="Gemini Key"
-                aria-label="Gemini API Key"
-              />
-              <button id="saveKeyBtn" class="secondary-btn">Save</button>
-            </div>
+
             <!-- Hidden old input compatibility if needed, or just removed -->
             <input type="hidden" id="apiKeyInput" />
           </div>
@@ -526,6 +511,41 @@
 
         <div class="modal-actions">
           <button id="closeHelpBtn" class="primary-btn">Got it</button>
+        </div>
+      </div>
+    </div>
+    <!-- Key Modal -->
+    <div
+      id="keyModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="keyModalTitle"
+    >
+      <div class="modal-content">
+        <h3 id="keyModalTitle">Add API Key</h3>
+        <div class="form-group">
+          <label for="newKeyName">Key Name</label>
+          <input
+            type="text"
+            id="newKeyName"
+            placeholder="e.g. My Gemini Key"
+            aria-label="Key Name"
+          />
+        </div>
+        <div class="form-group">
+          <label for="newKeyValue">Gemini API Key</label>
+          <input
+            type="password"
+            id="newKeyValue"
+            placeholder="AI..."
+            aria-label="Gemini API Key"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancelKeyBtn" class="secondary-btn">Cancel</button>
+          <button id="saveKeyBtn" class="primary-btn">Save</button>
         </div>
       </div>
     </div>

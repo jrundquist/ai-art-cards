@@ -35,7 +35,7 @@ export const dom = {
     favFilter: document.getElementById("galleryFilterFavorites"),
   },
   forms: {
-    newKey: document.getElementById("newKeyForm"),
+    // newKey: document.getElementById("newKeyForm"), // Removed
   },
   gallery: document.getElementById("gallery"),
   modal: {
@@ -51,6 +51,13 @@ export const dom = {
     suffix: document.getElementById("globalSuffix"),
     aspectRatio: document.getElementById("newAspectRatio"),
     resolution: document.getElementById("newResolution"),
+  },
+  keyModal: {
+    self: document.getElementById("keyModal"),
+    save: document.getElementById("saveKeyBtn"),
+    cancel: document.getElementById("cancelKeyBtn"),
+    name: document.getElementById("newKeyName"),
+    value: document.getElementById("newKeyValue"),
   },
 
   imgModal: {
