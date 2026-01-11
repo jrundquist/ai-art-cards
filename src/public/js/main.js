@@ -308,6 +308,10 @@ async function init() {
     galleryCtrl.toggleFilterArchive();
   });
 
+  dom.btns.downloadGallery.addEventListener("click", () => {
+    galleryCtrl.downloadCurrentGallery();
+  });
+
   // Global Link Interceptor for External Links
   document.addEventListener("click", (event) => {
     const target = event.target.closest("a");

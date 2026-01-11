@@ -386,3 +386,42 @@ export async function toggleImageArchive(imgUrl = null) {
 
 // Renamed for compatibility if needed, or export new name
 export const archiveCurrentImage = () => toggleImageArchive(currentImgPath);
+
+export async function downloadCurrentGallery() {
+  if (!state.currentCard || !state.currentProject) {
+    createToast("No card selected", "error");
+    return;
+  }
+
+  if (currentImageList.length === 0) {
+    createToast("No images to download", "error");
+    return;
+  }
+
+  try {
+    // Extract filenames from the current image URLs
+    const filenames = currentImageList.map((imgUrl) => imgUrl.split("/").pop());
+
+    const viewType = isArchiveView
+      ? "archived"
+      : isFavoritesOnly
+      ? "favorite"
+      : "all";
+    createToast(
+      `Downloading ${filenames.length} ${viewType} image${
+        filenames.length === 1 ? "" : "s"
+      }...`,
+      "info"
+    );
+
+    await api.downloadGalleryZip(
+      state.currentCard.id,
+      state.currentProject.id,
+      filenames
+    );
+
+    createToast("Download complete!", "success");
+  } catch (e) {
+    createToast(`Download failed: ${e.message}`, "error");
+  }
+}

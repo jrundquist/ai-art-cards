@@ -52,6 +52,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@types/archiver": "^7.0.0",
+    "archiver": "^7.0.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "electron-log": "^5.4.3",

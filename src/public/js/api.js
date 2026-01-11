@@ -102,3 +102,40 @@ export async function generateImages(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function downloadGalleryZip(cardId, projectId, filenames) {
+  const res = await fetch(`/api/cards/${cardId}/download-zip`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      projectId: projectId,
+      filenames: filenames,
+    }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to download zip");
+  }
+
+  // Get the blob
+  const blob = await res.blob();
+
+  // Extract filename from Content-Disposition header
+  const disposition = res.headers.get("Content-Disposition");
+  let filename = "gallery_images.zip";
+  if (disposition && disposition.includes("filename=")) {
+    const matches = /filename="?([^"]+)"?/.exec(disposition);
+    if (matches) filename = matches[1];
+  }
+
+  // Create download link and trigger download
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}

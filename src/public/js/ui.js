@@ -34,6 +34,7 @@ export const dom = {
     generate: document.getElementById("generateBtn"),
     favFilter: document.getElementById("galleryFilterFavorites"),
     archiveFilter: document.getElementById("galleryFilterArchive"),
+    downloadGallery: document.getElementById("galleryDownloadBtn"),
     projectSelectionCreate: document.getElementById(
       "projectSelectionCreateBtn"
     ),

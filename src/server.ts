@@ -6,6 +6,7 @@ import fs from "fs/promises";
 import { DataService, Project, Card } from "./lib/data_service";
 import { ImageGenerator } from "./lib/image_generator";
 import { exiftool } from "exiftool-vendored";
+import archiver from "archiver";
 
 dotenv.config();
 
@@ -513,6 +514,84 @@ export function createApp(dataRoot?: string) {
       res.json({ success: true, isFavorite });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Download Gallery Images as Zip
+  app.post("/api/cards/:cardId/download-zip", async (req, res) => {
+    const { cardId } = req.params;
+    const { projectId, filenames } = req.body;
+
+    try {
+      const project = await projectService.getProject(projectId);
+      const cards = await cardService.getCards(projectId);
+      const card = cards.find((c) => c.id === cardId);
+
+      if (!project || !card) {
+        return res.status(404).json({ error: "Project or Card not found" });
+      }
+
+      const cardDir = path.resolve(
+        outputDir,
+        project.outputRoot || "default",
+        card.outputSubfolder || "default"
+      );
+
+      // Security check
+      if (!cardDir.startsWith(outputDir)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Verify directory exists
+      try {
+        await fs.access(cardDir);
+      } catch {
+        return res.status(404).json({ error: "No images found for this card" });
+      }
+
+      // Set response headers for zip download
+      const zipName = `${card.name.replace(/[^a-z0-9]/gi, "_")}_${
+        new Date().toISOString().split("T")[0]
+      }.zip`;
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+
+      // Create archiver instance
+      const archive = archiver("zip", {
+        zlib: { level: 9 }, // Compression level
+      });
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Create a folder name from the card name
+      const folderName = card.name.replace(/[^a-z0-9]/gi, "_");
+
+      // Add each specified file to the archive
+      for (const filename of filenames) {
+        const filePath = path.join(cardDir, filename);
+        // Security check: ensure file is within cardDir
+        if (!filePath.startsWith(cardDir)) {
+          console.warn(`Skipping file outside card directory: ${filename}`);
+          continue;
+        }
+
+        try {
+          await fs.access(filePath);
+          // Place images in a folder named after the card
+          archive.file(filePath, { name: `${folderName}/${filename}` });
+        } catch {
+          console.warn(`File not found, skipping: ${filename}`);
+        }
+      }
+
+      // Finalize the archive
+      await archive.finalize();
+    } catch (e: any) {
+      console.error("Zip download error:", e);
+      if (!res.headersSent) {
+        res.status(500).json({ error: e.message });
+      }
     }
   });
 
