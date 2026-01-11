@@ -139,6 +139,60 @@ async function init() {
     closeOnBackdrop(e, dom.imgModal.self)
   );
 
+  // Editable Title Logic
+  const startTitleEdit = () => {
+    if (!state.currentCard) return;
+    const h1 = dom.currentCardTitle;
+    const input = dom.inputs.titleInput;
+    const btn = dom.btns.editTitle;
+
+    input.value = state.currentCard.name;
+    h1.classList.add("hidden");
+    btn.classList.add("hidden");
+    input.classList.remove("hidden");
+    input.focus();
+  };
+
+  const saveTitleEdit = async () => {
+    if (!state.currentCard) return;
+    const h1 = dom.currentCardTitle;
+    const input = dom.inputs.titleInput;
+    const btn = dom.btns.editTitle;
+    const newName = input.value.trim();
+
+    if (newName && newName !== state.currentCard.name) {
+      dom.inputs.name.value = newName; // Sync with sidebar form
+      await cardCtrl.saveCurrentCard(true); // Save silently
+      showStatus("Title updated", "success");
+    }
+
+    // Reset UI
+    dom.currentCardTitle.textContent = dom.inputs.name.value;
+    input.classList.add("hidden");
+    h1.classList.remove("hidden");
+    btn.classList.remove("hidden");
+  };
+
+  dom.btns.editTitle.addEventListener("click", startTitleEdit);
+  dom.currentCardTitle.addEventListener("click", startTitleEdit);
+
+  dom.inputs.titleInput.addEventListener("blur", saveTitleEdit);
+  dom.inputs.titleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.target.blur(); // Trigger blur to save
+    }
+    if (e.key === "Escape") {
+      // Cancel edit
+      const h1 = dom.currentCardTitle;
+      const input = dom.inputs.titleInput;
+      const btn = dom.btns.editTitle;
+
+      input.classList.add("hidden");
+      h1.classList.remove("hidden");
+      btn.classList.remove("hidden");
+    }
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       dom.imgModal.self.classList.add("hidden");

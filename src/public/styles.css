@@ -274,7 +274,57 @@ button {
   background: linear-gradient(to right, #fff, #94a3b8);
   background-clip: text;
   -webkit-background-clip: text;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  background-clip: text;
+  -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  cursor: text;
+  transition: all 0.2s;
+}
+
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-wrapper:hover #currentCardTitle {
+  opacity: 0.8;
+}
+
+.title-input {
+  font-size: 1.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--primary);
+  color: white;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 400px;
+}
+
+.icon-btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.title-wrapper:hover .icon-btn-ghost,
+.icon-btn-ghost:focus {
+  opacity: 1;
+}
+
+.icon-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: scale(1.1);
 }
 
 .actions {
@@ -298,7 +348,7 @@ button {
 }
 .combined-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 24px;
 }
 .full-width {

@@ -109,7 +109,17 @@
       <!-- Main Content -->
       <main class="main-content">
         <header class="top-bar">
-          <h1 id="currentCardTitle">Select a Card</h1>
+          <div class="title-wrapper">
+            <h1 id="currentCardTitle" title="Click to edit">Select a Card</h1>
+            <input type="text" id="cardTitleInput" class="title-input hidden" />
+            <button
+              id="editTitleBtn"
+              class="icon-btn-ghost"
+              title="Rename Card"
+            >
+              ✏️
+            </button>
+          </div>
           <div class="actions key-manager">
             <select id="keySelect">
               <option value="">Select API Key...</option>
@@ -133,15 +143,19 @@
 
         <div id="editorArea" class="editor-area hidden">
           <div class="form-grid">
+            <!-- Hidden fields -->
+            <input type="hidden" id="cardNameInput" />
+
+            <div class="form-group full-width">
+              <label>Prompt</label>
+              <textarea
+                id="promptInput"
+                rows="4"
+                placeholder="Describe the image..."
+              ></textarea>
+            </div>
+
             <div class="combined-row full-width">
-              <div class="form-group">
-                <label>Card Name</label>
-                <input
-                  type="text"
-                  id="cardNameInput"
-                  placeholder="e.g. The Fool"
-                />
-              </div>
               <div class="form-group">
                 <label>Output Subfolder</label>
                 <input type="text" id="subfolderInput" placeholder="default" />
@@ -173,15 +187,6 @@
                   <option value="4K">4K</option>
                 </select>
               </div>
-            </div>
-
-            <div class="form-group full-width">
-              <label>Prompt</label>
-              <textarea
-                id="promptInput"
-                rows="4"
-                placeholder="Describe the image..."
-              ></textarea>
             </div>
           </div>
 

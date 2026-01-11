@@ -21,9 +21,11 @@ export const dom = {
     keySelect: document.getElementById("keySelect"),
     newKeyName: document.getElementById("newKeyName"),
     newKeyValue: document.getElementById("newKeyValue"),
+    titleInput: document.getElementById("cardTitleInput"),
   },
   // preview: document.getElementById("promptPreview"), // Removed
   btns: {
+    editTitle: document.getElementById("editTitleBtn"),
     addKeyToggle: document.getElementById("addKeyToggleBtn"),
     saveNewKey: document.getElementById("saveKeyBtn"),
     saveCard: document.getElementById("saveCardBtn"),
