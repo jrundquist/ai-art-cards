@@ -308,12 +308,30 @@ app.on("ready", async () => {
 
   ipcMain.handle(
     "show-notification",
-    async (event, title: string, body: string) => {
+    async (
+      event,
+      title: string,
+      body: string,
+      projectId: string,
+      cardId: string
+    ) => {
       if (Notification.isSupported()) {
         const notification = new Notification({
           title,
           body,
         });
+
+        notification.on("click", () => {
+          // Focus the app window
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+
+            // Send navigation message to renderer
+            mainWindow.webContents.send("navigate-to-card", projectId, cardId);
+          }
+        });
+
         notification.show();
       }
     }

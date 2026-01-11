@@ -160,14 +160,17 @@ export async function generateArt() {
   const count = parseInt(dom.inputs.count.value) || 1;
   const promises = [];
 
-  // Update Global Count
+  const generatingProjectId = state.currentProject.id;
+  const generatingCardId = state.currentCard.id;
+  const generatingCardName = state.currentCard.name;
+
   state.pendingGenerationCount += count;
   updateStatusBar(`Generating ${state.pendingGenerationCount} images...`);
 
   for (let i = 0; i < count; i++) {
     const p = (async () => {
       const toast = createToast(
-        `✨ Generating "${state.currentCard.name}" ${i + 1}/${count}...`,
+        `✨ Generating "${generatingCardName}" ${i + 1}/${count}...`,
         "ai-generating",
         0
       );
@@ -196,11 +199,12 @@ export async function generateArt() {
         toast.update(`Success #${i + 1}`, "success");
         setTimeout(() => toast.remove(), 4000);
 
-        // Send OS notification if running in Electron
         if (window.electronAPI && window.electronAPI.showNotification) {
           window.electronAPI.showNotification(
             "Image Generated",
-            `"${state.currentCard.name}" image ${i + 1}/${count} completed`
+            `"${generatingCardName}" image ${i + 1}/${count} completed`,
+            generatingProjectId,
+            generatingCardId
           );
         }
       } catch (e) {

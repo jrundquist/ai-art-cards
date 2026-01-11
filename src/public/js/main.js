@@ -42,6 +42,21 @@ async function init() {
     projectCtrl.onProjectSelect(true)
   );
 
+  // Electron Navigation Integration
+  if (window.electronAPI && window.electronAPI.onNavigateToCard) {
+    window.electronAPI.onNavigateToCard(async (projectId, cardId) => {
+      if (!state.currentProject || state.currentProject.id !== projectId) {
+        dom.projectSelect.value = projectId;
+        await projectCtrl.onProjectSelect(false);
+      }
+
+      const card = state.allCards?.find((c) => c.id === cardId);
+      if (card) {
+        cardCtrl.selectCard(card, true);
+      }
+    });
+  }
+
   // Help & OOB
   if (dom.btns.help) {
     dom.btns.help.addEventListener("click", () => {
