@@ -137,7 +137,7 @@ export function addImageToGallery(
   // Favorite Icon
   const favIcon = document.createElement("div");
   favIcon.className = `gallery-fav-icon ${isFav ? "active" : ""}`;
-  favIcon.innerHTML = "♥";
+  favIcon.innerHTML = '<span class="material-icons">favorite_border</span>';
   favIcon.title = "Toggle Favorite";
   favIcon.onclick = (e) => {
     e.stopPropagation();
@@ -150,7 +150,9 @@ export function addImageToGallery(
   // Icon depends on view? Or always trash can?
   // If in archive view, maybe "Restore" icon (undo arrow)?
   // For now, let's use Trash for both, but maybe different color/tooltip
-  archiveIcon.innerHTML = isArchiveView ? "♻️" : "🗑️";
+  archiveIcon.innerHTML = isArchiveView
+    ? '<span class="material-icons">restore_from_trash</span>'
+    : '<span class="material-icons">delete_outline</span>';
   archiveIcon.title = isArchiveView ? "Restore Image" : "Archive Image";
   archiveIcon.onclick = (e) => {
     e.stopPropagation();

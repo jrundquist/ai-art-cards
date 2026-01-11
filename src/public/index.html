@@ -9,9 +9,13 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: file: https:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: blob: file: https:;"
     />
   </head>
   <body>
@@ -79,7 +83,7 @@
                 title="Open Data Folder"
                 aria-label="Open Data Folder"
               >
-                📂
+                <span class="material-icons">folder_open</span>
               </button>
               <button
                 id="editProjectBtn"
@@ -87,7 +91,7 @@
                 title="Project Settings"
                 aria-label="Project Settings"
               >
-                ⚙️
+                <span class="material-icons">settings</span>
               </button>
               <button
                 id="newProjectBtn"
@@ -95,7 +99,7 @@
                 title="New Project"
                 aria-label="Create New Project"
               >
-                +
+                <span class="material-icons">add</span>
               </button>
             </div>
           </div>
@@ -105,7 +109,11 @@
           </div>
 
           <button id="newCardBtn" class="primary-btn full-width">
-            + New Card
+            <span
+              class="material-icons"
+              style="font-size: 18px; margin-right: 8px"
+              >add</span
+            >New Card
           </button>
           <div class="sidebar-search-wrapper">
             <input
@@ -142,7 +150,7 @@
                 title="Rename Card"
                 aria-label="Rename Card"
               >
-                ✏️
+                <span class="material-icons">edit</span>
               </button>
             </div>
             <div class="actions key-manager">
@@ -156,7 +164,7 @@
                 aria-label="Add New API Key"
                 aria-haspopup="dialog"
               >
-                +
+                <span class="material-icons">add</span>
               </button>
 
               <!-- Hidden old input compatibility if needed, or just removed -->
@@ -169,7 +177,11 @@
             <div class="project-selection-header">
               <h2>Choose a Project</h2>
               <button id="projectSelectionCreateBtn" class="primary-btn">
-                + Create Project
+                <span
+                  class="material-icons"
+                  style="font-size: 18px; margin-right: 8px"
+                  >add</span
+                >Create Project
               </button>
             </div>
             <div id="projectGridContainer" class="project-grid">
@@ -245,7 +257,7 @@
                 title="Open Card Folder"
                 aria-label="Open Card Folder"
               >
-                📂
+                <span class="material-icons">folder_open</span>
               </button>
               <button
                 id="galleryFilterFavorites"
@@ -255,7 +267,7 @@
                 style="margin-left: auto"
                 aria-pressed="false"
               >
-                ♥
+                <span class="material-icons">favorite_border</span>
               </button>
               <button
                 id="galleryFilterArchive"
@@ -265,7 +277,7 @@
                 style="margin-left: 5px"
                 aria-pressed="false"
               >
-                🗑️
+                <span class="material-icons">delete_outline</span>
               </button>
               <button
                 id="galleryDownloadBtn"
@@ -274,7 +286,7 @@
                 aria-label="Download Displayed Images as Zip"
                 style="margin-left: 5px"
               >
-                ⬇️
+                <span class="material-icons">download</span>
               </button>
             </div>
 

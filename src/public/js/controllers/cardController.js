@@ -46,7 +46,7 @@ export function renderCardList(cards) {
             <span>${card.name}</span>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.8em; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${count}</span>
-              <button class="delete-card-icon" title="Delete Card" style="background: none; border: none; cursor: pointer; color: #64748b; font-size: 1.1em; padding: 0; line-height: 1; display: none;">×</button>
+              <button class="delete-card-icon" title="Delete Card" style="background: none; border: none; cursor: pointer; color: #64748b; font-size: 1.1em; padding: 0; line-height: 1; display: none;"><span class="material-icons" style="font-size: 16px;">close</span></button>
             </div>
         </div>
     `;
@@ -63,8 +63,11 @@ export function renderCardList(cards) {
     };
 
     div.onclick = (e) => {
-      // Check if delete button was clicked
-      if (e.target.classList.contains("delete-card-icon")) {
+      // Check if delete button or its icon was clicked
+      if (
+        e.target.classList.contains("delete-card-icon") ||
+        e.target.closest(".delete-card-icon")
+      ) {
         e.stopPropagation();
         deleteCard(card);
         return;
