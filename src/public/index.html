@@ -262,69 +262,70 @@
 
     <!-- Image Details Modal -->
     <div id="imageModal" class="modal hidden">
-      <div class="modal-content" style="width: 600px">
-        <h3 id="imgModalTitle">Image Details</h3>
+      <div class="modal-content modal-content-wide">
+        <button id="imgModalCloseX" class="modal-close-x" title="Close">
+          ×
+        </button>
+        <div class="modal-image-col">
+          <img id="imgModalPreview" src="" alt="Preview" />
+        </div>
 
-        <div style="text-align: center; margin-bottom: 20px">
-          <img
-            id="imgModalPreview"
-            src=""
-            alt="Preview"
+        <div class="modal-info-col">
+          <h3 id="imgModalTitle">Details</h3>
+          <div class="form-group">
+            <label>Filename</label>
+            <div
+              id="imgModalName"
+              style="color: white; word-break: break-all"
+            ></div>
+          </div>
+          <div class="form-group">
+            <label>Created</label>
+            <div
+              id="imgModalDate"
+              style="color: white; font-size: 0.9em; color: var(--text-muted)"
+            ></div>
+          </div>
+          <div
+            class="form-group"
             style="
-              max-width: 100%;
-              max-height: 300px;
-              border-radius: 8px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+              flex: 1;
+              min-height: 0;
+              display: flex;
+              flex-direction: column;
             "
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Filename</label>
-          <div
-            id="imgModalName"
-            style="color: white; word-break: break-all"
-          ></div>
-        </div>
-        <div class="form-group">
-          <label>Created</label>
-          <div
-            id="imgModalDate"
-            style="color: white; font-size: 0.9em; color: var(--text-muted)"
-          ></div>
-        </div>
-        <div class="form-group">
-          <label>Prompt</label>
-          <div
-            id="imgModalPrompt"
-            style="
-              background: rgba(0, 0, 0, 0.3);
-              padding: 10px;
-              border-radius: 4px;
-              max-height: 200px;
-              min-height: 60px;
-              overflow-y: auto;
-              white-space: pre-wrap;
-              font-size: 0.9em;
-            "
-          ></div>
-        </div>
-
-        <div
-          class="modal-actions"
-          style="justify-content: space-between; margin-top: 20px"
-        >
-          <button
-            id="imgModalArchiveBtn"
-            class="secondary-btn"
-            style="color: #ef4444; border-color: #ef4444"
           >
-            Archive (Hide)
-          </button>
-          <div style="display: flex; gap: 10px">
-            <a id="imgModalLink" href="#" target="_blank" class="secondary-btn"
+            <label>Prompt</label>
+            <div
+              id="imgModalPrompt"
+              style="
+                flex: 1;
+                overflow-y: auto;
+                background: rgba(0, 0, 0, 0.3);
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 0.85em;
+                white-space: pre-wrap;
+              "
+            ></div>
+          </div>
+
+          <div class="modal-actions-vertical">
+            <a
+              id="imgModalLink"
+              href="#"
+              target="_blank"
+              class="secondary-btn"
+              style="text-align: center"
               >Open Original</a
             >
+            <button
+              id="imgModalArchiveBtn"
+              class="secondary-btn"
+              style="color: #ef4444; border-color: #ef4444"
+            >
+              Archive
+            </button>
             <button id="imgModalCloseBtn" class="primary-btn">Close</button>
           </div>
         </div>

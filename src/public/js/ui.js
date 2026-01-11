@@ -58,6 +58,7 @@ export const dom = {
     link: document.getElementById("imgModalLink"),
     archiveBtn: document.getElementById("imgModalArchiveBtn"),
     closeBtn: document.getElementById("imgModalCloseBtn"),
+    closeX: document.getElementById("imgModalCloseX"),
   },
   toastContainer: document.getElementById("toast-container"),
 };

@@ -121,6 +121,9 @@ async function init() {
   dom.imgModal.closeBtn.addEventListener("click", () =>
     dom.imgModal.self.classList.add("hidden")
   );
+  dom.imgModal.closeX.addEventListener("click", () =>
+    dom.imgModal.self.classList.add("hidden")
+  );
   dom.imgModal.archiveBtn.addEventListener(
     "click",
     galleryCtrl.archiveCurrentImage
@@ -144,10 +147,18 @@ async function init() {
 
     // Gallery Navigation
     if (!dom.imgModal.self.classList.contains("hidden")) {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        galleryCtrl.navigateGallery("next");
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        galleryCtrl.navigateGallery("prev");
+      if (
+        e.key === "ArrowRight" ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowUp"
+      ) {
+        e.preventDefault(); // Stop page scroll
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          galleryCtrl.navigateGallery("next");
+        } else {
+          galleryCtrl.navigateGallery("prev");
+        }
       }
     }
   });
