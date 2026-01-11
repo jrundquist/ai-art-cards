@@ -44,6 +44,7 @@ export const dom = {
     save: document.getElementById("saveProjectBtn"),
     cancel: document.getElementById("cancelProjectBtn"),
     id: document.getElementById("newProjectId"),
+    idDisplay: document.getElementById("newProjectIdDisplay"),
     name: document.getElementById("newProjectName"),
     root: document.getElementById("newProjectRoot"),
     prefix: document.getElementById("globalPrefix"),

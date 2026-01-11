@@ -91,23 +91,82 @@ export function openProjectModal(project) {
     // Edit Mode
     dom.modal.title.textContent = "Edit Project";
     dom.modal.id.value = project.id;
-    dom.modal.id.disabled = true; // Cannot change ID
+    dom.modal.idDisplay.textContent = project.id;
+    // ID is hidden input, no disabled property needed
     dom.modal.name.value = project.name;
     dom.modal.root.value = project.outputRoot;
     dom.modal.prefix.value = project.globalPrefix;
     dom.modal.suffix.value = project.globalSuffix;
     dom.modal.aspectRatio.value = project.defaultAspectRatio || "2:3";
     dom.modal.resolution.value = project.defaultResolution || "2K";
+
+    isCreateMode = false;
   } else {
     // Create Mode
     dom.modal.title.textContent = "New Project";
     dom.modal.id.value = "";
-    dom.modal.id.disabled = false;
+    dom.modal.idDisplay.textContent = " ";
+    // ID is hidden input now, no disabled property to set
+
     dom.modal.name.value = "";
     dom.modal.root.value = "";
     dom.modal.prefix.value = "";
     dom.modal.suffix.value = "";
     dom.modal.aspectRatio.value = "2:3";
     dom.modal.resolution.value = "2K";
+
+    // Reset flags for new project
+    isIdManuallyChanged = false;
+    isRootManuallyChanged = false;
+    isCreateMode = true;
   }
 }
+
+// Auto-fill Logic
+let listenersAttached = false;
+let isIdManuallyChanged = false;
+let isRootManuallyChanged = false;
+let isCreateMode = false;
+
+function attachAutoFillListeners() {
+  if (listenersAttached) return;
+
+  dom.modal.name.addEventListener("input", () => {
+    if (!isCreateMode) return;
+
+    const nameVal = dom.modal.name.value;
+
+    if (!isIdManuallyChanged) {
+      // Safe ID: lowercase, remove special chars, spaces to hyphens
+      const safeId = nameVal
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      dom.modal.id.value = safeId;
+      dom.modal.idDisplay.textContent = safeId;
+    }
+
+    if (!isRootManuallyChanged) {
+      // Safe Folder: remove special chars, spaces to underscores
+      const safeRoot = nameVal
+        .toLowerCase()
+        .replace(/[^a-z0-9\s_-]/g, "")
+        .trim()
+        .replace(/\s+/g, "_");
+      dom.modal.root.value = safeRoot;
+    }
+  });
+
+  // ID is no longer manually editable, so we don't need a listener for it
+
+  dom.modal.root.addEventListener("input", () => {
+    isRootManuallyChanged = true;
+  });
+
+  listenersAttached = true;
+}
+
+// Attach listeners once at module load time (or when first used)
+// Since this module is imported by main.js, we can just run this:
+attachAutoFillListeners();

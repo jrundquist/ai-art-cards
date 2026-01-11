@@ -67,7 +67,7 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <h2>Art Cards</h2>
+          <h2 id="appTitle">AI Card Arts</h2>
           <div class="project-select-wrapper">
             <select id="projectSelect">
               <option value="">Select Project...</option>
@@ -279,34 +279,54 @@
     >
       <div class="modal-content">
         <h3 id="projectModalTitle">Project Settings</h3>
-        <input
-          type="text"
-          id="newProjectId"
-          placeholder="ID (e.g. tarot)"
-          aria-label="Project ID"
-        />
-        <input
-          type="text"
-          id="newProjectName"
-          placeholder="Name (e.g. Tarot Deck)"
-          aria-label="Project Name"
-        />
-        <input
-          type="text"
-          id="newProjectRoot"
-          placeholder="Output Dir (relative to data/output, e.g. tarot)"
-          aria-label="Output Directory"
-        />
-        <textarea
-          id="globalPrefix"
-          placeholder="Global Prefix"
-          aria-label="Global Prompt Prefix"
-        ></textarea>
-        <textarea
-          id="globalSuffix"
-          placeholder="Global Suffix"
-          aria-label="Global Prompt Suffix"
-        ></textarea>
+        <div class="form-group">
+          <label for="newProjectName">Project Name</label>
+          <input
+            type="text"
+            id="newProjectName"
+            placeholder="e.g. Tarot Deck"
+            aria-label="Project Name"
+          />
+        </div>
+
+        <input type="hidden" id="newProjectId" />
+        <div
+          class="info-text"
+          style="
+            display: none;
+            margin-bottom: 15px;
+            margin-top: -5px;
+            font-size: 0.5em;
+            color: var(--text-muted);
+          "
+        >
+          ID: <span id="newProjectIdDisplay"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="newProjectRoot">Output Folder Name</label>
+          <input
+            type="text"
+            id="newProjectRoot"
+            placeholder="e.g. tarot_deck"
+            aria-label="Output Directory"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Global Prompt Modifiers</label>
+          <textarea
+            id="globalPrefix"
+            placeholder="Global Prefix (added to start of every prompt)"
+            aria-label="Global Prompt Prefix"
+            style="margin-bottom: 5px"
+          ></textarea>
+          <textarea
+            id="globalSuffix"
+            placeholder="Global Suffix (added to end of every prompt)"
+            aria-label="Global Prompt Suffix"
+          ></textarea>
+        </div>
 
         <div class="form-grid" style="margin-top: 10px">
           <div class="form-group">
@@ -335,7 +355,7 @@
         </div>
 
         <div class="modal-actions">
-          <button id="cancelProjectBtn">Cancel</button>
+          <button id="cancelProjectBtn" class="secondary-btn">Cancel</button>
           <button id="saveProjectBtn" class="primary-btn">Save</button>
         </div>
       </div>
