@@ -99,15 +99,42 @@ export class ImageGenerator {
 
     // Versioning logic
     const fileExtension = mime.getExtension(mimeType) || "png";
-    const nextVersion = await this.getNextVersion(
-      outputFolder,
-      filename,
-      fileExtension
-    );
-    const finalFilename = `${filename}_v${nextVersion}.${fileExtension}`;
-    const finalOutputPath = path.join(outputFolder, finalFilename);
+    let finalOutputPath = "";
+    let saved = false;
+    let attempts = 0;
 
-    await fs.writeFile(finalOutputPath, buffer);
+    // Retry loop to handle race conditions with version numbers
+    while (!saved && attempts < 10) {
+      const nextVersion = await this.getNextVersion(
+        outputFolder,
+        filename,
+        fileExtension
+      );
+      const finalFilename = `${filename}_v${nextVersion}.${fileExtension}`;
+      finalOutputPath = path.join(outputFolder, finalFilename);
+
+      try {
+        // 'wx' flag fails if file exists
+        await fs.writeFile(finalOutputPath, buffer, { flag: "wx" });
+        saved = true;
+      } catch (e: any) {
+        if (e.code === "EEXIST") {
+          attempts++;
+          // Small delay to reduce contention
+          await new Promise((resolve) =>
+            setTimeout(resolve, 50 + Math.random() * 50)
+          );
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    if (!saved) {
+      throw new Error(
+        `Failed to save image after ${attempts} attempts due to file collisions.`
+      );
+    }
 
     // Metadata
     try {
