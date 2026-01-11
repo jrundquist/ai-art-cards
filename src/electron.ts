@@ -7,10 +7,13 @@ import {
   shell,
   ipcMain,
   Notification,
+  Tray,
+  nativeImage,
 } from "electron";
 import { startServer } from "./server";
 import { autoUpdater } from "electron-updater";
 import path from "path";
+import fs from "fs";
 import { logger, configureLogger } from "./lib/logger";
 import log from "electron-log";
 
@@ -24,6 +27,7 @@ autoUpdater.autoDownload = false;
 const SERVER_URL = "http://localhost:5432";
 
 let isManualCheck = false;
+let tray: Tray | null = null;
 
 // Events
 autoUpdater.on("update-available", () => {
@@ -267,8 +271,11 @@ app.on("ready", async () => {
   const userDataPath = app.getPath("userData");
   logger.info("Electron User Data Path:", userDataPath);
 
-  // Use a subfolder 'server-data' to keep it clean, or just root
-  const dataRoot = userDataPath; // path.join(userDataPath, "data");
+  // Use a subfolder 'data' to keep it clean
+  const dataRoot = path.join(userDataPath, "data");
+  if (!fs.existsSync(dataRoot)) {
+    fs.mkdirSync(dataRoot, { recursive: true });
+  }
 
   // IPC Handlers
   // IPC Handlers
@@ -342,8 +349,107 @@ app.on("ready", async () => {
 
   await startServer(5432, dataRoot, logFile);
 
+  createTray();
+  setupDockMenu();
+
   createWindow();
 });
+
+function createTray() {
+  try {
+    const iconPath = path.join(__dirname, "..", "assets", "trayTemplate.png");
+    let icon = nativeImage.createFromPath(iconPath);
+
+    if (icon.isEmpty()) {
+      logger.error("Tray icon image is empty! Check path:", iconPath);
+      return;
+    }
+
+    // Resize for tray - standard macOS tray icon height is 22px
+    icon = icon.resize({ height: 22 });
+    icon.setTemplateImage(true);
+
+    tray = new Tray(icon);
+    tray.setToolTip("AICardArts");
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: "Open AICardArts",
+        click: () => {
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          } else {
+            createWindow();
+          }
+        },
+      },
+      {
+        label: "Open in Browser",
+        click: async () => {
+          await shell.openExternal(SERVER_URL);
+        },
+      },
+      { type: "separator" },
+      {
+        label: "Open Data Folder",
+        click: async () => {
+          const dataPath = path.join(app.getPath("userData"), "data");
+          await shell.openPath(dataPath);
+        },
+      },
+      {
+        label: "View Application Logs",
+        click: () => {
+          const logFile = log.transports.file.getFile().path;
+          if (logFile) {
+            shell.showItemInFolder(logFile);
+          }
+        },
+      },
+      {
+        label: "Check for Updates...",
+        click: () => {
+          autoUpdater.checkForUpdatesAndNotify();
+        },
+      },
+      { type: "separator" },
+      { role: "quit" },
+    ]);
+
+    tray.setContextMenu(contextMenu);
+  } catch (err) {
+    logger.error("Error creating tray:", err);
+  }
+}
+
+function setupDockMenu() {
+  if (process.platform === "darwin" && app.dock) {
+    const dockMenu = Menu.buildFromTemplate([
+      {
+        label: "Open in Browser",
+        click: async () => {
+          await shell.openExternal(SERVER_URL);
+        },
+      },
+      {
+        label: "Open Data Folder",
+        click: async () => {
+          const dataPath = path.join(app.getPath("userData"), "data");
+          await shell.openPath(dataPath);
+        },
+      },
+      {
+        label: "Check for Updates...",
+        click: () => {
+          autoUpdater.checkForUpdatesAndNotify();
+        },
+      },
+    ]);
+    app.dock.setMenu(dockMenu);
+  }
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
