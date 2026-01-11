@@ -278,6 +278,11 @@ app.on("ready", async () => {
     }
   });
 
+  ipcMain.handle("open-external-link", async (event, url: string) => {
+    log.info("Opening external link:", url);
+    await shell.openExternal(url);
+  });
+
   await startServer(5432, dataRoot);
 
   createWindow();

@@ -290,6 +290,19 @@ async function init() {
     galleryCtrl.toggleFilterArchive();
   });
 
+  // Global Link Interceptor for External Links
+  document.addEventListener("click", (event) => {
+    const target = event.target.closest("a");
+    if (target && target.href) {
+      const url = target.href;
+      // Check for data-external attribute
+      if (target.hasAttribute("data-external") && window.electronAPI) {
+        event.preventDefault();
+        window.electronAPI.openExternal(url);
+      }
+    }
+  });
+
   window.addEventListener("popstate", () => restoreStateFromUrl());
 
   await restoreStateFromUrl();
