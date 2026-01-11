@@ -16,6 +16,7 @@ A powerful, local web and desktop application for generating and managing consis
 -   **Gallery & Archive**:
     -   View all generated images for a selected card.
     -   Click to view details (Prompt, Date).
+    -   **Gallery Download**: Download all currently visible images in the gallery as a ZIP file (respects filters).
     -   Archive unwanted images to hide them from the view.
 -   **Desktop Application (Electron)**:
     -   Run as a standalone native app on macOS (and other platforms).
@@ -100,6 +101,7 @@ When you first load the app, click the **(+)** button next to the key selector (
 ### 5. Managing Images
 -   **View Details**: Click any image to see its metadata and the exact prompt used to generate it.
 -   **Archive**: If an image isn't right, click "Archive" in the details modal to hide it.
+-   **Download Gallery**: Click the **Download** button in the gallery header to download the current set of images (All, Favorites, or Archived) as a ZIP file.
 -   **Search**: Use the search bar in the card list to quickly find cards by name.
 
 ## Configuration Updates
@@ -108,3 +110,7 @@ To edit a Project's settings later, select the project and click the **Settings 
 ## Troubleshooting
 -   **Status Bar**: Watch the toast notifications at the bottom right for errors (e.g., "Safety Block" means the AI refused the prompt).
 -   **Logs**: The terminal where you ran `yarn dev` shows detailed logs of every request, including the full prompt sent to Gemini.
+
+---
+
+*Co-developed with AI in Antigravity.*
