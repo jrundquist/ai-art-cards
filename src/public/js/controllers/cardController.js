@@ -46,7 +46,7 @@ export function renderCardList(cards) {
             <span>${card.name}</span>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.8em; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${count}</span>
-              <button class="delete-card-icon" title="Delete Card" style="background: none; border: none; cursor: pointer; color: #64748b; font-size: 1.1em; padding: 0; line-height: 1; display: none;"><span class="material-icons" style="font-size: 16px;">close</span></button>
+              <button class="delete-card-icon" title="Delete Card" style="background: none; border: none; cursor: pointer; color: #64748b; font-size: 1.1em; padding: 0; line-height: 1; display: none;"><span class="material-icons" style="font-size: 16px;">delete_outline</span></button>
             </div>
         </div>
     `;
