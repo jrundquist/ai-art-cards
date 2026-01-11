@@ -194,6 +194,17 @@ function createMenu() {
             );
           },
         },
+        { type: "separator" },
+        {
+          label: "View Application Logs",
+          click: () => {
+            const logFile = log.transports.file.getFile().path;
+            log.info("User requested to view logs at:", logFile);
+            if (logFile) {
+              shell.showItemInFolder(logFile);
+            }
+          },
+        },
       ],
     },
   ] as MenuItemConstructorOptions[];
