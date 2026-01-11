@@ -397,47 +397,18 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
 
           if (!proj || !c) return { error: "Project or Card not found" };
 
-          const promptToUse = args.promptOverride || c.prompt;
-          const fullPrompt = `${proj.globalPrefix} ${promptToUse} ${proj.globalSuffix}`;
-
-          // Reuse output logic (duplicate from server.ts - ideally refactor, but for now copy)
-          // We need to know the 'outputDir'.
-          // We can derive it relative to CWD as 'data/output'
-          const outputRoot = path.join(process.cwd(), "data", "output");
-          const projDir = (proj.outputRoot || "default").replace(
-            /^(\.\.(\/|\\|$))+/,
-            ""
-          );
-          const cardDir = (c.outputSubfolder || "default").replace(
-            /^(\.\.(\/|\\|$))+/,
-            ""
-          );
-          const outFolder = path.resolve(outputRoot, projDir, cardDir);
-
-          if (!this.imageGenerator) {
-            return { error: "API Key not set. Cannot generate images." };
-          }
-
-          const { buffer, mimeType } =
-            await this.imageGenerator.generateImageBuffer(fullPrompt, {
-              aspectRatio: c.aspectRatio,
-              resolution: c.resolution,
-            });
-
-          const savedPath = await this.imageGenerator.saveImage(
-            buffer,
-            mimeType,
-            outFolder,
-            c.id,
-            fullPrompt,
-            { title: c.name, project: proj.name, cardId: c.id }
-          );
-
+          // Changed: We now return a signal to the client to trigger generation.
+          // This allows the frontend to show progress bars, toasts, etc.
           return {
             success: true,
-            message: "Image generated",
-            path: path.relative(path.join(process.cwd(), "data"), savedPath),
+            clientAction: "generateImage",
+            projectId: pId,
+            cardId: cId,
+            promptOverride: args.promptOverride,
           };
+        /* Old Backend Logic Removed
+          // ... (removed generation code)
+          */
         default:
           return { error: "Unknown tool" };
       }

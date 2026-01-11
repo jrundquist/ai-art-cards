@@ -37,6 +37,18 @@ export function createApp(dataRoot?: string) {
   // Config API Key (Naive in-memory for now, or use ENV)
   let API_KEY = process.env.GEMINI_API_KEY || "";
 
+  // Chat Service Definition (Moved up for access)
+  let chatService: ChatService | null = null;
+  const initChatService = () => {
+    // Always init, even if no key (for history access)
+    // Re-create instance to update key if changed
+    chatService = new ChatService(API_KEY, dataService);
+    chatService.setConversationsDir(
+      path.join(resolvedDataRoot, "conversations")
+    );
+  };
+  initChatService();
+
   // Serve Static Frontend
   // In dev (ts-node), __dirname is src/. In built (node), it's dist/.
   // We need to find where 'public' actually lives.
@@ -82,17 +94,8 @@ export function createApp(dataRoot?: string) {
         await dataService.saveKey(name, apiKey);
       }
       API_KEY = apiKey;
-      API_KEY = apiKey;
-      // Re-init chat service if it exists (we need a way to trigger it)
-      // Since initChatService is defined in the closure, we can't access it here easily
-      // unless we move definition up or use a shared variable for the service itself.
-      // But we can just rely on the lazy check in the endpoints for now.
-      // Or we can reset the variable if we had access.
-      // Actually, since everything is in `createApp`, variables are shared...
-      // BUT `initChatService` is defined WAY below.
-      // Javascript hoisting for `const`? NO.
-      // We need to move `initChatService` definition to the top of `createApp`.
-      // I will do that in a follow up step. For now just cleaning this block.
+      // Re-init chat service to pick up new key
+      initChatService();
       res.json({ success: true });
     } else {
       res.status(400).json({ error: "Missing apiKey" });
@@ -634,15 +637,9 @@ export function createApp(dataRoot?: string) {
 
   // --- Chat ---
 
-  let chatService: ChatService | null = null;
-  const initChatService = () => {
-    // Always init, even if no key (for history access)
-    chatService = new ChatService(API_KEY, dataService);
-    chatService.setConversationsDir(
-      path.join(resolvedDataRoot, "conversations")
-    );
-  };
-  initChatService();
+  // --- Chat ---
+
+  // chatService init moved to top of function
 
   app.post("/api/chat/message", async (req, res) => {
     if (!chatService) {
@@ -670,7 +667,16 @@ export function createApp(dataRoot?: string) {
         res
       );
     } catch (e: any) {
-      if (!res.headersSent) res.status(500).json({ error: e.message });
+      logger.error("[Chat API] Error processing message:", e);
+      if (!res.headersSent) {
+        res.status(500).json({ error: e.message });
+      } else {
+        // If headers sent (streaming started), we need to write error event
+        res.write(
+          `data: ${JSON.stringify({ type: "error", content: e.message })}\n\n`
+        );
+        res.end();
+      }
     }
   });
 
