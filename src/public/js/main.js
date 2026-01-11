@@ -17,6 +17,13 @@ async function loadKeys() {
     dom.inputs.keySelect.appendChild(opt);
   });
 
+  // Highlight if no keys
+  if (keys.length === 0) {
+    dom.btns.addKeyToggle.classList.add("pulse-highlight");
+  } else {
+    dom.btns.addKeyToggle.classList.remove("pulse-highlight");
+  }
+
   const lastName = localStorage.getItem("lastApiKeyName");
   if (lastName) {
     const option = Array.from(dom.inputs.keySelect.options).find(
@@ -34,6 +41,30 @@ async function init() {
   dom.projectSelect.addEventListener("change", () =>
     projectCtrl.onProjectSelect(true)
   );
+
+  // Help & OOB
+  if (dom.btns.help) {
+    dom.btns.help.addEventListener("click", () => {
+      dom.helpModal.self.classList.remove("hidden");
+    });
+  }
+  if (dom.helpModal.close) {
+    dom.helpModal.close.addEventListener("click", () => {
+      dom.helpModal.self.classList.add("hidden");
+    });
+  }
+  if (dom.helpModal.self) {
+    dom.helpModal.self.addEventListener("click", (e) => {
+      if (e.target === dom.helpModal.self) {
+        dom.helpModal.self.classList.add("hidden");
+      }
+    });
+  }
+
+  // OOB Check: If no projects, show help
+  if (state.projects.length === 0) {
+    dom.helpModal.self.classList.remove("hidden");
+  }
 
   await loadKeys();
 
@@ -198,6 +229,17 @@ async function init() {
     if (e.key === "Escape") {
       dom.imgModal.self.classList.add("hidden");
       dom.modal.self.classList.add("hidden");
+      dom.helpModal.self.classList.add("hidden");
+    }
+
+    // Help Shortcut
+    if (
+      e.key === "?" ||
+      (e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName))
+    ) {
+      e.preventDefault();
+      dom.helpModal.self.classList.remove("hidden");
     }
 
     // Gallery Navigation

@@ -17,6 +17,12 @@ export async function loadCards(projectId) {
   const cards = await api.fetchCards(projectId);
   state.allCards = cards;
   renderCardList(cards);
+
+  if (cards.length === 0) {
+    dom.newCardBtn.classList.add("pulse-highlight", "glow");
+  } else {
+    dom.newCardBtn.classList.remove("pulse-highlight", "glow");
+  }
   return cards;
 }
 

@@ -21,6 +21,12 @@ export async function loadProjects() {
     opt.textContent = p.name;
     dom.projectSelect.appendChild(opt);
   });
+
+  if (state.projects.length === 0) {
+    dom.newProjectBtn.classList.add("pulse-highlight");
+  } else {
+    dom.newProjectBtn.classList.remove("pulse-highlight");
+  }
 }
 
 export async function onProjectSelect(updateHistory = true) {

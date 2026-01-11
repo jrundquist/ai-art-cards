@@ -96,6 +96,14 @@
             >
               +
             </button>
+            <button
+              id="helpBtn"
+              class="icon-btn"
+              title="Help & Shortcuts (?)"
+              aria-label="Help and Shortcuts"
+            >
+              ?
+            </button>
           </div>
         </div>
 
@@ -420,6 +428,84 @@
             </button>
             <button id="imgModalCloseBtn" class="primary-btn">Close</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help & Shortcuts Modal -->
+    <div
+      id="helpModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="helpModalTitle"
+    >
+      <div class="modal-content">
+        <h3 id="helpModalTitle">Help & Shortcuts</h3>
+
+        <div class="help-section">
+          <h4>Getting Started</h4>
+          <ol class="help-steps">
+            <li>
+              <strong>Add API Key</strong>: Click the '+' next to the API Key
+              selector to add your Google Gemini API key.
+              <div
+                style="
+                  font-size: 0.9em;
+                  margin-top: 6px;
+                  line-height: 1.4;
+                  color: var(--text-muted);
+                "
+              >
+                To get a Google Gemini API key, go to
+                <a
+                  href="https://aistudio.google.com"
+                  target="_blank"
+                  style="color: var(--primary)"
+                  >Google AI Studio</a
+                >
+                in your browser, sign in with your Google account, and click
+                "Get API key" to generate a key.
+              </div>
+            </li>
+            <li>
+              <strong>Create Project</strong>: Use the '+' in the sidebar to
+              create a new project (e.g., "Tarot Deck").
+            </li>
+            <li>
+              <strong>Create Card</strong>: Click "+ New Card" to define an
+              image you want to generate.
+            </li>
+            <li>
+              <strong>Generate</strong>: Enter a prompt and click "Generate
+              Art".
+            </li>
+          </ol>
+        </div>
+
+        <div class="help-section">
+          <h4>Keyboard Shortcuts</h4>
+          <div class="shortcuts-grid">
+            <div class="shortcut-item">
+              <kbd>/</kbd> <span>Open this menu</span>
+            </div>
+            <div class="shortcut-item">
+              <kbd>Esc</kbd> <span>Close Modals / Cancel Edit</span>
+            </div>
+            <div class="shortcut-item">
+              <kbd>F</kbd> <span>Toggle Favorite (in Gallery)</span>
+            </div>
+            <div class="shortcut-item">
+              <kbd>←</kbd> <kbd>→</kbd> <span>Navigate Gallery</span>
+            </div>
+            <div class="shortcut-item">
+              <kbd>Enter</kbd> <span>Save Card Title</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="closeHelpBtn" class="primary-btn">Got it</button>
         </div>
       </div>
     </div>

@@ -242,6 +242,52 @@ button {
   font-weight: 500;
 }
 
+/* Prominent Spinning Highlight for OOB */
+.pulse-highlight {
+  position: relative;
+  z-index: 1;
+  overflow: hidden !important;
+  border: none !important;
+  color: #fff !important;
+  background: transparent !important; /* Let pseudos handle bg */
+
+  box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.4);
+}
+
+.pulse-highlight::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vmax;
+  height: 100vmax;
+  background: conic-gradient(
+    from 0deg,
+    var(--accent),
+    var(--primary-dark),
+    var(--primary-glow),
+    var(--accent)
+  );
+  transform: translate(-50%, -50%);
+  animation: border-spin 3s linear infinite;
+  z-index: -2;
+}
+
+.pulse-highlight::after {
+  content: "";
+  position: absolute;
+  inset: 3px; /* Border thickness */
+  background: var(--bg-app); /* Dark background for contrast */
+  border-radius: calc(var(--radius-sm) - 2px);
+  z-index: -1;
+}
+
+/* Specific adjustment for primary button to maintain gradient feel if desired,
+   or just keep it dark to make the border pop. Let's keep it dark but maybe slightly lighter. */
+.primary-btn.pulse-highlight::after {
+  background: #18181b;
+}
+
 .secondary-btn:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
@@ -745,4 +791,60 @@ button {
 
 .toast.ai-generating {
   animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Help Modal Styles */
+.help-section {
+  margin-bottom: 24px;
+}
+
+.help-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.help-steps {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.help-steps li strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.05);
 }

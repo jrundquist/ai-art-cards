@@ -25,6 +25,7 @@ export const dom = {
   },
   // preview: document.getElementById("promptPreview"), // Removed
   btns: {
+    help: document.getElementById("helpBtn"),
     editTitle: document.getElementById("editTitleBtn"),
     addKeyToggle: document.getElementById("addKeyToggleBtn"),
     saveNewKey: document.getElementById("saveKeyBtn"),
@@ -63,6 +64,10 @@ export const dom = {
     closeBtn: document.getElementById("imgModalCloseBtn"),
     closeX: document.getElementById("imgModalCloseX"),
     favBtn: document.getElementById("imgModalFavoriteBtn"),
+  },
+  helpModal: {
+    self: document.getElementById("helpModal"),
+    close: document.getElementById("closeHelpBtn"),
   },
   toastContainer: document.getElementById("toast-container"),
 };
