@@ -19,15 +19,17 @@ export interface Conversation {
 }
 
 export class ChatService {
-  private genAI: GoogleGenerativeAI;
+  private genAI: GoogleGenerativeAI | null = null;
   private dataService: DataService;
-  private imageGenerator: ImageGenerator;
+  private imageGenerator: ImageGenerator | null = null;
   private conversationsDir: string;
 
-  constructor(apiKey: string, dataService: DataService) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+  constructor(apiKey: string | undefined, dataService: DataService) {
+    if (apiKey) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.imageGenerator = new ImageGenerator(apiKey);
+    }
     this.dataService = dataService;
-    this.imageGenerator = new ImageGenerator(apiKey);
     this.conversationsDir = path.join(process.cwd(), "data", "conversations");
   }
 
@@ -156,6 +158,10 @@ export class ChatService {
     const conversation = await this.loadConversation(projectId, conversationId);
     if (!conversation) {
       throw new Error("Conversation not found");
+    }
+
+    if (!this.genAI) {
+      throw new Error("API Key not set. Cannot generate response.");
     }
 
     // System Prompt
@@ -304,6 +310,22 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
         parts: h.parts as Part[],
       }));
       conversation.lastUpdated = Date.now();
+
+      // Auto-title if new and has content
+      if (
+        conversation.title === "New Conversation" &&
+        conversation.history.length >= 2
+      ) {
+        const newTitle = await this.generateTitle(conversation.history);
+        if (newTitle) {
+          conversation.title = newTitle;
+          // Send title update event
+          res.write(
+            `data: ${JSON.stringify({ type: "title", content: newTitle })}\n\n`
+          );
+        }
+      }
+
       await this.saveConversation(conversation);
 
       res.write("data: [DONE]\n\n");
@@ -392,6 +414,10 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
           );
           const outFolder = path.resolve(outputRoot, projDir, cardDir);
 
+          if (!this.imageGenerator) {
+            return { error: "API Key not set. Cannot generate images." };
+          }
+
           const { buffer, mimeType } =
             await this.imageGenerator.generateImageBuffer(fullPrompt, {
               aspectRatio: c.aspectRatio,
@@ -417,6 +443,34 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
       }
     } catch (e: any) {
       return { error: e.message };
+    }
+  }
+
+  private async generateTitle(history: ChatMessage[]): Promise<string | null> {
+    if (!this.genAI) return null;
+    try {
+      // Use a lightweight model or same model for titling
+      const model = this.genAI.getGenerativeModel({
+        model: "gemini-2.0-flash-exp",
+      });
+
+      // Construct a simple prompt
+      // We only need the first few messages usually
+      const context = history
+        .slice(0, 4)
+        .map((m) => `${m.role}: ${m.parts.map((p) => p.text).join(" ")}`)
+        .join("\n");
+      const prompt = `Based on the following conversation, generate a short, concise, and descriptive title (max 6 words). Do not use quotes or prefixes. Just the title.\n\n${context}`;
+
+      const result = await model.generateContent(prompt);
+      const title = result.response
+        .text()
+        .trim()
+        .replace(/^["']|["']$/g, "");
+      return title;
+    } catch (e) {
+      logger.error("[ChatService] Failed to generate title:", e);
+      return null;
     }
   }
 
@@ -470,30 +524,37 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
       path.join(dir, `${conversation.id}.json`),
       JSON.stringify(conversation, null, 2)
     );
-    );
   }
 
   async deleteConversation(conversationId: string): Promise<boolean> {
-      // Find which project contains this conversation
-      // Since we don't have a global index, we search through projects.
-      // This is inefficient but fine for this scale.
-      try {
-          // Flatten search: Get all projects, check their folders.
-          const projects = await this.dataService.getProjects();
-          for (const p of projects) {
-              const dir = await this.ensureDir(p.id);
-              const filepath = path.join(dir, `${conversationId}.json`);
-              try {
-                  await fs.unlink(filepath);
-                  return true;
-              } catch (e) {
-                  // Not found in this project, continue
-              }
+    logger.info(
+      `[ChatService] Attempting to delete conversation: ${conversationId}`
+    );
+    try {
+      const projects = await this.dataService.getProjects();
+      for (const p of projects) {
+        const dir = await this.ensureDir(p.id);
+        const filepath = path.join(dir, `${conversationId}.json`);
+        try {
+          await fs.unlink(filepath);
+          logger.info(
+            `[ChatService] Deleted conversation ${conversationId} from project ${p.id}`
+          );
+          return true;
+        } catch (e: any) {
+          // Only ignore ENOENT (file not found)
+          if (e.code !== "ENOENT") {
+            logger.error(`[ChatService] Error deleting file ${filepath}:`, e);
           }
-          return false;
-      } catch (e) {
-          logger.error("Error deleting conversation", e);
-          return false;
+        }
       }
+      logger.warn(
+        `[ChatService] Conversation ${conversationId} not found in any project`
+      );
+      return false;
+    } catch (e) {
+      logger.error("[ChatService] Error in deleteConversation:", e);
+      return false;
+    }
   }
 }

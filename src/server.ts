@@ -636,20 +636,21 @@ export function createApp(dataRoot?: string) {
 
   let chatService: ChatService | null = null;
   const initChatService = () => {
-    if (API_KEY) {
-      chatService = new ChatService(API_KEY, dataService);
-      chatService.setConversationsDir(
-        path.join(resolvedDataRoot, "conversations")
-      );
-    }
+    // Always init, even if no key (for history access)
+    chatService = new ChatService(API_KEY, dataService);
+    chatService.setConversationsDir(
+      path.join(resolvedDataRoot, "conversations")
+    );
   };
   initChatService();
 
   app.post("/api/chat/message", async (req, res) => {
     if (!chatService) {
-      if (API_KEY) initChatService();
-      if (!chatService)
-        return res.status(401).json({ error: "API Key not set" });
+      initChatService();
+    }
+    // Deep check for generation capability
+    if (!API_KEY) {
+      return res.status(401).json({ error: "API Key not set" });
     }
 
     // Check if we need to manually enable tool usage if we haven't already

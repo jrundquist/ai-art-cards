@@ -290,6 +290,13 @@ export class ChatManager {
             targetElement.parentNode.insertBefore(toolDiv, targetElement);
           } else if (data.type === "error") {
             targetElement.innerHTML += `<div class="message-error">${data.content}</div>`;
+          } else if (data.type === "title") {
+            // Update title in UI and State
+            const newTitle = data.content;
+            this.currentConversationTitle = newTitle;
+            // Update Header if we had one
+            // Update Sidebar list if possible
+            this.loadConversationList(state.currentProject.id);
           }
         } catch (e) {
           console.error("Failed to parse SSE line", line, e);
@@ -382,47 +389,41 @@ export class ChatManager {
 
         // Render history
         data.history.forEach((msg) => {
-          // Check for hidden system context messages
-          let content = "";
-          let role = msg.role;
+          const role = msg.role;
 
           if (msg.parts && msg.parts.length > 0) {
-            // If it's a string
-            if (typeof msg.parts[0] === "string") {
-              content = msg.parts[0];
-            } else if (msg.parts[0].text) {
-              content = msg.parts[0].text;
-            }
+            msg.parts.forEach((part) => {
+              if (typeof part === "string") {
+                // Should likely not happen in recent saved format but strictly possible
+                this.appendMessage(role, this.cleanContent(role, part));
+              } else if (part.text) {
+                this.appendMessage(role, this.cleanContent(role, part.text));
+              } else if (part.functionCall) {
+                // Render Tool Call
+                const call = part.functionCall;
+                const div = document.createElement("div");
+                div.className = "tool-output";
+                div.innerHTML = `<div class="tool-name">Generated Tool Call: ${call.name}</div>`;
+                // We could show args too if we want
+                this.messagesContainer.appendChild(div);
+              } else if (part.functionResponse) {
+                // Render Tool Response
+                const response = part.functionResponse;
+                const div = document.createElement("div");
+                div.className = "tool-output";
+                const content = JSON.stringify(
+                  response.response.result || response.response
+                );
+                // Truncate if too long?
+                div.innerHTML = `<div class="tool-name">Tool Result: ${response.name}</div><div class="json-output">${content}</div>`;
+                this.messagesContainer.appendChild(div);
+              }
+            });
           }
-
-          // If user message starts with [System Context: ...], clean it for display
-          // Actually, we modified the message sent to backend. So history has the full text.
-          // We should hide the context part.
-          if (role === "user") {
-            // Regex to strip [System Context: ...] blocks at start
-            // e.g. [System Context: ...]\n\nActual message
-            // Careful not to strip user typed stuff if they type that, but unlikely.
-            const contextRegex = /^(\[System Context: .*?\]\n)+/s;
-            // Or simplified split by double newline if we enforced that structure
-            const parts = content.split("\n\n");
-            // If first part looks like context, remove it.
-            // Since there can be multiple lines of context:
-            content = content
-              .replace(/\[System Context: .*?\]\n\n?/g, "")
-              .trim();
-          }
-
-          if (content) {
-            this.appendMessage(role, content);
-          }
-
-          // Note: History currently doesn't store tool calls/results in a way we can easily re-render perfectly
-          // without more complex parsing if they aren't in standard parts.
-          // Gemini API history is mainly parts: [{text: ...}].
-          // Our chat UI renders tool calls dynamically.
-          // Ideally we should persist tool calls/results in our JSON history to replay them.
-          // For now, we only restore text. Tools won't show in history reload (Current Limitation).
         });
+
+        // Scroll to bottom
+        this.scrollToBottom();
       }
     } catch (e) {
       console.error("Failed to load conversation", e);
@@ -430,23 +431,36 @@ export class ChatManager {
     }
   }
 
-  async deleteConversation(conversationId) {
-    if (!confirm("Delete this conversation?")) return;
+  cleanContent(role, content) {
+    if (role === "user") {
+      return content.replace(/\[System Context: .*?\]\n\n?/g, "").trim();
+    }
+    return content;
+  }
 
-    try {
-      const res = await fetch(`/api/conversations/${conversationId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        if (this.currentConversationId === conversationId) {
-          this.startNewChat();
-        } else {
-          this.loadConversationList(state.currentProject.id);
+  async deleteConversation(conversationId) {
+    confirmAction(
+      "Delete Conversation?",
+      "Are you sure you want to delete this conversation? This cannot be undone.",
+      async () => {
+        try {
+          const res = await fetch(`/api/conversations/${conversationId}`, {
+            method: "DELETE",
+          });
+          if (res.ok) {
+            if (this.currentConversationId === conversationId) {
+              this.startNewChat();
+            } else {
+              this.loadConversationList(state.currentProject.id);
+            }
+          } else {
+            showStatus("Failed to delete chat", "error");
+          }
+        } catch (e) {
+          showStatus("Failed to delete chat", "error");
         }
       }
-    } catch (e) {
-      showStatus("Failed to delete chat", "error");
-    }
+    );
   }
 
   triggerDataRefresh() {
