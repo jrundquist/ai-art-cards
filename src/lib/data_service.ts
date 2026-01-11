@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { logger } from "./logger";
 
 export interface Card {
   id: string;
@@ -55,6 +56,9 @@ export class DataService {
 
   // Helper ensure dirs
   private async ensureDirs() {
+    logger.info(
+      `[DataService] Ensuring directories exist: ${this.projectsDir}, ${this.cardsDir}`
+    );
     await fs.mkdir(this.projectsDir, { recursive: true });
     await fs.mkdir(this.cardsDir, { recursive: true });
   }
@@ -78,6 +82,9 @@ export class DataService {
   }
 
   async saveProject(project: Project): Promise<void> {
+    logger.info(
+      `[DataService] Saving project: ${project.id} (${project.name})`
+    );
     await this.ensureDirs();
     await fs.writeFile(
       path.join(this.projectsDir, `${project.id}.json`),
@@ -88,6 +95,7 @@ export class DataService {
   // --- Cards ---
   async getCards(projectId: string): Promise<Card[]> {
     try {
+      logger.info(`[DataService] Loading cards for project: ${projectId}`);
       const projectCardDir = path.join(this.cardsDir, projectId);
       try {
         await fs.access(projectCardDir);
@@ -111,6 +119,9 @@ export class DataService {
   }
 
   async saveCard(card: Card): Promise<void> {
+    logger.info(
+      `[DataService] Saving card: ${card.id} in project: ${card.projectId}`
+    );
     await this.ensureDirs();
     const projectCardDir = path.join(this.cardsDir, card.projectId);
     await fs.mkdir(projectCardDir, { recursive: true });
@@ -144,6 +155,7 @@ export class DataService {
   }
 
   async saveKey(name: string, key: string): Promise<void> {
+    logger.info(`[DataService] Saving API key: ${name}`);
     await this.ensureDirs();
     const keys = await this.getKeys();
     // Check if exists, update or push
@@ -158,6 +170,7 @@ export class DataService {
 
   // --- Deletion ---
   async deleteProject(id: string): Promise<void> {
+    logger.info(`[DataService] Deleting project: ${id}`);
     // 1. Delete project json
     await fs.rm(path.join(this.projectsDir, `${id}.json`), { force: true });
     // 2. Delete cards dir for project
@@ -173,6 +186,9 @@ export class DataService {
   }
 
   async deleteCard(projectId: string, cardId: string): Promise<void> {
+    logger.info(
+      `[DataService] Deleting card: ${cardId} in project: ${projectId}`
+    );
     await fs.rm(path.join(this.cardsDir, projectId, `${cardId}.json`), {
       force: true,
     });

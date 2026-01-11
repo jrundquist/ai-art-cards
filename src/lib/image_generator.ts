@@ -3,6 +3,7 @@ import mime from "mime";
 import fs from "fs/promises";
 import path from "path";
 import { exiftool } from "exiftool-vendored";
+import { logger } from "./logger";
 
 export class ImageGenerator {
   private genAI: GoogleGenerativeAI;
@@ -44,11 +45,21 @@ export class ImageGenerator {
       },
     ];
 
+    logger.info(
+      `[ImageGenerator] Starting generation with model: ${modelName}`
+    );
+    logger.info(`[ImageGenerator] Config: AR=${aspectRatio}, Res=${imageSize}`);
+
     try {
       const result = await model.generateContentStream({ contents });
+      let chunkCount = 0;
       for await (const chunk of result.stream) {
+        chunkCount++;
         // Check Prompt Feedback (safety block on input)
         if (chunk.promptFeedback?.blockReason) {
+          logger.error(
+            `[ImageGenerator] Prompt blocked: ${chunk.promptFeedback.blockReason}`
+          );
           throw new Error(
             `Safety: ${chunk.promptFeedback.blockReason} (Prompt Blocked)`
           );
@@ -58,11 +69,17 @@ export class ImageGenerator {
         const candidate = chunk.candidates[0];
 
         if (candidate.finishReason === "SAFETY") {
+          logger.error(
+            `[ImageGenerator] Generation blocked by safety filters.`
+          );
           throw new Error("Safety: Image generation blocked by filters.");
         }
 
         if (candidate.finishReason && candidate.finishReason !== "STOP") {
           // Other reasons: RECITATION, OTHER
+          logger.warn(
+            `[ImageGenerator] Generation stopped: ${candidate.finishReason}`
+          );
           throw new Error(`Generation stopped: ${candidate.finishReason}`);
         }
 
@@ -72,13 +89,19 @@ export class ImageGenerator {
           if (part.inlineData) {
             const mimeType = part.inlineData.mimeType || "image/png";
             const buffer = Buffer.from(part.inlineData.data || "", "base64");
+            logger.info(
+              `[ImageGenerator] Image received (mime: ${mimeType}, size: ${buffer.length} bytes)`
+            );
             return { buffer, mimeType };
           }
         }
       }
+      logger.error(
+        `[ImageGenerator] No images received after ${chunkCount} chunks.`
+      );
       throw new Error("No images received from API (Unknown Reason).");
     } catch (error) {
-      console.error("Gemini Generation Error:", (error as Error).message);
+      logger.error("Gemini Generation Error:", (error as Error).message);
       throw error;
     }
   }
@@ -95,6 +118,7 @@ export class ImageGenerator {
       cardId?: string;
     } = {}
   ): Promise<string> {
+    logger.info(`[ImageGenerator] Saving image to: ${outputFolder}`);
     await fs.mkdir(outputFolder, { recursive: true });
 
     // Versioning logic
@@ -115,10 +139,19 @@ export class ImageGenerator {
 
       try {
         // 'wx' flag fails if file exists
+        logger.info(
+          `[ImageGenerator] Attempting to save version ${nextVersion}: ${finalFilename}`
+        );
         await fs.writeFile(finalOutputPath, buffer, { flag: "wx" });
         saved = true;
+        logger.info(
+          `[ImageGenerator] Successfully saved to: ${finalOutputPath}`
+        );
       } catch (e: any) {
         if (e.code === "EEXIST") {
+          logger.warn(
+            `[ImageGenerator] File exists (version ${nextVersion}), retrying...`
+          );
           attempts++;
           // Small delay to reduce contention
           await new Promise((resolve) =>
@@ -148,8 +181,11 @@ export class ImageGenerator {
         },
         { writeArgs: ["-overwrite_original"] }
       );
+      logger.info(
+        `[ImageGenerator] Metadata written successfully to: ${finalOutputPath}`
+      );
     } catch (e) {
-      console.warn("Metadata warning:", e);
+      logger.warn(`[ImageGenerator] Metadata write failed:`, e);
     }
 
     return finalOutputPath;

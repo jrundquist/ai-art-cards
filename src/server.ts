@@ -7,10 +7,8 @@ import { DataService, Project, Card } from "./lib/data_service";
 import { ImageGenerator } from "./lib/image_generator";
 import { exiftool } from "exiftool-vendored";
 import archiver from "archiver";
-
-dotenv.config();
-
 import fsSync from "fs";
+import { logger, configureLogger } from "./lib/logger";
 
 // Wrapper to create App with config
 export function createApp(dataRoot?: string) {
@@ -29,7 +27,7 @@ export function createApp(dataRoot?: string) {
   const cardsDir = path.join(resolvedDataRoot, "cards");
   const outputDir = path.join(resolvedDataRoot, "output");
 
-  console.log(`Initializing DataService with root: ${resolvedDataRoot}`);
+  logger.info(`Initializing DataService with root: ${resolvedDataRoot}`);
   const dataService = new DataService(resolvedDataRoot);
   // Renamed for clarity in the new endpoint
   const projectService = dataService;
@@ -49,14 +47,14 @@ export function createApp(dataRoot?: string) {
 
   let publicDir = possiblePaths.find((p) => fsSync.existsSync(p));
   if (!publicDir) {
-    console.error(
+    logger.error(
       "CRITICAL: Could not find 'public' directory. Checked:",
       possiblePaths
     );
     publicDir = path.join(__dirname, "public"); // Fallback to avoid crash
   }
 
-  console.log(`Serving static files from: ${publicDir}`);
+  logger.info(`Serving static files from: ${publicDir}`);
 
   app.use(express.static(publicDir));
 
@@ -117,9 +115,17 @@ export function createApp(dataRoot?: string) {
       // Delete Output Files
       if (p.outputRoot) {
         const outPath = path.join(outputDir, p.outputRoot);
+        logger.info(
+          `[Server] Attempting to delete project output directory: ${outPath}`
+        );
         // Security check: ensure it is within outputDir
         if (outPath.startsWith(outputDir) && outPath !== outputDir) {
           await fs.rm(outPath, { recursive: true, force: true });
+          logger.info(`[Server] Project output directory deleted.`);
+        } else {
+          logger.warn(
+            `[Server] Project output directory outside outputDir, skipping deletion: ${outPath}`
+          );
         }
       }
       res.json({ success: true });
@@ -155,9 +161,17 @@ export function createApp(dataRoot?: string) {
           project.outputRoot,
           card.outputSubfolder
         );
+        logger.info(
+          `[Server] Attempting to delete card output directory: ${outPath}`
+        );
         // Security check
         if (outPath.startsWith(outputDir) && outPath !== outputDir) {
           await fs.rm(outPath, { recursive: true, force: true });
+          logger.info(`[Server] Card output directory deleted.`);
+        } else {
+          logger.warn(
+            `[Server] Card output directory outside outputDir, skipping deletion: ${outPath}`
+          );
         }
       }
       res.json({ success: true });
@@ -197,10 +211,13 @@ export function createApp(dataRoot?: string) {
       promptOverride !== undefined ? promptOverride : card.prompt;
     const fullPrompt = `${project.globalPrefix} ${promptToUse} ${project.globalSuffix}`;
 
-    console.log("------------------------------------------------");
-    console.log("Generating Art for Card:", card.name);
-    console.log("Full Prompt:", fullPrompt);
-    console.log("------------------------------------------------");
+    logger.info("------------------------------------------------");
+    logger.info(
+      `[Server] Generating Art for Card: ${card.name} (ID: ${card.id})`
+    );
+    logger.info(`[Server] Project: ${project.name} (ID: ${project.id})`);
+    logger.info(`[Server] Full Prompt: ${fullPrompt}`);
+    logger.info("------------------------------------------------");
 
     // Resolve output folder - SECURE
     // Use outputDir from closure
@@ -237,7 +254,7 @@ export function createApp(dataRoot?: string) {
 
       if (!aspectRatio) resolution = "2K";
 
-      console.log(`Config: AR=${aspectRatio}, Res=${resolution}`);
+      logger.info(`Config: AR=${aspectRatio}, Res=${resolution}`);
 
       for (let i = 0; i < num; i++) {
         const { buffer, mimeType } = await generator.generateImageBuffer(
@@ -276,7 +293,7 @@ export function createApp(dataRoot?: string) {
       }
       res.json({ success: true, images: results });
     } catch (e: any) {
-      console.error(e);
+      logger.error(e);
       res.status(500).json({ error: e.message });
     }
   });
@@ -453,7 +470,7 @@ export function createApp(dataRoot?: string) {
         prompt: tags.Description || tags.ImageDescription || "No prompt found",
       });
     } catch (e: any) {
-      console.error("Metadata error:", e);
+      logger.error("Metadata error:", e);
       res.status(500).json({ error: e.message });
     }
   });
@@ -564,6 +581,10 @@ export function createApp(dataRoot?: string) {
       // Pipe archive to response
       archive.pipe(res);
 
+      logger.info(
+        `[Server] Starting ZIP download for card: ${card.name} (${filenames.length} files)`
+      );
+
       // Create a folder name from the card name
       const folderName = card.name.replace(/[^a-z0-9]/gi, "_");
 
@@ -572,23 +593,27 @@ export function createApp(dataRoot?: string) {
         const filePath = path.join(cardDir, filename);
         // Security check: ensure file is within cardDir
         if (!filePath.startsWith(cardDir)) {
-          console.warn(`Skipping file outside card directory: ${filename}`);
+          logger.warn(
+            `[Server] Skipping file outside card directory: ${filename}`
+          );
           continue;
         }
 
         try {
           await fs.access(filePath);
           // Place images in a folder named after the card
+          logger.info(`[Server] Adding file to ZIP: ${filename}`);
           archive.file(filePath, { name: `${folderName}/${filename}` });
         } catch {
-          console.warn(`File not found, skipping: ${filename}`);
+          logger.warn(`[Server] File not found, skipping: ${filename}`);
         }
       }
 
       // Finalize the archive
       await archive.finalize();
+      logger.info(`[Server] ZIP download finalized: ${zipName}`);
     } catch (e: any) {
-      console.error("Zip download error:", e);
+      logger.error("Zip download error:", e);
       if (!res.headersSent) {
         res.status(500).json({ error: e.message });
       }
@@ -600,11 +625,18 @@ export function createApp(dataRoot?: string) {
 
 // Start
 // Export for Electron
-export async function startServer(port: number = 5432, dataRoot?: string) {
+export async function startServer(
+  port: number = 5432,
+  dataRoot?: string,
+  logPath?: string
+) {
+  if (logPath) {
+    configureLogger(logPath);
+  }
   const app = createApp(dataRoot);
   return new Promise<void>((resolve) => {
     app.listen(port, () => {
-      console.log(`Server running at http://localhost:${port}`);
+      logger.info(`Server running at http://localhost:${port}`);
       resolve();
     });
   });
@@ -612,5 +644,20 @@ export async function startServer(port: number = 5432, dataRoot?: string) {
 
 // Auto-start if run directly
 if (require.main === module) {
-  startServer(5432);
+  const args = process.argv.slice(2);
+  let port = 5432;
+  let logPath: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--port" && args[i + 1]) {
+      port = parseInt(args[i + 1], 10);
+      i++;
+    } else if (args[i] === "--log-path" && args[i + 1]) {
+      logPath = args[i + 1];
+      i++;
+    }
+  }
+
+  dotenv.config();
+  startServer(port, undefined, logPath);
 }

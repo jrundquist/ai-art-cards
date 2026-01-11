@@ -10,11 +10,14 @@ import {
 } from "electron";
 import { startServer } from "./server";
 import { autoUpdater } from "electron-updater";
-import log from "electron-log";
 import path from "path";
+import { logger, configureLogger } from "./lib/logger";
+import log from "electron-log";
 
 // --- Auto Updater Setup ---
-log.transports.file.level = "debug";
+const logFile = log.transports.file.getFile().path;
+configureLogger(logFile);
+
 autoUpdater.logger = log;
 autoUpdater.autoDownload = false;
 
@@ -24,7 +27,7 @@ let isManualCheck = false;
 
 // Events
 autoUpdater.on("update-available", () => {
-  log.info("Update available.");
+  logger.info("Update available.");
   isManualCheck = false; // Reset flag
   dialog
     .showMessageBox({
@@ -42,7 +45,7 @@ autoUpdater.on("update-available", () => {
 });
 
 autoUpdater.on("update-downloaded", () => {
-  log.info("Update downloaded.");
+  logger.info("Update downloaded.");
   dialog
     .showMessageBox({
       type: "info",
@@ -58,7 +61,7 @@ autoUpdater.on("update-downloaded", () => {
 });
 
 autoUpdater.on("update-not-available", () => {
-  log.info("Update not available.");
+  logger.info("Update not available.");
   if (isManualCheck) {
     dialog.showMessageBox({
       type: "info",
@@ -71,7 +74,7 @@ autoUpdater.on("update-not-available", () => {
 });
 
 autoUpdater.on("error", (err) => {
-  log.error("Error in auto-updater. " + err);
+  logger.error("Error in auto-updater. " + err);
   if (isManualCheck) {
     dialog.showMessageBox({
       type: "error",
@@ -100,7 +103,7 @@ function createMenu() {
               {
                 label: "Check for Updates...",
                 click: () => {
-                  log.info("User triggered check for updates");
+                  logger.info("User triggered check for updates");
                   isManualCheck = true;
                   autoUpdater.checkForUpdatesAndNotify();
                 },
@@ -200,7 +203,7 @@ function createMenu() {
           label: "View Application Logs",
           click: () => {
             const logFile = log.transports.file.getFile().path;
-            log.info("User requested to view logs at:", logFile);
+            logger.info("User requested to view logs at:", logFile);
             if (logFile) {
               shell.showItemInFolder(logFile);
             }
@@ -248,7 +251,7 @@ function createWindow() {
 
 app.on("ready", async () => {
   // Start backend
-  console.log("Starting server...");
+  logger.info("Starting server...");
 
   app.setAboutPanelOptions({
     applicationName: "AICardArts",
@@ -262,7 +265,7 @@ app.on("ready", async () => {
   createMenu();
 
   const userDataPath = app.getPath("userData");
-  console.log("Electron User Data Path:", userDataPath);
+  logger.info("Electron User Data Path:", userDataPath);
 
   // Use a subfolder 'server-data' to keep it clean, or just root
   const dataRoot = userDataPath; // path.join(userDataPath, "data");
@@ -275,14 +278,14 @@ app.on("ready", async () => {
       // Basic security: prevent traversing up
       const safeSub = subPath.replace(/^(\.\.(\/|\\|$))+/, "");
       const target = path.join(dataRoot, safeSub);
-      log.info("Opening specific folder:", target);
+      logger.info("Opening specific folder:", target);
       // Ensure it exists? shell.openPath checks existence.
       // If it doesn't exist, we might want to try creating it?
       // Or just open parent?
       // Let's just try opening.
       const err = await shell.openPath(target);
       if (err) {
-        log.warn("Failed to open specific path, falling back to root:", err);
+        logger.warn("Failed to open specific path, falling back to root:", err);
         await shell.openPath(dataRoot);
       }
     } else {
@@ -291,7 +294,7 @@ app.on("ready", async () => {
   });
 
   ipcMain.handle("open-external-link", async (event, url: string) => {
-    log.info("Opening external link:", url);
+    logger.info("Opening external link:", url);
     await shell.openExternal(url);
   });
 
@@ -302,7 +305,7 @@ app.on("ready", async () => {
     // Security check: prevent directory traversal
     const safeSub = relativePath.replace(/^(\.\.(\/|\\|$))+/, "");
     const target = path.join(dataRoot, safeSub);
-    log.info("Showing item in folder:", target);
+    logger.info("Showing item in folder:", target);
     shell.showItemInFolder(target);
   });
 
@@ -337,7 +340,7 @@ app.on("ready", async () => {
     }
   );
 
-  await startServer(5432, dataRoot);
+  await startServer(5432, dataRoot, logFile);
 
   createWindow();
 });
