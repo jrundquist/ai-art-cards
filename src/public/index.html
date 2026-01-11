@@ -479,29 +479,35 @@
           </div>
 
           <div class="modal-actions-vertical">
-            <button
-              id="imgModalFavoriteBtn"
-              class="icon-btn-round"
-              title="Toggle Favorite"
-              aria-label="Toggle Favorite"
-            >
-              ♥
-            </button>
-            <a
-              id="imgModalLink"
-              href="#"
-              target="_blank"
-              class="secondary-btn"
-              style="text-align: center"
-              >Open File</a
-            >
-            <button
-              id="imgModalArchiveBtn"
-              class="secondary-btn"
-              style="color: #ef4444; border-color: #ef4444"
-            >
-              Archive
-            </button>
+            <div class="modal-actions-row">
+              <button
+                id="imgModalFavoriteBtn"
+                class="icon-btn-round"
+                title="Toggle Favorite"
+                aria-label="Toggle Favorite"
+              >
+                <span class="material-icons">favorite_border</span>
+              </button>
+              <a
+                id="imgModalLink"
+                href="#"
+                target="_blank"
+                class="icon-btn-round"
+                title="Open File"
+                aria-label="Open File"
+                style="text-decoration: none"
+              >
+                <span class="material-icons">folder_open</span>
+              </a>
+              <button
+                id="imgModalArchiveBtn"
+                class="icon-btn-round"
+                title="Archive Image"
+                aria-label="Archive Image"
+              >
+                <span class="material-icons">delete_outline</span>
+              </button>
+            </div>
             <button id="imgModalCloseBtn" class="primary-btn">Close</button>
           </div>
         </div>

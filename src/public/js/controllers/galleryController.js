@@ -264,8 +264,19 @@ export async function openImageDetails(imgUrl) {
 
   // Archive button in modal needs to reflect state (Archive vs Restore)
   const isArchived = state.currentCard?.archivedImages?.includes(filename);
-  dom.imgModal.archiveBtn.textContent = isArchived ? "Restore" : "Archive";
-  // Maybe change color? Red for archive, Green for restore?
+  const archIcon = dom.imgModal.archiveBtn.querySelector(".material-icons");
+  if (archIcon) {
+    archIcon.textContent = isArchived ? "restore_from_trash" : "delete_outline";
+  }
+  dom.imgModal.archiveBtn.title = isArchived
+    ? "Restore Image"
+    : "Archive Image";
+  dom.imgModal.archiveBtn.setAttribute(
+    "aria-label",
+    isArchived ? "Restore Image" : "Archive Image"
+  );
+
+  // Adjust color: Red for archive, Primary/Green for restore?
   dom.imgModal.archiveBtn.style.borderColor = isArchived
     ? "var(--primary)"
     : "#ef4444";
@@ -355,9 +366,21 @@ export async function toggleImageArchive(imgUrl = null) {
             // If view mode matches state (e.g. ArchiveView + IsArchived), keep it.
             // If ArchiveView + !IsArchived (Restored), close it?
             // Let's just update the button for now.
-            dom.imgModal.archiveBtn.textContent = data.isArchived
-              ? "Restore"
-              : "Archive";
+            const archIcon =
+              dom.imgModal.archiveBtn.querySelector(".material-icons");
+            if (archIcon) {
+              archIcon.textContent = data.isArchived
+                ? "restore_from_trash"
+                : "delete_outline";
+            }
+            dom.imgModal.archiveBtn.title = data.isArchived
+              ? "Restore Image"
+              : "Archive Image";
+            dom.imgModal.archiveBtn.setAttribute(
+              "aria-label",
+              data.isArchived ? "Restore Image" : "Archive Image"
+            );
+
             dom.imgModal.archiveBtn.style.borderColor = data.isArchived
               ? "var(--primary)"
               : "#ef4444";

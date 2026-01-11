@@ -719,8 +719,15 @@ button {
 .modal-actions-vertical {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin-top: auto; /* Push to bottom */
+}
+
+.modal-actions-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: space-between;
 }
 
 .modal-actions {
@@ -843,16 +850,7 @@ button {
 }
 .gallery-fav-icon.active {
   color: #ef4444;
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.gallery-fav-icon.active .material-icons::before {
-  content: "favorite";
-}
-
-.icon-btn-round.active .material-icons::before,
-.icon-btn.active .material-icons::before {
-  content: "favorite";
+  background: rgba(239, 68, 68, 0.2);
 }
 
 .gallery-fav-icon:hover {
