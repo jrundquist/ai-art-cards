@@ -722,7 +722,7 @@ button {
 
 .toast-container {
   position: fixed;
-  bottom: 24px;
+  bottom: 80px;
   right: 24px;
   display: flex;
   flex-direction: column;
