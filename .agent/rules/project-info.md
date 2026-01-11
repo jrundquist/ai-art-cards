@@ -6,7 +6,7 @@ AI Art Cards is a local web and desktop application for managing and generating 
 ## Technology Stack
 - **Runtime**: Node.js / Electron
 - **Backend**: Express (TypeScript)
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3 (Variables-based Dark Mode)
+- **Frontend**: Modular Vanilla JavaScript, HTML5, CSS3 (Modern "AI" Theme)
 - **Desktop Wrapper**: Electron (with `electron-builder` and `electron-updater`)
 - **AI Service**: Google Gemini API (`gemini-1.5-flash` or `gemini-1.5-pro`) via `@google/generative-ai`
 - **Image Processing**: `exiftool-vendored` for metadata reading
@@ -19,9 +19,15 @@ AI Art Cards is a local web and desktop application for managing and generating 
     - `image_generator.ts`: Wrapper around Gemini API. Handles safety checks, prompt enhancement (if any), and image buffer creation.
     - `data_service.ts`: CRUD operations for Projects and Cards. Manages JSON file reading/writing.
 - `src/public/`: Static frontend assets.
-    - `app.js`: Single-page application logic. Handles state, routing (via URL params), and API interaction.
+    - `js/`: Modular frontend logic.
+        - `main.js`: Application entry point and initialization.
+        - `api.js`: API client for backend communication.
+        - `ui.js`: DOM manipulation and UI updates.
+        - `state.js`: Centralized state management.
+        - `utils.js`: Helper functions.
+        - `controllers/`: Logic for specific features (e.g., gallery, settings).
     - `index.html`: Main UI layout.
-    - `styles.css`: CSS definitions.
+    - `styles.css`: CSS definitions (Modern Dark Mode with Glassmorphism).
 - `data/`:
     - `projects/*.json`: Project definitions.
     - `cards/*.json`: Card definitions.
