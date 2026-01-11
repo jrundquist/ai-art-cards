@@ -237,6 +237,16 @@ function createWindow() {
 app.on("ready", async () => {
   // Start backend
   console.log("Starting server...");
+
+  app.setAboutPanelOptions({
+    applicationName: "AICardArts",
+    applicationVersion: app.getVersion(),
+    copyright: "Copyright © 2026 Rundquist Tech LLC",
+    credits: "Produced by Rundquist Tech LLC",
+    authors: ["James Rundquist"],
+    website: "https://github.com/jrundquist/ai-art-cards",
+  });
+
   createMenu();
 
   const userDataPath = app.getPath("userData");

@@ -2,7 +2,7 @@
   "name": "aicardarts",
   "version": "1.0.2",
   "description": "AI Art Cards Generator and Manager",
-  "author": "James Rundquist",
+  "author": "Rundquist Tech LLC",
   "packageManager": "yarn@3.6.4",
   "repository": {
     "type": "git",
