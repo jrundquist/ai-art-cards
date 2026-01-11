@@ -169,6 +169,9 @@ async function init() {
   dom.newProjectBtn.addEventListener("click", () =>
     projectCtrl.openProjectModal(null)
   );
+  dom.btns.projectSelectionCreate.addEventListener("click", () =>
+    projectCtrl.openProjectModal(null)
+  );
   dom.editProjectBtn.addEventListener("click", () => {
     if (state.currentProject)
       projectCtrl.openProjectModal(state.currentProject);
@@ -337,6 +340,10 @@ async function restoreStateFromUrl() {
 
   if (pid && (!state.currentProject || state.currentProject.id !== pid)) {
     dom.projectSelect.value = pid;
+    await projectCtrl.onProjectSelect(false);
+  } else if (!pid && state.currentProject) {
+    // No project in URL but we have one selected - clear it
+    dom.projectSelect.value = "";
     await projectCtrl.onProjectSelect(false);
   }
 

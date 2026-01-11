@@ -315,6 +315,56 @@ export function createApp(dataRoot?: string) {
     }
   });
 
+  // Get Project Preview Images (recent images across all cards)
+  app.get("/api/projects/:projectId/previews", async (req, res) => {
+    const { projectId } = req.params;
+    try {
+      const project = await projectService.getProject(projectId);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      const cards = await cardService.getCards(projectId);
+      const allImages: { path: string; time: Date }[] = [];
+
+      // Collect images from all cards
+      for (const card of cards) {
+        const outDir = path.resolve(
+          outputDir,
+          project.outputRoot || "default",
+          card.outputSubfolder || "default"
+        );
+
+        try {
+          await fs.access(outDir);
+          const files = await fs.readdir(outDir);
+          const archived = new Set(card.archivedImages || []);
+
+          for (const file of files) {
+            if (/\.(png|jpg|jpeg|webp)$/i.test(file) && !archived.has(file)) {
+              const fullPath = path.join(outDir, file);
+              const stats = await fs.stat(fullPath);
+              const rel = path.relative(resolvedDataRoot, fullPath);
+              allImages.push({
+                path: path.join("data", rel),
+                time: stats.birthtime,
+              });
+            }
+          }
+        } catch {
+          // Skip cards with no output directory
+          continue;
+        }
+      }
+
+      // Sort by newest first and limit to 6
+      allImages.sort((a, b) => b.time.getTime() - a.time.getTime());
+      const previews = allImages.slice(0, 6).map((img) => img.path);
+
+      res.json(previews);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/projects/:projectId/cards/:cardId/images", async (req, res) => {
     const { projectId, cardId } = req.params;
     try {

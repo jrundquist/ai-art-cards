@@ -1,5 +1,5 @@
 import { state } from "../state.js";
-import { dom, showStatus, confirmAction } from "../ui.js";
+import { dom, showStatus, confirmAction, updateStatusCenter } from "../ui.js";
 import * as api from "../api.js";
 import { loadCards } from "./cardController.js";
 
@@ -22,10 +22,17 @@ export async function loadProjects() {
     dom.projectSelect.appendChild(opt);
   });
 
+  // Show/hide project selection view
   if (state.projects.length === 0) {
     dom.newProjectBtn.classList.add("pulse-highlight");
+    // Show selection view with pulse-highlight button
+    await renderProjectSelection();
   } else {
     dom.newProjectBtn.classList.remove("pulse-highlight");
+    // If no project is selected, show the selection view
+    if (!state.currentProject) {
+      await renderProjectSelection();
+    }
   }
 }
 
@@ -36,6 +43,11 @@ export async function onProjectSelect(updateHistory = true) {
     state.currentCard = null;
     dom.cardList.innerHTML = "";
     dom.editorArea.classList.add("hidden");
+    updateStatusCenter("");
+
+    // Show project selection view
+    await renderProjectSelection();
+
     if (updateHistory) updateUrl();
     if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Data Folder";
 
@@ -45,6 +57,9 @@ export async function onProjectSelect(updateHistory = true) {
 
     return;
   }
+
+  // Hide project selection view when a project is selected
+  dom.projectSelectionView.classList.add("hidden");
 
   state.currentProject = state.projects.find((p) => p.id === pid);
   if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Project Folder";
@@ -203,3 +218,65 @@ function attachAutoFillListeners() {
 // Attach listeners once at module load time (or when first used)
 // Since this module is imported by main.js, we can just run this:
 attachAutoFillListeners();
+
+// Project Selection UI
+export async function renderProjectSelection() {
+  dom.projectSelectionView.classList.remove("hidden");
+  dom.projectGridContainer.innerHTML = "";
+
+  // Apply pulse-highlight to create button if no projects
+  if (state.projects.length === 0) {
+    dom.btns.projectSelectionCreate.classList.add("pulse-highlight");
+  } else {
+    dom.btns.projectSelectionCreate.classList.remove("pulse-highlight");
+  }
+
+  // Render each project card
+  for (const project of state.projects) {
+    const card = document.createElement("div");
+    card.className = "project-card";
+
+    const title = document.createElement("h3");
+    title.textContent = project.name;
+
+    const previewGrid = document.createElement("div");
+    previewGrid.className = "project-preview-grid";
+
+    // Fetch preview images
+    try {
+      const previews = await api.fetchProjectPreviews(project.id);
+
+      if (previews.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "project-preview-empty";
+        empty.textContent = "No images yet";
+        previewGrid.appendChild(empty);
+      } else {
+        // Show up to 6 preview images
+        previews.slice(0, 6).forEach((imgPath) => {
+          const img = document.createElement("img");
+          img.src = imgPath;
+          img.className = "project-preview-img";
+          img.alt = "Preview";
+          previewGrid.appendChild(img);
+        });
+      }
+    } catch (e) {
+      const empty = document.createElement("div");
+      empty.className = "project-preview-empty";
+      empty.textContent = "No images yet";
+      previewGrid.appendChild(empty);
+    }
+
+    card.appendChild(title);
+    card.appendChild(previewGrid);
+
+    // Click handler to select project
+    card.addEventListener("click", async () => {
+      dom.projectSelect.value = project.id;
+      await onProjectSelect();
+    });
+
+    dom.projectGridContainer.appendChild(card);
+  }
+}

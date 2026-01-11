@@ -34,6 +34,9 @@ export const dom = {
     generate: document.getElementById("generateBtn"),
     favFilter: document.getElementById("galleryFilterFavorites"),
     archiveFilter: document.getElementById("galleryFilterArchive"),
+    projectSelectionCreate: document.getElementById(
+      "projectSelectionCreateBtn"
+    ),
   },
   forms: {
     // newKey: document.getElementById("newKeyForm"), // Removed
@@ -91,6 +94,8 @@ export const dom = {
     message: document.getElementById("statusMessage"),
     center: document.getElementById("statusCenter"),
   },
+  projectSelectionView: document.getElementById("projectSelectionView"),
+  projectGridContainer: document.getElementById("projectGridContainer"),
   toastContainer: document.getElementById("toast-container"),
 };
 
