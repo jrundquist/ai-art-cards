@@ -5,6 +5,7 @@ import {
   createToast,
   confirmAction,
   updateStatusBar,
+  updateStatusCenter,
 } from "../ui.js";
 import * as api from "../api.js";
 import { nanoid } from "../utils.js";
@@ -93,6 +94,8 @@ export function selectCard(card, updateHistory = true) {
   dom.inputs.cardResolution.value = card.resolution || "";
   dom.inputs.prompt.value = card.prompt || "";
 
+  updateStatusCenter(card.name);
+
   if (updateHistory) updateUrl();
 
   loadImagesForCard(state.currentProject.id, card.id);
@@ -165,7 +168,8 @@ export async function generateArt() {
   const generatingCardName = state.currentCard.name;
 
   state.pendingGenerationCount += count;
-  updateStatusBar(`Generating ${state.pendingGenerationCount} images...`);
+  const imageWord = state.pendingGenerationCount === 1 ? "image" : "images";
+  updateStatusBar(`Generating ${state.pendingGenerationCount} ${imageWord}...`);
 
   for (let i = 0; i < count; i++) {
     const p = (async () => {
@@ -216,8 +220,10 @@ export async function generateArt() {
           state.pendingGenerationCount = 0;
           updateStatusBar("Ready");
         } else {
+          const imageWord =
+            state.pendingGenerationCount === 1 ? "image" : "images";
           updateStatusBar(
-            `Generating ${state.pendingGenerationCount} images...`
+            `Generating ${state.pendingGenerationCount} ${imageWord}...`
           );
         }
       }

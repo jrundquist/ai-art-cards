@@ -89,6 +89,7 @@ export const dom = {
   statusBar: {
     self: document.getElementById("statusBar"),
     message: document.getElementById("statusMessage"),
+    center: document.getElementById("statusCenter"),
   },
   toastContainer: document.getElementById("toast-container"),
 };
@@ -150,9 +151,14 @@ export function confirmAction(title, message, onConfirm) {
   };
 }
 
-
 export function updateStatusBar(msg) {
   if (dom.statusBar.message) {
     dom.statusBar.message.textContent = msg;
+  }
+}
+
+export function updateStatusCenter(msg) {
+  if (dom.statusBar.center) {
+    dom.statusBar.center.textContent = msg;
   }
 }

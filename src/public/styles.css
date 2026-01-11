@@ -913,7 +913,6 @@ kbd {
   flex-shrink: 0;
 }
 
-
 /* Status Bar */
 #statusBar {
   height: 28px;
@@ -933,6 +932,13 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.status-center {
+  flex: 1;
+  text-align: center;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .status-right {
