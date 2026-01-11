@@ -9,8 +9,58 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap"
       rel="stylesheet"
     />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: file: https:;"
+    />
   </head>
   <body>
+    <!-- Ambient Background Effects -->
+    <div
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      "
+    >
+      <div
+        style="
+          position: absolute;
+          top: -10%;
+          right: -5%;
+          width: 50%;
+          height: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(99, 102, 241, 0.08) 0%,
+            transparent 70%
+          );
+          border-radius: 50%;
+          filter: blur(50px);
+        "
+      ></div>
+      <div
+        style="
+          position: absolute;
+          bottom: -10%;
+          left: -10%;
+          width: 50%;
+          height: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(236, 72, 153, 0.08) 0%,
+            transparent 70%
+          );
+          border-radius: 50%;
+          filter: blur(50px);
+        "
+      ></div>
+    </div>
     <div class="app-container">
       <!-- Sidebar -->
       <aside class="sidebar">
@@ -24,7 +74,6 @@
               id="openFolderBtn"
               class="icon-btn hidden"
               title="Open Data Folder"
-              style="margin-right: 5px"
             >
               📂
             </button>
@@ -53,15 +102,6 @@
             type="text"
             id="cardSearchInput"
             placeholder="Search cards..."
-            style="
-              width: 100%;
-              box-sizing: border-box;
-              padding: 8px;
-              border-radius: 4px;
-              border: 1px solid var(--border);
-              background: var(--bg-input);
-              color: white;
-            "
           />
         </div>
       </aside>
@@ -160,7 +200,6 @@
               id="openCardFolderBtn"
               class="secondary-btn icon-btn hidden"
               title="Open Card Folder"
-              style="margin-right: 5px"
             >
               📂
             </button>
