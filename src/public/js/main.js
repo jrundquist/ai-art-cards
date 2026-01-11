@@ -24,6 +24,8 @@ async function loadKeys() {
     dom.btns.addKeyToggle.classList.remove("pulse-highlight");
   }
 
+  updateKeyHighlight();
+
   const lastName = localStorage.getItem("lastApiKeyName");
   if (lastName) {
     const option = Array.from(dom.inputs.keySelect.options).find(
@@ -32,6 +34,21 @@ async function loadKeys() {
     if (option) {
       dom.inputs.keySelect.value = option.value;
       await api.saveConfig({ apiKey: option.value });
+      updateKeyHighlight();
+    }
+  }
+}
+
+function updateKeyHighlight() {
+  const hasKeys = dom.inputs.keySelect.options.length > 1;
+  const isSelected = dom.inputs.keySelect.value !== "";
+  const wrapper = document.getElementById("keySelectWrapper");
+
+  if (wrapper) {
+    if (hasKeys && !isSelected) {
+      wrapper.classList.add("pulse-highlight");
+    } else {
+      wrapper.classList.remove("pulse-highlight");
     }
   }
 }
@@ -142,6 +159,7 @@ async function init() {
       localStorage.setItem("lastApiKeyName", name);
       await api.saveConfig({ apiKey: key });
     }
+    updateKeyHighlight();
   });
 
   if (window.electronAPI && dom.btns.openCardFolder) {

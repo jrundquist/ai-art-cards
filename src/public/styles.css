@@ -517,6 +517,23 @@ button {
 }
 
 /* Editor Area */
+/* Key Select Wrapper */
+.key-select-wrapper {
+  position: relative;
+  min-width: 180px;
+  border-radius: var(--radius-sm);
+}
+
+.key-select-wrapper.pulse-highlight {
+  box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.4);
+}
+
+.key-select-wrapper.pulse-highlight::after {
+  background: var(--bg-app);
+  border-radius: calc(var(--radius-sm) - 2px);
+  inset: 2px;
+}
+
 .editor-area {
   display: flex;
   flex-direction: column;
