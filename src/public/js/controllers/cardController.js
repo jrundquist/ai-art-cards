@@ -1,5 +1,11 @@
 import { state } from "../state.js";
-import { dom, showStatus, createToast, confirmAction } from "../ui.js";
+import {
+  dom,
+  showStatus,
+  createToast,
+  confirmAction,
+  updateStatusBar,
+} from "../ui.js";
 import * as api from "../api.js";
 import { nanoid } from "../utils.js";
 import { loadImagesForCard, addImageToGallery } from "./galleryController.js";
@@ -154,10 +160,14 @@ export async function generateArt() {
   const count = parseInt(dom.inputs.count.value) || 1;
   const promises = [];
 
+  // Update Global Count
+  state.pendingGenerationCount += count;
+  updateStatusBar(`Generating ${state.pendingGenerationCount} images...`);
+
   for (let i = 0; i < count; i++) {
     const p = (async () => {
       const toast = createToast(
-        `✨ Generating ${i + 1}/${count}...`,
+        `✨ Generating "${state.currentCard.name}" ${i + 1}/${count}...`,
         "ai-generating",
         0
       );
@@ -188,6 +198,16 @@ export async function generateArt() {
       } catch (e) {
         toast.update(`Error #${i + 1}: ${e.message}`, "error");
         setTimeout(() => toast.remove(), 8000);
+      } finally {
+        state.pendingGenerationCount--;
+        if (state.pendingGenerationCount <= 0) {
+          state.pendingGenerationCount = 0;
+          updateStatusBar("Ready");
+        } else {
+          updateStatusBar(
+            `Generating ${state.pendingGenerationCount} images...`
+          );
+        }
       }
     })();
     promises.push(p);

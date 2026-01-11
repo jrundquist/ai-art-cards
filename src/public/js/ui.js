@@ -86,6 +86,10 @@ export const dom = {
     self: document.getElementById("helpModal"),
     close: document.getElementById("closeHelpBtn"),
   },
+  statusBar: {
+    self: document.getElementById("statusBar"),
+    message: document.getElementById("statusMessage"),
+  },
   toastContainer: document.getElementById("toast-container"),
 };
 
@@ -144,4 +148,11 @@ export function confirmAction(title, message, onConfirm) {
   dom.confirmModal.cancel.onclick = () => {
     cleanup();
   };
+}
+
+
+export function updateStatusBar(msg) {
+  if (dom.statusBar.message) {
+    dom.statusBar.message.textContent = msg;
+  }
 }

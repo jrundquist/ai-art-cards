@@ -75,9 +75,17 @@ body {
 
 .app-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   position: relative;
   z-index: 1;
+}
+
+.main-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
 }
 
 /* Sidebar */
@@ -891,7 +899,6 @@ kbd {
   box-shadow: 0 2px 0 rgba(255, 255, 255, 0.05);
 }
 
-
 /* Sidebar Search Wrapper */
 .sidebar-search-wrapper {
   padding: 10px 0;
@@ -904,4 +911,30 @@ kbd {
 }
 .sidebar-search-wrapper #helpBtn {
   flex-shrink: 0;
+}
+
+
+/* Status Bar */
+#statusBar {
+  height: 28px;
+  background: var(--bg-panel);
+  border-top: var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  backdrop-filter: blur(var(--backdrop-blur));
+  z-index: 10;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-right {
+  opacity: 0.6;
 }

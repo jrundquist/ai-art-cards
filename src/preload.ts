@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openExternal: (url: string) => ipcRenderer.invoke("open-external-link", url),
   showItemInFolder: (relativePath: string) =>
     ipcRenderer.invoke("show-item-in-folder", relativePath),
+  showNotification: (title: string, body: string) =>
+    ipcRenderer.invoke("show-notification", title, body),
 });

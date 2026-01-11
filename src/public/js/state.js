@@ -4,4 +4,5 @@ export const state = {
   currentProject: null,
   currentCard: null,
   allCards: [], // Cache for filtering
+  pendingGenerationCount: 0,
 };
