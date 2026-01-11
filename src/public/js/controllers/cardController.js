@@ -101,17 +101,23 @@ export function selectCard(card, updateHistory = true) {
   loadImagesForCard(state.currentProject.id, card.id);
 }
 
-export function createNewCard() {
+export async function createNewCard() {
   if (!state.currentProject)
     return showStatus("Select a project first", "error");
 
+  const cardId = `card_${nanoid(10)}`;
   const newCard = {
-    id: `card_${nanoid(10)}`,
+    id: cardId,
     projectId: state.currentProject.id,
     name: "New Card",
     prompt: "",
-    outputSubfolder: "default",
+    outputSubfolder: cardId, // Use card ID as unique folder name
   };
+
+  // Auto-save the new card immediately with defaults to prevent "Card not found" errors
+  await api.saveCard(newCard);
+  await loadCards(state.currentProject.id); // Refresh list to show the new card
+
   selectCard(newCard);
 }
 
