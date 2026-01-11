@@ -141,6 +141,15 @@ async function init() {
       dom.imgModal.self.classList.add("hidden");
       dom.modal.self.classList.add("hidden");
     }
+
+    // Gallery Navigation
+    if (!dom.imgModal.self.classList.contains("hidden")) {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        galleryCtrl.navigateGallery("next");
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        galleryCtrl.navigateGallery("prev");
+      }
+    }
   });
 
   window.addEventListener("popstate", () => restoreStateFromUrl());

@@ -431,6 +431,11 @@ button {
   display: none !important;
 }
 
+.text-loading {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
 .toast-container {
   position: fixed;
   bottom: 24px;
