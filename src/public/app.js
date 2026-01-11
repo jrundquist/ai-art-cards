@@ -125,7 +125,12 @@ async function init() {
     dom.openFolderBtn.classList.remove("hidden");
     dom.openFolderBtn.addEventListener("click", async () => {
       try {
-        await window.electronAPI.openDataFolder();
+        let path = undefined;
+        if (currentProject) {
+          const pRoot = currentProject.outputRoot || "default";
+          path = `output/${pRoot}`;
+        }
+        await window.electronAPI.openDataFolder(path);
       } catch (e) {
         showStatus("Failed to open folder", "error");
       }
@@ -386,10 +391,12 @@ async function onProjectSelect(updateHistory = true) {
     dom.cardList.innerHTML = "";
     dom.editorArea.classList.add("hidden");
     if (updateHistory) updateUrl();
+    if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Data Folder";
     return;
   }
 
   currentProject = projects.find((p) => p.id === pid);
+  if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Project Folder";
 
   // Update default options in card overrides
   const arDefaultOpt = dom.inputs.cardAspectRatio.options[0];
