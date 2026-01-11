@@ -13,9 +13,10 @@
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: blob: file: https:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: blob: file: https:;"
     />
   </head>
   <body>
@@ -125,8 +126,18 @@
           </div>
         </aside>
 
+        <!-- Chat Sidebar moved to right -->
+
         <!-- Main Content -->
         <main class="main-content">
+          <button
+            id="chatToggleBtn"
+            class="chat-toggle-btn glow-effect"
+            title="Open AI Chat"
+          >
+            <span class="material-icons">chat_bubble_outline</span>
+          </button>
+
           <header class="top-bar">
             <div class="title-wrapper">
               <h1 id="currentCardTitle" title="Click to edit">Select a Card</h1>
@@ -295,6 +306,48 @@
             aria-live="polite"
           ></div>
         </main>
+
+        <!-- Chat Sidebar -->
+        <aside id="chatSidebar" class="chat-sidebar hidden">
+          <div class="chat-header">
+            <h3>AI Assistant</h3>
+            <div class="chat-actions">
+              <button id="newChatBtn" class="icon-btn-sm" title="New Chat">
+                <span class="material-icons">add_comment</span>
+              </button>
+              <button id="closeChatBtn" class="icon-btn-sm" title="Close Chat">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </div>
+          <div id="chatHistoryList" class="chat-history-list">
+            <!-- Previous conversations list -->
+          </div>
+          <div id="chatMessages" class="chat-messages">
+            <!-- Messages go here -->
+            <div class="chat-welcome">
+              <p>
+                Hello! I can help you manage your cards and generate art. Try
+                asking:
+              </p>
+              <ul>
+                <li>"Create a card for a Cyberpunk City"</li>
+                <li>"List my cards"</li>
+                <li>"Generate images for the Dragon card"</li>
+              </ul>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea
+              id="chatInput"
+              placeholder="Type a message..."
+              rows="1"
+            ></textarea>
+            <button id="sendChatBtn" class="primary-btn-sm">
+              <span class="material-icons">send</span>
+            </button>
+          </div>
+        </aside>
       </div>
       <!-- End main-layout -->
 

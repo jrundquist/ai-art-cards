@@ -762,44 +762,386 @@ button {
   margin-top: 10px;
 }
 
-/* Utilities */
-.hidden {
-  display: none !important;
-}
-
-.text-loading {
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
-}
-
-.toast-container {
-  position: fixed;
-  bottom: 80px;
-  right: 24px;
+/* Chat Sidebar */
+/* Chat Sidebar */
+.chat-sidebar {
+  width: 320px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border-left: var(--glass-border);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  z-index: 2000;
-  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
-.toast {
-  padding: 16px 20px;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: white;
-  background: rgba(20, 20, 23, 0.95);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-lg);
-  pointer-events: auto;
-  min-width: 280px;
+.hidden {
+  display: none; /* Or use transform/width for animation, but display:none is safer for layout shifts for now unless we want smooth slide */
+}
+
+/* If we want smooth slide, we might need to separate visibility from display to avoid layout jumping or allow layout jumping if flexible. 
+   For now, display: none is fine as requested in "Collapsible". 
+*/
+
+.chat-header {
+  padding: 16px;
+  border-bottom: var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: linear-gradient(135deg, #fff 0%, var(--secondary) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.chat-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn-sm {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.icon-btn-sm:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.chat-history-list {
+  flex-shrink: 0;
+  max-height: 150px;
+  overflow-y: auto;
+  border-bottom: var(--glass-border);
+  display: block; /* Unhidden */
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-history-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
   justify-content: space-between;
-  animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  user-select: none;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.chat-history-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-history-item.active {
+  background: rgba(
+    var(--primary-rgb),
+    0.1
+  ); /* Assuming variable exists or just use color */
+  background: rgba(139, 92, 246, 0.1); /* Fallback to primary color-ish */
+  border-left: 3px solid var(--primary);
+}
+
+.chat-item-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.chat-history-item.active .chat-item-title {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.chat-item-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.chat-history-item:hover .chat-item-delete {
+  opacity: 1;
+}
+
+.chat-item-delete:hover {
+  color: #ef4444;
+}
+
+.chat-item-delete .material-icons {
+  font-size: 16px;
+}
+
+/* Chat Messages */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-welcome {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  text-align: center;
+  margin-top: 20px;
+}
+.chat-welcome ul {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 20px 12px 30px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+.chat-welcome li {
+  margin-bottom: 6px;
+  font-style: italic;
+  cursor: pointer;
+}
+.chat-welcome li:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 90%;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.message.model {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.message-content {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.95em;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.message.user .message-content {
+  background: var(--primary-dark);
+  color: white;
+  border-bottom-right-radius: 2px;
+}
+
+.message.model .message-content {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-main);
+  border-bottom-left-radius: 2px;
+}
+
+.tool-call,
+.tool-result {
+  font-family: monospace;
+  font-size: 0.8em;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  border-radius: 4px;
+  margin: 4px 0;
+  border-left: 2px solid var(--secondary);
+  color: var(--text-muted);
+}
+
+.message-error {
+  color: #ef4444;
+  font-size: 0.9em;
+}
+
+/* Input Area */
+.chat-input-area {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: var(--glass-border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chat-input-area textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 10px 14px;
+  resize: none;
+  min-height: 42px;
+  max-height: 120px;
+  line-height: 1.4;
+}
+
+.primary-btn-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.primary-btn-sm:hover {
+  background: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+/* Chat Toggle Button */
+/* Glowing Spinning Effect for Toggle when attention needed or simply always style */
+.glow-effect {
+  position: relative;
+  overflow: hidden;
+  border: none !important;
+}
+
+.glow-effect::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    var(--secondary),
+    var(--primary),
+    transparent
+  );
+  transform: translate(-50%, -50%);
+  animation: border-spin 4s linear infinite;
+  z-index: -2;
+}
+
+.glow-effect::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: var(--bg-panel);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+/* Chat Toggle Button - Specific definition AFTER glow-effect to ensure position: absolute wins if conflict, 
+   though ideally we generally rely on cascade. 
+   Here we re-declare position to be safe or just ensure this block is robust. 
+*/
+.chat-toggle-btn {
+  position: fixed !important; /* Force absolute over glow-effect's relative */
+  bottom: 48px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chat-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.chat-toggle-btn.hidden {
+  display: none;
+}
+
+@keyframes border-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* If Sidebar is OPEN, hide the toggle button to avoid clutter? 
+   Or move it? 
+   Let's say: when chat is open, we hide the toggle button. 
+   Styles handled via JS adding .hidden class.
+*/
+
+/* Adjust Title Bar if Chat Toggle is present? 
+   The toggle is position:absolute top:24 left:24.
+   The top-bar has padding-bottom: 20px, margin-bottom: 40px. 
+   Normally it just flows.
+   If chat button is there, it might overlap content?
+   If sidebar is closed -> Chat Toggle is visible -> It sits on top of content.
+   We should probably add padding to the main-content or top-bar to accommodate it if it's "in the corner".
+   "Add a toggle button in the top-left corner"
+   If we use position absolute, it floats.
+   We should ensure it doesn't block the "Select a Card" title.
+   Let's add left padding to top-bar when chat is closed (managed by JS class on main-content? or just always padding).
+*/
+.main-content {
+  padding-right: 80px; /* Make space for the button if it enters from left or is fixed */
+}
+
+/* But if sidebar is open, we don't need the padding? 
+   Actually, if sidebar is open, the button is hidden, so padding is wasted space.
+   We can toggle a class on main-content. 'chat-open' vs 'chat-closed'.
+*/
+.main-content.chat-open {
+  padding-right: 40px; /* Reset to normal */
 }
 
 /* Favorite Button */

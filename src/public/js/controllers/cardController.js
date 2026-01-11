@@ -102,6 +102,11 @@ export function selectCard(card, updateHistory = true) {
   if (updateHistory) updateUrl();
 
   loadImagesForCard(state.currentProject.id, card.id);
+
+  // Dispatch event for other components (e.g., Chat)
+  document.dispatchEvent(
+    new CustomEvent("card-selected", { detail: { card } })
+  );
 }
 
 export async function createNewCard() {

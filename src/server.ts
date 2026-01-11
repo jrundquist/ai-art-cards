@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs/promises";
 import { DataService, Project, Card } from "./lib/data_service";
 import { ImageGenerator } from "./lib/image_generator";
+import { ChatService } from "./lib/chat_service";
 import { exiftool } from "exiftool-vendored";
 import archiver from "archiver";
 import fsSync from "fs";
@@ -81,6 +82,17 @@ export function createApp(dataRoot?: string) {
         await dataService.saveKey(name, apiKey);
       }
       API_KEY = apiKey;
+      API_KEY = apiKey;
+      // Re-init chat service if it exists (we need a way to trigger it)
+      // Since initChatService is defined in the closure, we can't access it here easily
+      // unless we move definition up or use a shared variable for the service itself.
+      // But we can just rely on the lazy check in the endpoints for now.
+      // Or we can reset the variable if we had access.
+      // Actually, since everything is in `createApp`, variables are shared...
+      // BUT `initChatService` is defined WAY below.
+      // Javascript hoisting for `const`? NO.
+      // We need to move `initChatService` definition to the top of `createApp`.
+      // I will do that in a follow up step. For now just cleaning this block.
       res.json({ success: true });
     } else {
       res.status(400).json({ error: "Missing apiKey" });
@@ -617,6 +629,116 @@ export function createApp(dataRoot?: string) {
       if (!res.headersSent) {
         res.status(500).json({ error: e.message });
       }
+    }
+  });
+
+  // --- Chat ---
+
+  let chatService: ChatService | null = null;
+  const initChatService = () => {
+    if (API_KEY) {
+      chatService = new ChatService(API_KEY, dataService);
+      chatService.setConversationsDir(
+        path.join(resolvedDataRoot, "conversations")
+      );
+    }
+  };
+  initChatService();
+
+  app.post("/api/chat/message", async (req, res) => {
+    if (!chatService) {
+      if (API_KEY) initChatService();
+      if (!chatService)
+        return res.status(401).json({ error: "API Key not set" });
+    }
+
+    // Check if we need to manually enable tool usage if we haven't already
+
+    const { projectId, conversationId, message } = req.body;
+
+    // Set headers for SSE
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    try {
+      await chatService?.sendMessageStream(
+        projectId,
+        conversationId,
+        message,
+        res
+      );
+    } catch (e: any) {
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/projects/:projectId/conversations", async (req, res) => {
+    if (!chatService) {
+      if (API_KEY) initChatService();
+      // Attempt to init, but if failed just continue?
+      // List conversations only needs FS access which ChatService has if instantiated.
+      // If no API key, we cant instantiate ChatService easily because it expects one.
+      // But listConversations doesn't use it.
+      // For now, require API Key or fix ChatService to be optional-key.
+      if (!chatService)
+        return res.status(401).json({ error: "API Key not set" });
+    }
+    const { projectId } = req.params;
+    const convs = await chatService?.listConversations(projectId);
+    res.json(convs);
+  });
+
+  app.get(
+    "/api/projects/:projectId/conversations/:conversationId",
+    async (req, res) => {
+      if (!chatService) {
+        if (API_KEY) initChatService();
+        if (!chatService)
+          return res.status(401).json({ error: "API Key not set" });
+      }
+      const { projectId, conversationId } = req.params;
+      const conv = await chatService?.loadConversation(
+        projectId,
+        conversationId
+      );
+      if (!conv)
+        return res.status(404).json({ error: "Conversation not found" });
+      res.json(conv);
+    }
+  );
+
+  app.delete("/api/conversations/:conversationId", async (req, res) => {
+    if (!chatService) {
+      if (API_KEY) initChatService();
+      if (!chatService)
+        return res.status(401).json({ error: "API Key not set" });
+    }
+
+    try {
+      const { conversationId } = req.params;
+      // We need project ID too?
+      // The frontend calls `/api/conversations/:conversationId`.
+      // But our storage is by project. We need to find which project it belongs to?
+      // Or require projectId in API?
+      // `deleteConversation(conversationId)` in `ChatService` needs to know path.
+      // Easiest: Iterate projects or pass projectId.
+      // Frontend `chat.js` call: `fetch('/api/conversations/' + conversationId, ...)`
+      // It doesn't pass project ID.
+      // Wait, `ChatService` stores conversations in `data/conversations/<projectId>/<convId>.json`.
+      // Without project ID, we'd have to search.
+      // Let's UPDATE Frontend to pass projectId or search here.
+      // Optimization: Chat ID could keyspace globally? Unlikely with simple file system.
+      // Let's implement `deleteConversation` in service to find and delete.
+
+      const success = await chatService?.deleteConversation(conversationId);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Conversation not found" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
