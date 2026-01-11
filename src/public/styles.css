@@ -1029,9 +1029,6 @@ kbd {
 .sidebar-search-wrapper input {
   flex: 1;
 }
-.sidebar-search-wrapper #helpBtn {
-  flex-shrink: 0;
-}
 
 /* Status Bar */
 #statusBar {
@@ -1063,4 +1060,32 @@ kbd {
 
 .status-right {
   opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-help-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  padding: 0;
+  opacity: 1;
+}
+
+.status-help-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: var(--primary);
+  transform: scale(1.1);
 }
