@@ -16,7 +16,9 @@
   </head>
   <body>
     <!-- Ambient Background Effects -->
+    <!-- Ambient Background Effects -->
     <div
+      aria-hidden="true"
       style="
         position: fixed;
         top: 0;
@@ -74,6 +76,7 @@
               id="openFolderBtn"
               class="icon-btn hidden"
               title="Open Data Folder"
+              aria-label="Open Data Folder"
             >
               📂
             </button>
@@ -81,10 +84,16 @@
               id="editProjectBtn"
               class="icon-btn"
               title="Project Settings"
+              aria-label="Project Settings"
             >
               ⚙️
             </button>
-            <button id="newProjectBtn" class="icon-btn" title="New Project">
+            <button
+              id="newProjectBtn"
+              class="icon-btn"
+              title="New Project"
+              aria-label="Create New Project"
+            >
               +
             </button>
           </div>
@@ -102,6 +111,7 @@
             type="text"
             id="cardSearchInput"
             placeholder="Search cards..."
+            aria-label="Search cards"
           />
         </div>
       </aside>
@@ -111,28 +121,47 @@
         <header class="top-bar">
           <div class="title-wrapper">
             <h1 id="currentCardTitle" title="Click to edit">Select a Card</h1>
-            <input type="text" id="cardTitleInput" class="title-input hidden" />
+            <input
+              type="text"
+              id="cardTitleInput"
+              class="title-input hidden"
+              aria-label="Card Title"
+            />
             <button
               id="editTitleBtn"
               class="icon-btn-ghost"
               title="Rename Card"
+              aria-label="Rename Card"
             >
               ✏️
             </button>
           </div>
           <div class="actions key-manager">
-            <select id="keySelect">
+            <select id="keySelect" aria-label="Select API Key">
               <option value="">Select API Key...</option>
             </select>
-            <button id="addKeyToggleBtn" class="icon-btn" title="Add New Key">
+            <button
+              id="addKeyToggleBtn"
+              class="icon-btn"
+              title="Add New Key"
+              aria-label="Add New API Key"
+              aria-expanded="false"
+              aria-controls="newKeyForm"
+            >
               +
             </button>
             <div id="newKeyForm" class="hidden popup-form">
-              <input type="text" id="newKeyName" placeholder="Key Name" />
+              <input
+                type="text"
+                id="newKeyName"
+                placeholder="Key Name"
+                aria-label="New Key Name"
+              />
               <input
                 type="password"
                 id="newKeyValue"
                 placeholder="Gemini Key"
+                aria-label="Gemini API Key"
               />
               <button id="saveKeyBtn" class="secondary-btn">Save</button>
             </div>
@@ -203,6 +232,7 @@
               id="openCardFolderBtn"
               class="secondary-btn icon-btn hidden"
               title="Open Card Folder"
+              aria-label="Open Card Folder"
             >
               📂
             </button>
@@ -210,7 +240,9 @@
               id="galleryFilterFavorites"
               class="secondary-btn icon-btn"
               title="Show Favorites Only"
+              aria-label="Show Favorites Only"
               style="margin-left: auto"
+              aria-pressed="false"
             >
               ♥
             </button>
@@ -220,27 +252,53 @@
             <!-- Images go here -->
           </div>
         </div>
-        <div id="toast-container" class="toast-container"></div>
+        <div
+          id="toast-container"
+          class="toast-container"
+          role="status"
+          aria-live="polite"
+        ></div>
       </main>
     </div>
 
     <!-- Project Modal -->
-    <div id="projectModal" class="modal hidden">
+    <div
+      id="projectModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="projectModalTitle"
+    >
       <div class="modal-content">
         <h3 id="projectModalTitle">Project Settings</h3>
-        <input type="text" id="newProjectId" placeholder="ID (e.g. tarot)" />
+        <input
+          type="text"
+          id="newProjectId"
+          placeholder="ID (e.g. tarot)"
+          aria-label="Project ID"
+        />
         <input
           type="text"
           id="newProjectName"
           placeholder="Name (e.g. Tarot Deck)"
+          aria-label="Project Name"
         />
         <input
           type="text"
           id="newProjectRoot"
           placeholder="Output Dir (relative to data/output, e.g. tarot)"
+          aria-label="Output Directory"
         />
-        <textarea id="globalPrefix" placeholder="Global Prefix"></textarea>
-        <textarea id="globalSuffix" placeholder="Global Suffix"></textarea>
+        <textarea
+          id="globalPrefix"
+          placeholder="Global Prefix"
+          aria-label="Global Prompt Prefix"
+        ></textarea>
+        <textarea
+          id="globalSuffix"
+          placeholder="Global Suffix"
+          aria-label="Global Prompt Suffix"
+        ></textarea>
 
         <div class="form-grid" style="margin-top: 10px">
           <div class="form-group">
@@ -276,9 +334,20 @@
     </div>
 
     <!-- Image Details Modal -->
-    <div id="imageModal" class="modal hidden">
+    <div
+      id="imageModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="imgModalTitle"
+    >
       <div class="modal-content modal-content-wide">
-        <button id="imgModalCloseX" class="modal-close-x" title="Close">
+        <button
+          id="imgModalCloseX"
+          class="modal-close-x"
+          title="Close"
+          aria-label="Close"
+        >
           ×
         </button>
         <div class="modal-image-col">
@@ -330,6 +399,7 @@
               id="imgModalFavoriteBtn"
               class="icon-btn-round"
               title="Toggle Favorite"
+              aria-label="Toggle Favorite"
             >
               ♥
             </button>

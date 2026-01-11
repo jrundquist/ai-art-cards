@@ -55,7 +55,8 @@ async function init() {
   }
 
   dom.btns.addKeyToggle.addEventListener("click", () => {
-    dom.forms.newKey.classList.toggle("hidden");
+    const isHidden = dom.forms.newKey.classList.toggle("hidden");
+    dom.btns.addKeyToggle.setAttribute("aria-expanded", !isHidden);
   });
 
   dom.btns.saveNewKey.addEventListener("click", async () => {

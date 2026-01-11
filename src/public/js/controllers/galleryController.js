@@ -8,7 +8,9 @@ let isFavoritesOnly = false;
 
 export function toggleFilterFavorites() {
   isFavoritesOnly = !isFavoritesOnly;
-  dom.btns.favFilter.classList.toggle("active", isFavoritesOnly);
+  const btn = dom.btns.favFilter;
+  btn.classList.toggle("active", isFavoritesOnly);
+  btn.setAttribute("aria-pressed", isFavoritesOnly);
 
   if (state.currentProject && state.currentCard) {
     loadImagesForCard(state.currentProject.id, state.currentCard.id);
