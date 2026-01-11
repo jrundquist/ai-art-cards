@@ -42,6 +42,7 @@ export const dom = {
     self: document.getElementById("projectModal"),
     title: document.getElementById("projectModalTitle"),
     save: document.getElementById("saveProjectBtn"),
+    delete: document.getElementById("deleteProjectBtn"),
     cancel: document.getElementById("cancelProjectBtn"),
     id: document.getElementById("newProjectId"),
     idDisplay: document.getElementById("newProjectIdDisplay"),
@@ -58,6 +59,13 @@ export const dom = {
     cancel: document.getElementById("cancelKeyBtn"),
     name: document.getElementById("newKeyName"),
     value: document.getElementById("newKeyValue"),
+  },
+  confirmModal: {
+    self: document.getElementById("confirmModal"),
+    title: document.getElementById("confirmModalTitle"),
+    message: document.getElementById("confirmModalMessage"),
+    confirm: document.getElementById("confirmBtn"),
+    cancel: document.getElementById("cancelConfirmBtn"),
   },
 
   imgModal: {
@@ -111,4 +119,28 @@ export function createToast(msg, type = "info", duration = 5000) {
 // Compat wrapper
 export function showStatus(msg, type = "info") {
   createToast(msg, type, 5000);
+}
+
+export function confirmAction(title, message, onConfirm) {
+  dom.confirmModal.title.textContent = title;
+  dom.confirmModal.message.textContent = message;
+  dom.confirmModal.self.classList.remove("hidden");
+
+  const cleanup = () => {
+    dom.confirmModal.self.classList.add("hidden");
+    dom.confirmModal.confirm.onclick = null;
+    dom.confirmModal.confirm.innerText = "Confirm"; // Reset in case it was loading
+    dom.confirmModal.cancel.onclick = null;
+  };
+
+  dom.confirmModal.confirm.onclick = async () => {
+    // maybe show loading state?
+    dom.confirmModal.confirm.innerText = "Processing...";
+    await onConfirm();
+    cleanup();
+  };
+
+  dom.confirmModal.cancel.onclick = () => {
+    cleanup();
+  };
 }

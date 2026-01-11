@@ -1,5 +1,5 @@
 import { state } from "../state.js";
-import { dom, showStatus, createToast } from "../ui.js";
+import { dom, showStatus, createToast, confirmAction } from "../ui.js";
 import * as api from "../api.js";
 import { nanoid } from "../utils.js";
 import { loadImagesForCard, addImageToGallery } from "./galleryController.js";
@@ -37,11 +37,33 @@ export function renderCardList(cards) {
     div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <span>${card.name}</span>
-            <span style="font-size: 0.8em; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${count}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.8em; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${count}</span>
+              <button class="delete-card-icon" title="Delete Card" style="background: none; border: none; cursor: pointer; color: #64748b; font-size: 1.1em; padding: 0; line-height: 1; display: none;">×</button>
+            </div>
         </div>
     `;
 
-    div.onclick = () => selectCard(card);
+    // Show delete button on hover (via JS for simplicity, or CSS could work if structure allows)
+    // Actually, let's use CSS for hover effect if possible, but JS for the click handler is must.
+    div.onmouseenter = () => {
+      const btn = div.querySelector(".delete-card-icon");
+      if (btn) btn.style.display = "block";
+    };
+    div.onmouseleave = () => {
+      const btn = div.querySelector(".delete-card-icon");
+      if (btn) btn.style.display = "none";
+    };
+
+    div.onclick = (e) => {
+      // Check if delete button was clicked
+      if (e.target.classList.contains("delete-card-icon")) {
+        e.stopPropagation();
+        deleteCard(card);
+        return;
+      }
+      selectCard(card);
+    };
     dom.cardList.appendChild(div);
   });
 }
@@ -97,6 +119,30 @@ export async function saveCurrentCard(silent = false) {
 
   await loadCards(state.currentProject.id); // Refresh list
   if (!silent) showStatus("Card Saved", "success");
+}
+
+export async function deleteCurrentCard() {
+  deleteCard(state.currentCard);
+}
+
+export async function deleteCard(card) {
+  if (!card) return;
+
+  confirmAction(
+    "Delete Card?",
+    `Delete "${card.name}" and all its images?`,
+    async () => {
+      await api.deleteCard(state.currentProject.id, card.id);
+      showStatus("Card deleted", "success");
+
+      if (state.currentCard && state.currentCard.id === card.id) {
+        state.currentCard = null;
+        dom.editorArea.classList.add("hidden");
+      }
+
+      await loadCards(state.currentProject.id);
+    }
+  );
 }
 
 export async function generateArt() {

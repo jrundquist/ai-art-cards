@@ -73,6 +73,18 @@ export async function saveCard(card) {
   });
 }
 
+export async function deleteProject(projectId) {
+  return await fetch(`/api/projects/${projectId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteCard(projectId, cardId) {
+  return await fetch(`/api/projects/${projectId}/cards/${cardId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function generateImages(payload) {
   return await fetch("/api/generate", {
     method: "POST",

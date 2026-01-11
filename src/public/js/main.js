@@ -163,6 +163,7 @@ async function init() {
     dom.modal.self.classList.add("hidden")
   );
   dom.modal.save.addEventListener("click", projectCtrl.saveProjectConfig);
+  dom.modal.delete.addEventListener("click", projectCtrl.deleteCurrentProject); // NEW
 
   // Image Modal
   dom.imgModal.closeBtn.addEventListener("click", () =>

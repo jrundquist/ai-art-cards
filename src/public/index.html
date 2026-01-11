@@ -340,6 +340,18 @@
         </div>
 
         <div class="modal-actions">
+          <button
+            id="deleteProjectBtn"
+            class="secondary-btn"
+            style="
+              color: #ef4444;
+              border-color: #ef4444;
+              margin-right: auto;
+              display: none;
+            "
+          >
+            Delete Project
+          </button>
           <button id="cancelProjectBtn" class="secondary-btn">Cancel</button>
           <button id="saveProjectBtn" class="primary-btn">Save</button>
         </div>
@@ -564,6 +576,35 @@
         <div class="modal-actions">
           <button id="cancelKeyBtn" class="secondary-btn">Cancel</button>
           <button id="saveKeyBtn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div
+      id="confirmModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmModalTitle"
+    >
+      <div class="modal-content">
+        <h3 id="confirmModalTitle">Confirm Action</h3>
+        <p
+          id="confirmModalMessage"
+          style="color: var(--text-muted); margin-bottom: 20px"
+        >
+          Are you sure?
+        </p>
+        <div class="modal-actions">
+          <button id="cancelConfirmBtn" class="secondary-btn">Cancel</button>
+          <button
+            id="confirmBtn"
+            class="primary-btn"
+            style="background: #ef4444; border-color: #ef4444"
+          >
+            Confirm
+          </button>
         </div>
       </div>
     </div>

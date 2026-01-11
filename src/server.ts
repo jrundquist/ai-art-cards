@@ -104,12 +104,65 @@ export function createApp(dataRoot?: string) {
     res.json({ success: true, project });
   });
 
+  app.delete("/api/projects/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const p = await dataService.getProject(id);
+      if (!p) return res.status(404).json({ error: "Project not found" });
+
+      // Delete Metadata
+      await dataService.deleteProject(id);
+
+      // Delete Output Files
+      if (p.outputRoot) {
+        const outPath = path.join(outputDir, p.outputRoot);
+        // Security check: ensure it is within outputDir
+        if (outPath.startsWith(outputDir) && outPath !== outputDir) {
+          await fs.rm(outPath, { recursive: true, force: true });
+        }
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Cards
 
   app.post("/api/cards", async (req, res) => {
     const card: Card = req.body;
     await dataService.saveCard(card);
     res.json({ success: true, card });
+  });
+
+  app.delete("/api/projects/:projectId/cards/:cardId", async (req, res) => {
+    const { projectId, cardId } = req.params;
+    try {
+      const project = await projectService.getProject(projectId);
+      const cards = await cardService.getCards(projectId);
+      const card = cards.find((c) => c.id === cardId);
+
+      if (!card) return res.status(404).json({ error: "Card not found" });
+
+      // Delete Metadata
+      await dataService.deleteCard(projectId, cardId);
+
+      // Delete Output Files
+      if (project && project.outputRoot && card.outputSubfolder) {
+        const outPath = path.join(
+          outputDir,
+          project.outputRoot,
+          card.outputSubfolder
+        );
+        // Security check
+        if (outPath.startsWith(outputDir) && outPath !== outputDir) {
+          await fs.rm(outPath, { recursive: true, force: true });
+        }
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // Generate

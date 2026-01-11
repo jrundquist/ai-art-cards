@@ -143,6 +143,23 @@ button {
   cursor: pointer;
 }
 
+/* Delete Card Icon */
+.delete-card-icon {
+  opacity: 0.6;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex !important; /* Override JS inline style if needed, but JS toggles display:none/block. Actually JS toggles display. */
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.delete-card-icon:hover {
+  opacity: 1;
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
 /* Card List */
 .card-list {
   flex: 1;

@@ -155,4 +155,26 @@ export class DataService {
     }
     await fs.writeFile(this.keysFile, JSON.stringify(keys, null, 2));
   }
+
+  // --- Deletion ---
+  async deleteProject(id: string): Promise<void> {
+    // 1. Delete project json
+    await fs.rm(path.join(this.projectsDir, `${id}.json`), { force: true });
+    // 2. Delete cards dir for project
+    await fs.rm(path.join(this.cardsDir, id), { recursive: true, force: true });
+    // 3. User must handle output dir deletion manually?
+    // DataService only manages the metadata files technically, but it's convenient to do it here.
+    // However, DataService doesn't know "resolvedDataRoot" easily unless we passed it.
+    // We did pass dataRoot in constructor.
+    // And we have this.projectsDir = dataRoot/projects.
+    // So output should be dataRoot/output.
+    // But let's check if output structure is standard.
+    // Project has outputRoot.
+  }
+
+  async deleteCard(projectId: string, cardId: string): Promise<void> {
+    await fs.rm(path.join(this.cardsDir, projectId, `${cardId}.json`), {
+      force: true,
+    });
+  }
 }

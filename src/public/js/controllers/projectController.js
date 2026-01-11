@@ -1,5 +1,5 @@
 import { state } from "../state.js";
-import { dom, showStatus } from "../ui.js";
+import { dom, showStatus, confirmAction } from "../ui.js";
 import * as api from "../api.js";
 import { loadCards } from "./cardController.js";
 
@@ -85,6 +85,24 @@ export async function saveProjectConfig() {
   showStatus(`Project ${p.id} saved`, "success");
 }
 
+export async function deleteCurrentProject() {
+  const p = state.currentProject;
+  if (!p) return;
+
+  confirmAction(
+    "Delete Project?",
+    `Are you sure you want to delete "${p.name}"? This will delete all cards and the entire output folder "${p.outputRoot}". This cannot be undone.`,
+    async () => {
+      await api.deleteProject(p.id);
+      showStatus(`Project "${p.name}" deleted.`, "success");
+      state.currentProject = null;
+      dom.modal.self.classList.add("hidden");
+      await loadProjects(); // Reload list
+      await onProjectSelect(); // Clear view
+    }
+  );
+}
+
 export function openProjectModal(project) {
   dom.modal.self.classList.remove("hidden");
   if (project) {
@@ -100,6 +118,8 @@ export function openProjectModal(project) {
     dom.modal.aspectRatio.value = project.defaultAspectRatio || "2:3";
     dom.modal.resolution.value = project.defaultResolution || "2K";
 
+    dom.modal.delete.style.display = "block"; // Show delete button
+
     isCreateMode = false;
   } else {
     // Create Mode
@@ -114,6 +134,8 @@ export function openProjectModal(project) {
     dom.modal.suffix.value = "";
     dom.modal.aspectRatio.value = "2:3";
     dom.modal.resolution.value = "2K";
+
+    dom.modal.delete.style.display = "none"; // Hide delete button
 
     // Reset flags for new project
     isIdManuallyChanged = false;
