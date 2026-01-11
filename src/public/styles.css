@@ -6,12 +6,16 @@
   --bg-input-focus: rgba(255, 255, 255, 0.07);
 
   /* Accents */
-  --primary: #6366f1; /* Indigo 500 */
-  --primary-hover: #4f46e5;
-  --primary-glow: rgba(99, 102, 241, 0.5);
+  --primary-rgb: 16, 185, 129;
+  --primary: rgb(var(--primary-rgb)); /* Emerald 500 */
+  --primary-dark: #059669; /* Emerald 600 */
+  --primary-glow: rgba(var(--primary-rgb), 0.5);
 
-  --secondary: #a855f7; /* Purple 500 */
-  --accent: #22d3ee; /* Cyan 400 */
+  --secondary-rgb: 139, 92, 246;
+  --secondary: rgb(var(--secondary-rgb)); /* Violet 500 */
+  --secondary-dark: #7c3aed; /* Violet 600 */
+
+  --accent: #a3e635; /* Lime 400 */
 
   /* Text */
   --text-main: #f8fafc;
@@ -30,7 +34,7 @@
   /* Shadows */
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.2);
+  --shadow-glow: 0 0 20px rgba(var(--primary-rgb), 0.2);
 }
 
 body {
@@ -39,12 +43,12 @@ body {
   background-color: var(--bg-app);
   background-image: radial-gradient(
       circle at 10% 20%,
-      rgba(99, 102, 241, 0.15) 0%,
+      rgba(var(--primary-rgb), 0.15) 0%,
       transparent 40%
     ),
     radial-gradient(
       circle at 90% 80%,
-      rgba(168, 85, 247, 0.1) 0%,
+      rgba(var(--secondary-rgb), 0.1) 0%,
       transparent 40%
     );
   color: var(--text-main);
@@ -96,7 +100,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+  background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -132,7 +136,7 @@ textarea:focus {
   outline: none;
   border-color: var(--primary);
   background: var(--bg-input-focus);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
 }
 
 button {
@@ -168,8 +172,8 @@ button {
 }
 
 .card-item.active {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(var(--primary-rgb), 0.1);
+  border-color: rgba(var(--primary-rgb), 0.3);
   color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -196,7 +200,11 @@ button {
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark) 0%,
+    var(--secondary-dark) 100%
+  );
   color: white;
   padding: 12px 24px;
   border: none;
@@ -217,10 +225,10 @@ button {
 }
 
 .primary-btn.glow {
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.4);
 }
 .primary-btn.glow:hover {
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.6);
 }
 
 .secondary-btn {
@@ -352,7 +360,7 @@ button {
 
 .gallery-item:hover {
   transform: translateY(-4px);
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(var(--primary-rgb), 0.3);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
@@ -504,7 +512,7 @@ button {
   border: 1px solid transparent; /* Fallback */
   border-radius: var(--radius-sm);
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
   /* Ensure text is above the pseudo-element 'border' */
   z-index: 1;
   /* Add a little extra padding for the effect */
@@ -522,10 +530,10 @@ button {
   height: 100vmax;
   background: conic-gradient(
     transparent,
-    #6366f1,
-    #a855f7,
-    #ec4899,
-    #6366f1,
+    var(--primary),
+    var(--secondary),
+    var(--accent),
+    var(--primary),
     transparent
   );
   animation: border-spin 4s linear infinite;
