@@ -586,7 +586,7 @@ function createNewCard() {
   selectCard(newCard);
 }
 
-async function saveCurrentCard() {
+async function saveCurrentCard(silent = false) {
   if (!currentCard) return;
 
   currentCard.name = dom.inputs.name.value;
@@ -602,7 +602,7 @@ async function saveCurrentCard() {
   });
 
   await loadCards(currentProject.id); // Refresh list
-  showStatus("Card Saved", "success");
+  if (!silent) showStatus("Card Saved", "success");
 }
 
 function updatePreview() {
@@ -614,10 +614,13 @@ function updatePreview() {
 async function generateArt() {
   if (!currentCard) return;
 
+  // Auto-save silently before generating
+  await saveCurrentCard(true);
+
   const count = parseInt(dom.inputs.count.value) || 1;
   const promises = [];
 
-  dom.btns.generate.disabled = true;
+  // dom.btns.generate.disabled = true; // Allow multiple clicks
 
   // We loop here on the client to get separate status bars
   for (let i = 0; i < count; i++) {
@@ -663,9 +666,10 @@ async function generateArt() {
   }
 
   // Wait for all to finish to re-enable button
+  // Wait for all to finish (just for internal tracking if needed, but UI is non-blocking now)
   await Promise.all(promises);
-  dom.btns.generate.disabled = false;
-  dom.btns.generate.textContent = "Generate Art ✨";
+  // dom.btns.generate.disabled = false;
+  // dom.btns.generate.textContent = "Generate Art ✨";
 }
 
 init();
