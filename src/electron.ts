@@ -256,9 +256,26 @@ app.on("ready", async () => {
   const dataRoot = userDataPath; // path.join(userDataPath, "data");
 
   // IPC Handlers
-  ipcMain.handle("open-data-folder", async () => {
+  // IPC Handlers
+  ipcMain.handle("open-data-folder", async (event, subPath?: string) => {
     // Open the dataRoot
-    await shell.openPath(dataRoot);
+    if (subPath) {
+      // Basic security: prevent traversing up
+      const safeSub = subPath.replace(/^(\.\.(\/|\\|$))+/, "");
+      const target = path.join(dataRoot, safeSub);
+      log.info("Opening specific folder:", target);
+      // Ensure it exists? shell.openPath checks existence.
+      // If it doesn't exist, we might want to try creating it?
+      // Or just open parent?
+      // Let's just try opening.
+      const err = await shell.openPath(target);
+      if (err) {
+        log.warn("Failed to open specific path, falling back to root:", err);
+        await shell.openPath(dataRoot);
+      }
+    } else {
+      await shell.openPath(dataRoot);
+    }
   });
 
   await startServer(5432, dataRoot);
