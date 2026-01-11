@@ -485,3 +485,85 @@ textarea:focus {
 .card-list::-webkit-scrollbar {
   width: 4px;
 }
+
+/* AI Generation Toast Animation */
+@keyframes ai-spin {
+  0% {
+    --rotate: 0deg;
+  }
+  100% {
+    --rotate: 360deg;
+  }
+}
+
+/* We use a fallback animation for standard rotation if @property isn't supported/needed, 
+   but since we are targeting an internal electron app or modern browser, 
+   we can use standard transforms on pseudo-elements for maximum compatibility. 
+*/
+@keyframes border-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.toast.ai-generating {
+  position: relative;
+  background: rgba(15, 15, 20, 0.9);
+  border: 1px solid transparent; /* Fallback */
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  /* Ensure text is above the pseudo-element 'border' */
+  z-index: 1;
+  /* Add a little extra padding for the effect */
+  border: none;
+}
+
+/* The colorful swirling border */
+/* The colorful swirling border */
+.toast.ai-generating::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vmax;
+  height: 100vmax;
+  background: conic-gradient(
+    transparent,
+    #6366f1,
+    #a855f7,
+    #ec4899,
+    #6366f1,
+    transparent
+  );
+  animation: border-spin 4s linear infinite;
+  z-index: -2;
+}
+
+/* The inner background to cover the center of the gradient */
+.toast.ai-generating::after {
+  content: "";
+  position: absolute;
+  inset: 2px; /* Thickness of the border */
+  background: rgba(10, 10, 12, 0.95);
+  border-radius: calc(var(--radius-sm) - 2px);
+  z-index: -1;
+}
+
+/* Optional: Pulse text slightly */
+@keyframes pulse-text {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.toast.ai-generating {
+  animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

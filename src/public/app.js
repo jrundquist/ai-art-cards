@@ -625,7 +625,11 @@ async function generateArt() {
   // We loop here on the client to get separate status bars
   for (let i = 0; i < count; i++) {
     const p = (async () => {
-      const toast = createToast(`Generating ${i + 1}/${count}...`, "info", 0); // 0 = no auto-dismiss yet
+      const toast = createToast(
+        `✨ Generating ${i + 1}/${count}...`,
+        "ai-generating",
+        0
+      ); // 0 = no auto-dismiss yet
 
       try {
         const res = await fetch("/api/generate", {
