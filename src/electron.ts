@@ -294,6 +294,17 @@ app.on("ready", async () => {
     await shell.openExternal(url);
   });
 
+  ipcMain.handle("show-item-in-folder", async (event, relativePath: string) => {
+    if (!relativePath) return;
+    // relativePath is expected to be relative to dataRoot
+    // e.g. "output/project/card/image.png"
+    // Security check: prevent directory traversal
+    const safeSub = relativePath.replace(/^(\.\.(\/|\\|$))+/, "");
+    const target = path.join(dataRoot, safeSub);
+    log.info("Showing item in folder:", target);
+    shell.showItemInFolder(target);
+  });
+
   await startServer(5432, dataRoot);
 
   createWindow();

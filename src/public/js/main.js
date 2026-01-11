@@ -299,6 +299,13 @@ async function init() {
       if (target.hasAttribute("data-external") && window.electronAPI) {
         event.preventDefault();
         window.electronAPI.openExternal(url);
+      } else if (
+        target.hasAttribute("data-open-in-folder") &&
+        window.electronAPI
+      ) {
+        event.preventDefault();
+        const path = target.getAttribute("data-open-in-folder");
+        window.electronAPI.showItemInFolder(path);
       }
     }
   });

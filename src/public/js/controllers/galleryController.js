@@ -248,6 +248,10 @@ export async function openImageDetails(imgUrl) {
   dom.imgModal.self.classList.remove("hidden");
   dom.imgModal.preview.src = "/" + imgUrl;
   dom.imgModal.link.href = "/" + imgUrl;
+  const relativePath = imgUrl.startsWith("data/")
+    ? imgUrl.substring(5)
+    : imgUrl;
+  dom.imgModal.link.setAttribute("data-open-in-folder", relativePath);
 
   // Set Favorite Button State
   const filename = imgUrl.split("/").pop();
