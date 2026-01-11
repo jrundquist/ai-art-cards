@@ -133,44 +133,46 @@
 
         <div id="editorArea" class="editor-area hidden">
           <div class="form-grid">
-            <div class="form-group">
-              <label>Card Name</label>
-              <input
-                type="text"
-                id="cardNameInput"
-                placeholder="e.g. The Fool"
-              />
-            </div>
-            <div class="form-group">
-              <label>Output Subfolder</label>
-              <input type="text" id="subfolderInput" placeholder="default" />
-            </div>
+            <div class="combined-row full-width">
+              <div class="form-group">
+                <label>Card Name</label>
+                <input
+                  type="text"
+                  id="cardNameInput"
+                  placeholder="e.g. The Fool"
+                />
+              </div>
+              <div class="form-group">
+                <label>Output Subfolder</label>
+                <input type="text" id="subfolderInput" placeholder="default" />
+              </div>
 
-            <div class="form-group">
-              <label>Aspect Ratio</label>
-              <select id="cardAspectRatio">
-                <option value="">Project Default</option>
-                <option value="Auto">Auto</option>
-                <option value="1:1">1:1</option>
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="3:4">3:4</option>
-                <option value="4:3">4:3</option>
-                <option value="3:2">3:2</option>
-                <option value="2:3">2:3</option>
-                <option value="5:4">5:4</option>
-                <option value="4:5">4:5</option>
-                <option value="21:9">21:9</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Resolution</label>
-              <select id="cardResolution">
-                <option value="">Project Default</option>
-                <option value="1K">1K</option>
-                <option value="2K">2K</option>
-                <option value="4K">4K</option>
-              </select>
+              <div class="form-group">
+                <label>Aspect Ratio</label>
+                <select id="cardAspectRatio">
+                  <option value="">Project Default</option>
+                  <option value="Auto">Auto</option>
+                  <option value="1:1">1:1</option>
+                  <option value="16:9">16:9</option>
+                  <option value="9:16">9:16</option>
+                  <option value="3:4">3:4</option>
+                  <option value="4:3">4:3</option>
+                  <option value="3:2">3:2</option>
+                  <option value="2:3">2:3</option>
+                  <option value="5:4">5:4</option>
+                  <option value="4:5">4:5</option>
+                  <option value="21:9">21:9</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Resolution</label>
+                <select id="cardResolution">
+                  <option value="">Project Default</option>
+                  <option value="1K">1K</option>
+                  <option value="2K">2K</option>
+                  <option value="4K">4K</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group full-width">
@@ -198,6 +200,14 @@
               title="Open Card Folder"
             >
               📂
+            </button>
+            <button
+              id="galleryFilterFavorites"
+              class="secondary-btn icon-btn"
+              title="Show Favorites Only"
+              style="margin-left: auto"
+            >
+              ♥
             </button>
           </div>
 
@@ -311,6 +321,13 @@
           </div>
 
           <div class="modal-actions-vertical">
+            <button
+              id="imgModalFavoriteBtn"
+              class="icon-btn-round"
+              title="Toggle Favorite"
+            >
+              ♥
+            </button>
             <a
               id="imgModalLink"
               href="#"

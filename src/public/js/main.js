@@ -160,7 +160,15 @@ async function init() {
           galleryCtrl.navigateGallery("prev");
         }
       }
+      if (e.key === "f" || e.key === "F") {
+        galleryCtrl.toggleImageFavorite();
+      }
     }
+  });
+
+  // Favorites Filter
+  dom.btns.favFilter.addEventListener("click", () => {
+    galleryCtrl.toggleFilterFavorites();
   });
 
   window.addEventListener("popstate", () => restoreStateFromUrl());

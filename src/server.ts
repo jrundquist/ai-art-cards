@@ -372,6 +372,35 @@ export function createApp(dataRoot?: string) {
     }
   });
 
+  // Toggle Favorite
+  app.post("/api/cards/:cardId/favorite", async (req, res) => {
+    const { cardId } = req.params;
+    const { projectId, filename } = req.body;
+
+    try {
+      const cards = await cardService.getCards(projectId);
+      const card = cards.find((c) => c.id === cardId);
+      if (!card) return res.status(404).json({ error: "Card not found" });
+
+      if (!card.favoriteImages) card.favoriteImages = [];
+
+      let isFavorite = false;
+      const idx = card.favoriteImages.indexOf(filename);
+      if (idx === -1) {
+        card.favoriteImages.push(filename);
+        isFavorite = true;
+      } else {
+        card.favoriteImages.splice(idx, 1);
+        isFavorite = false;
+      }
+
+      await cardService.saveCard(card);
+      res.json({ success: true, isFavorite });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   return app;
 }
 

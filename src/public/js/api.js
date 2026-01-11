@@ -54,6 +54,17 @@ export async function archiveImage(cardId, projectId, filename) {
   });
 }
 
+export async function toggleFavorite(cardId, projectId, filename) {
+  return await fetch(`/api/cards/${cardId}/favorite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      projectId: projectId,
+      filename: filename,
+    }),
+  });
+}
+
 export async function saveCard(card) {
   return await fetch("/api/cards", {
     method: "POST",

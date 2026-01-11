@@ -10,6 +10,7 @@ export interface Card {
   aspectRatio?: string;
   resolution?: string;
   archivedImages?: string[];
+  favoriteImages?: string[];
 }
 
 export interface Project {

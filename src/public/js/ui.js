@@ -29,6 +29,7 @@ export const dom = {
     saveCard: document.getElementById("saveCardBtn"),
     openCardFolder: document.getElementById("openCardFolderBtn"),
     generate: document.getElementById("generateBtn"),
+    favFilter: document.getElementById("galleryFilterFavorites"),
   },
   forms: {
     newKey: document.getElementById("newKeyForm"),
@@ -59,6 +60,7 @@ export const dom = {
     archiveBtn: document.getElementById("imgModalArchiveBtn"),
     closeBtn: document.getElementById("imgModalCloseBtn"),
     closeX: document.getElementById("imgModalCloseX"),
+    favBtn: document.getElementById("imgModalFavoriteBtn"),
   },
   toastContainer: document.getElementById("toast-container"),
 };
