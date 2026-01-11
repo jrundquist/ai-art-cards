@@ -305,21 +305,6 @@ button {
   margin-left: 2px;
 }
 
-.preview-box {
-  padding: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--text-muted);
-  min-height: 20px;
-}
-
 /* Generation Controls */
 .generation-controls {
   display: flex;

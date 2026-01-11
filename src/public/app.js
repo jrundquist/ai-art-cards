@@ -28,7 +28,7 @@ const dom = {
     newKeyName: document.getElementById("newKeyName"),
     newKeyValue: document.getElementById("newKeyValue"),
   },
-  preview: document.getElementById("promptPreview"),
+
   btns: {
     addKeyToggle: document.getElementById("addKeyToggleBtn"),
     saveNewKey: document.getElementById("saveKeyBtn"), // Reusing ID from HTML update
@@ -206,7 +206,7 @@ async function init() {
   dom.newCardBtn.addEventListener("click", createNewCard);
   dom.btns.saveCard.addEventListener("click", saveCurrentCard);
   dom.btns.generate.addEventListener("click", generateArt);
-  dom.inputs.prompt.addEventListener("input", updatePreview);
+
   dom.searchInput.addEventListener("input", filterCards);
 
   // Modal
@@ -467,7 +467,6 @@ function selectCard(card, updateHistory = true) {
 
   if (updateHistory) updateUrl();
 
-  updatePreview();
   loadImagesForCard(currentProject.id, card.id);
 }
 
@@ -610,12 +609,6 @@ async function saveCurrentCard(silent = false) {
 
   await loadCards(currentProject.id); // Refresh list
   if (!silent) showStatus("Card Saved", "success");
-}
-
-function updatePreview() {
-  if (!currentProject) return;
-  const txt = `${currentProject.globalPrefix} ${dom.inputs.prompt.value} ${currentProject.globalSuffix}`;
-  dom.preview.textContent = txt;
 }
 
 async function generateArt() {
