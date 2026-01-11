@@ -195,6 +195,14 @@ export async function generateArt() {
 
         toast.update(`Success #${i + 1}`, "success");
         setTimeout(() => toast.remove(), 4000);
+
+        // Send OS notification if running in Electron
+        if (window.electronAPI && window.electronAPI.showNotification) {
+          window.electronAPI.showNotification(
+            "Image Generated",
+            `"${state.currentCard.name}" image ${i + 1}/${count} completed`
+          );
+        }
       } catch (e) {
         toast.update(`Error #${i + 1}: ${e.message}`, "error");
         setTimeout(() => toast.remove(), 8000);

@@ -6,6 +6,7 @@ import {
   MenuItemConstructorOptions,
   shell,
   ipcMain,
+  Notification,
 } from "electron";
 import { startServer } from "./server";
 import { autoUpdater } from "electron-updater";
@@ -304,6 +305,19 @@ app.on("ready", async () => {
     log.info("Showing item in folder:", target);
     shell.showItemInFolder(target);
   });
+
+  ipcMain.handle(
+    "show-notification",
+    async (event, title: string, body: string) => {
+      if (Notification.isSupported()) {
+        const notification = new Notification({
+          title,
+          body,
+        });
+        notification.show();
+      }
+    }
+  );
 
   await startServer(5432, dataRoot);
 
