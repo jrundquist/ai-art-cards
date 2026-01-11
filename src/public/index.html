@@ -64,38 +64,56 @@
       ></div>
     </div>
     <div class="app-container">
-      <!-- Sidebar -->
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <h2 id="appTitle">AI Card Arts</h2>
-          <div class="project-select-wrapper">
-            <select id="projectSelect">
-              <option value="">Select Project...</option>
-            </select>
-            <button
-              id="openFolderBtn"
-              class="icon-btn hidden"
-              title="Open Data Folder"
-              aria-label="Open Data Folder"
-            >
-              📂
-            </button>
-            <button
-              id="editProjectBtn"
-              class="icon-btn"
-              title="Project Settings"
-              aria-label="Project Settings"
-            >
-              ⚙️
-            </button>
-            <button
-              id="newProjectBtn"
-              class="icon-btn"
-              title="New Project"
-              aria-label="Create New Project"
-            >
-              +
-            </button>
+      <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <h2 id="appTitle">AI Card Arts <span id="projectName"></span></h2>
+            <div class="project-select-wrapper">
+              <select id="projectSelect">
+                <option value="">Select Project...</option>
+              </select>
+              <button
+                id="openFolderBtn"
+                class="icon-btn hidden"
+                title="Open Data Folder"
+                aria-label="Open Data Folder"
+              >
+                📂
+              </button>
+              <button
+                id="editProjectBtn"
+                class="icon-btn"
+                title="Project Settings"
+                aria-label="Project Settings"
+              >
+                ⚙️
+              </button>
+              <button
+                id="newProjectBtn"
+                class="icon-btn"
+                title="New Project"
+                aria-label="Create New Project"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div id="cardList" class="card-list">
+            <!-- Cards injected here -->
+          </div>
+
+          <button id="newCardBtn" class="primary-btn full-width">
+            + New Card
+          </button>
+          <div class="sidebar-search-wrapper">
+            <input
+              type="text"
+              id="cardSearchInput"
+              placeholder="Search cards..."
+              aria-label="Search cards"
+            />
             <button
               id="helpBtn"
               class="icon-btn"
@@ -105,163 +123,157 @@
               ?
             </button>
           </div>
-        </div>
+        </aside>
 
-        <div id="cardList" class="card-list">
-          <!-- Cards injected here -->
-        </div>
-
-        <button id="newCardBtn" class="primary-btn full-width">
-          + New Card
-        </button>
-        <div style="padding: 10px 0">
-          <input
-            type="text"
-            id="cardSearchInput"
-            placeholder="Search cards..."
-            aria-label="Search cards"
-          />
-        </div>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="main-content">
-        <header class="top-bar">
-          <div class="title-wrapper">
-            <h1 id="currentCardTitle" title="Click to edit">Select a Card</h1>
-            <input
-              type="text"
-              id="cardTitleInput"
-              class="title-input hidden"
-              aria-label="Card Title"
-            />
-            <button
-              id="editTitleBtn"
-              class="icon-btn-ghost"
-              title="Rename Card"
-              aria-label="Rename Card"
-            >
-              ✏️
-            </button>
-          </div>
-          <div class="actions key-manager">
-            <select id="keySelect" aria-label="Select API Key">
-              <option value="">Select API Key...</option>
-            </select>
-            <button
-              id="addKeyToggleBtn"
-              class="icon-btn"
-              title="Add New Key"
-              aria-label="Add New API Key"
-              aria-haspopup="dialog"
-            >
-              +
-            </button>
-
-            <!-- Hidden old input compatibility if needed, or just removed -->
-            <input type="hidden" id="apiKeyInput" />
-          </div>
-        </header>
-
-        <div id="editorArea" class="editor-area hidden">
-          <div class="form-grid">
-            <!-- Hidden fields -->
-            <input type="hidden" id="cardNameInput" />
-
-            <div class="form-group full-width">
-              <label>Prompt</label>
-              <textarea
-                id="promptInput"
-                rows="4"
-                placeholder="Describe the image..."
-              ></textarea>
+        <!-- Main Content -->
+        <main class="main-content">
+          <header class="top-bar">
+            <div class="title-wrapper">
+              <h1 id="currentCardTitle" title="Click to edit">Select a Card</h1>
+              <input
+                type="text"
+                id="cardTitleInput"
+                class="title-input hidden"
+                aria-label="Card Title"
+              />
+              <button
+                id="editTitleBtn"
+                class="icon-btn-ghost"
+                title="Rename Card"
+                aria-label="Rename Card"
+              >
+                ✏️
+              </button>
             </div>
+            <div class="actions key-manager">
+              <select id="keySelect" aria-label="Select API Key">
+                <option value="">Select API Key...</option>
+              </select>
+              <button
+                id="addKeyToggleBtn"
+                class="icon-btn"
+                title="Add New Key"
+                aria-label="Add New API Key"
+                aria-haspopup="dialog"
+              >
+                +
+              </button>
 
-            <div class="combined-row full-width">
-              <div class="form-group">
-                <label>Output Subfolder</label>
-                <input type="text" id="subfolderInput" placeholder="default" />
+              <!-- Hidden old input compatibility if needed, or just removed -->
+              <input type="hidden" id="apiKeyInput" />
+            </div>
+          </header>
+
+          <div id="editorArea" class="editor-area hidden">
+            <div class="form-grid">
+              <!-- Hidden fields -->
+              <input type="hidden" id="cardNameInput" />
+
+              <div class="form-group full-width">
+                <label>Prompt</label>
+                <textarea
+                  id="promptInput"
+                  rows="4"
+                  placeholder="Describe the image..."
+                ></textarea>
               </div>
 
-              <div class="form-group">
-                <label>Aspect Ratio</label>
-                <select id="cardAspectRatio">
-                  <option value="">Project Default</option>
-                  <option value="Auto">Auto</option>
-                  <option value="1:1">1:1</option>
-                  <option value="16:9">16:9</option>
-                  <option value="9:16">9:16</option>
-                  <option value="3:4">3:4</option>
-                  <option value="4:3">4:3</option>
-                  <option value="3:2">3:2</option>
-                  <option value="2:3">2:3</option>
-                  <option value="5:4">5:4</option>
-                  <option value="4:5">4:5</option>
-                  <option value="21:9">21:9</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Resolution</label>
-                <select id="cardResolution">
-                  <option value="">Project Default</option>
-                  <option value="1K">1K</option>
-                  <option value="2K">2K</option>
-                  <option value="4K">4K</option>
-                </select>
+              <div class="combined-row full-width">
+                <div class="form-group">
+                  <label>Output Subfolder</label>
+                  <input
+                    type="text"
+                    id="subfolderInput"
+                    placeholder="default"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Aspect Ratio</label>
+                  <select id="cardAspectRatio">
+                    <option value="">Project Default</option>
+                    <option value="Auto">Auto</option>
+                    <option value="1:1">1:1</option>
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="3:4">3:4</option>
+                    <option value="4:3">4:3</option>
+                    <option value="3:2">3:2</option>
+                    <option value="2:3">2:3</option>
+                    <option value="5:4">5:4</option>
+                    <option value="4:5">4:5</option>
+                    <option value="21:9">21:9</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Resolution</label>
+                  <select id="cardResolution">
+                    <option value="">Project Default</option>
+                    <option value="1K">1K</option>
+                    <option value="2K">2K</option>
+                    <option value="4K">4K</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="generation-controls">
-            <div class="count-input">
-              <label>Count:</label>
-              <input type="number" id="genCount" value="1" min="1" max="10" />
+            <div class="generation-controls">
+              <div class="count-input">
+                <label>Count:</label>
+                <input type="number" id="genCount" value="1" min="1" max="10" />
+              </div>
+              <button id="saveCardBtn" class="secondary-btn">Save Card</button>
+              <button id="generateBtn" class="primary-btn glow">
+                Generate Art ✨
+              </button>
+              <button
+                id="openCardFolderBtn"
+                class="secondary-btn icon-btn hidden"
+                title="Open Card Folder"
+                aria-label="Open Card Folder"
+              >
+                📂
+              </button>
+              <button
+                id="galleryFilterFavorites"
+                class="secondary-btn icon-btn"
+                title="Show Favorites Only"
+                aria-label="Show Favorites Only"
+                style="margin-left: auto"
+                aria-pressed="false"
+              >
+                ♥
+              </button>
+              <button
+                id="galleryFilterArchive"
+                class="secondary-btn icon-btn"
+                title="Show Archived (Trash)"
+                aria-label="Show Archived Images"
+                style="margin-left: 5px"
+                aria-pressed="false"
+              >
+                🗑️
+              </button>
             </div>
-            <button id="saveCardBtn" class="secondary-btn">Save Card</button>
-            <button id="generateBtn" class="primary-btn glow">
-              Generate Art ✨
-            </button>
-            <button
-              id="openCardFolderBtn"
-              class="secondary-btn icon-btn hidden"
-              title="Open Card Folder"
-              aria-label="Open Card Folder"
-            >
-              📂
-            </button>
-            <button
-              id="galleryFilterFavorites"
-              class="secondary-btn icon-btn"
-              title="Show Favorites Only"
-              aria-label="Show Favorites Only"
-              style="margin-left: auto"
-              aria-pressed="false"
-            >
-              ♥
-            </button>
-            <button
-              id="galleryFilterArchive"
-              class="secondary-btn icon-btn"
-              title="Show Archived (Trash)"
-              aria-label="Show Archived Images"
-              style="margin-left: 5px"
-              aria-pressed="false"
-            >
-              🗑️
-            </button>
-          </div>
 
-          <div id="gallery" class="gallery-grid">
-            <!-- Images go here -->
+            <div id="gallery" class="gallery-grid">
+              <!-- Images go here -->
+            </div>
           </div>
-        </div>
-        <div
-          id="toast-container"
-          class="toast-container"
-          role="status"
-          aria-live="polite"
-        ></div>
-      </main>
+          <div
+            id="toast-container"
+            class="toast-container"
+            role="status"
+            aria-live="polite"
+          ></div>
+        </main>
+      </div>
+      <!-- End main-layout -->
+
+      <footer id="statusBar">
+        <div class="status-left" id="statusMessage">Ready</div>
+        <div class="status-right">v1.1.1</div>
+      </footer>
     </div>
 
     <!-- Project Modal -->

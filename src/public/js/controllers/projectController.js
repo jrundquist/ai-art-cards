@@ -38,11 +38,22 @@ export async function onProjectSelect(updateHistory = true) {
     dom.editorArea.classList.add("hidden");
     if (updateHistory) updateUrl();
     if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Data Folder";
+
+    // Clear App Title Project Name
+    const projectNameSpan = document.getElementById("projectName");
+    if (projectNameSpan) projectNameSpan.textContent = "";
+
     return;
   }
 
   state.currentProject = state.projects.find((p) => p.id === pid);
   if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Project Folder";
+
+  // Update App Title
+  const projectNameSpan = document.getElementById("projectName");
+  if (projectNameSpan) {
+    projectNameSpan.textContent = `: ${state.currentProject.name}`;
+  }
 
   // Update default options in card overrides
   const arDefaultOpt = dom.inputs.cardAspectRatio.options[0];
