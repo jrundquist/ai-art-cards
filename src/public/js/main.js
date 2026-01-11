@@ -286,6 +286,10 @@ async function init() {
     galleryCtrl.toggleFilterFavorites();
   });
 
+  dom.btns.archiveFilter.addEventListener("click", () => {
+    galleryCtrl.toggleFilterArchive();
+  });
+
   window.addEventListener("popstate", () => restoreStateFromUrl());
 
   await restoreStateFromUrl();

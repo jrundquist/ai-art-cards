@@ -683,32 +683,57 @@ button {
 /* Gallery Item Favorite Overlay */
 .gallery-fav-icon {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
+  top: 5px;
+  right: 5px;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  color: white;
   border-radius: 50%;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  opacity: 0;
-  transition: all 0.2s;
-  z-index: 2;
-  font-size: 0.9rem;
   cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s, transform 0.2s;
+  z-index: 10;
 }
+
+.gallery-archive-icon {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white; /* Default white, maybe red? */
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s, transform 0.2s;
+  z-index: 10;
+  font-size: 0.9em;
+}
+
 .gallery-item:hover .gallery-fav-icon,
-.gallery-fav-icon.active {
+.gallery-item:hover .gallery-archive-icon {
   opacity: 1;
 }
 .gallery-fav-icon.active {
   color: #ef4444;
   background: rgba(0, 0, 0, 0.8);
 }
+
 .gallery-fav-icon:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.gallery-archive-icon:hover {
+  background: rgba(239, 68, 68, 0.8); /* Red */
   transform: scale(1.1);
 }
 

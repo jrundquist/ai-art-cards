@@ -340,9 +340,12 @@ export function createApp(dataRoot?: string) {
       }
 
       const files = await fs.readdir(securePath);
+      const includeArchived = req.query.includeArchived === "true";
       const images = files
         .filter((f: string) => /\.(png|jpg|jpeg|webp)$/i.test(f))
-        .filter((f) => !(card.archivedImages || []).includes(f))
+        .filter(
+          (f) => includeArchived || !(card.archivedImages || []).includes(f)
+        )
         .sort((a: string, b: string) =>
           b.localeCompare(a, undefined, { numeric: true })
         )
@@ -415,11 +418,20 @@ export function createApp(dataRoot?: string) {
       if (!card) return res.status(404).json({ error: "Card not found" });
 
       if (!card.archivedImages) card.archivedImages = [];
-      if (!card.archivedImages.includes(filename)) {
+      let isArchived = false;
+
+      if (card.archivedImages.includes(filename)) {
+        // Unarchive
+        card.archivedImages = card.archivedImages.filter((f) => f !== filename);
+        isArchived = false;
+      } else {
+        // Archive
         card.archivedImages.push(filename);
-        await cardService.saveCard(card);
+        isArchived = true;
       }
-      res.json({ success: true });
+
+      await cardService.saveCard(card);
+      res.json({ success: true, isArchived });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

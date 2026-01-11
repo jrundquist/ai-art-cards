@@ -31,8 +31,13 @@ export async function fetchCards(projectId) {
   return await res.json();
 }
 
-export async function fetchCardImages(projectId, cardId) {
-  const res = await fetch(`/api/projects/${projectId}/cards/${cardId}/images`);
+export async function fetchCardImages(
+  projectId,
+  cardId,
+  includeArchived = false
+) {
+  const url = `/api/projects/${projectId}/cards/${cardId}/images?includeArchived=${includeArchived}`;
+  const res = await fetch(url);
   return await res.json();
 }
 
