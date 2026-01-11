@@ -198,6 +198,7 @@ async function init() {
     btn.classList.add("hidden");
     input.classList.remove("hidden");
     input.focus();
+    input.select();
   };
 
   const saveTitleEdit = async () => {
