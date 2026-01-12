@@ -47,6 +47,8 @@ export class ChatManager {
     this.newChatBtn.addEventListener("click", () => this.startNewChat());
     this.sendBtn.addEventListener("click", () => this.sendMessage());
 
+    this.input.addEventListener("input", () => this.adjustInputHeight());
+
     this.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -57,6 +59,7 @@ export class ChatManager {
     // Listen for suggestion clicks from MessageRenderer
     document.addEventListener("suggestion-clicked", (e) => {
       this.input.value = e.detail.text;
+      this.adjustInputHeight();
       this.input.focus();
     });
 
@@ -77,13 +80,29 @@ export class ChatManager {
     this.uiController.toggleSidebar();
   }
 
+  adjustInputHeight() {
+    this.input.style.height = "auto";
+    this.input.style.height = this.input.scrollHeight + "px";
+  }
+
   async onProjectSelected(projectId) {
     this.conversationService.clearCurrentConversation();
     this.messageRenderer.clearMessages();
-    await this.loadConversationList(projectId);
+    const conversations = await this.loadConversationList(projectId);
+
+    // Restore last conversation if it exists in the current project
+    const lastConvId = sessionStorage.getItem("lastConversationId");
+    if (
+      lastConvId &&
+      conversations &&
+      conversations.some((c) => c.id === lastConvId)
+    ) {
+      await this.loadConversation(lastConvId);
+    }
   }
 
   startNewChat() {
+    sessionStorage.removeItem("lastConversationId");
     this.conversationService.clearCurrentConversation();
     this.pendingContext = [];
     this.messageRenderer.clearMessages();
@@ -107,6 +126,7 @@ export class ChatManager {
     }
 
     this.input.value = "";
+    this.adjustInputHeight();
     this.isGenerating = true;
     this.sendBtn.disabled = true;
 
@@ -117,6 +137,7 @@ export class ChatManager {
     if (!this.conversationService.getCurrentConversationId()) {
       const newId =
         Date.now().toString(36) + Math.random().toString(36).substr(2);
+      sessionStorage.setItem("lastConversationId", newId);
       this.conversationService.setActiveConversation(newId);
     }
 
@@ -207,6 +228,7 @@ export class ChatManager {
       (convId) => this.loadConversation(convId),
       (convId) => this.deleteConversation(convId)
     );
+    return conversations;
   }
 
   async loadConversation(conversationId) {
@@ -219,6 +241,7 @@ export class ChatManager {
 
     if (!data) return;
 
+    sessionStorage.setItem("lastConversationId", conversationId);
     this.conversationService.setActiveConversation(conversationId);
     this.pendingContext = [];
     this.toolCallManager.clearActiveToolCalls();
