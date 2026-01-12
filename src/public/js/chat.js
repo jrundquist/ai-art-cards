@@ -1,6 +1,7 @@
 import { state } from "./state.js";
-import { showStatus } from "./ui.js";
-import { generateArt } from "./controllers/cardController.js";
+import { showStatus, dom } from "./ui.js";
+import { generateArt, selectCard } from "./controllers/cardController.js";
+import { onProjectSelect } from "./controllers/projectController.js";
 import { MessageRenderer } from "./chat/MessageRenderer.js";
 import { ToolCallManager } from "./chat/ToolCallManager.js";
 import { ConversationService } from "./chat/ConversationService.js";
@@ -385,6 +386,8 @@ export class ChatManager {
                 count: action.count || 1,
                 referenceImageIds: action.referenceImageIds,
               });
+            } else if (action.clientAction === "showUserCard") {
+              this.handleShowUserCard(action);
             } else if (action.path || action.created || action.updated) {
               this.triggerDataRefresh();
             }
@@ -534,5 +537,32 @@ export class ChatManager {
     // Reload cards in main view
     const event = new CustomEvent("cards-updated");
     document.dispatchEvent(event);
+  }
+
+  async handleShowUserCard(action) {
+    const { projectId, cardId } = action;
+
+    try {
+      // 1. Switch project if needed
+      if (state.currentProject?.id !== projectId) {
+        dom.projectSelect.value = projectId;
+        await onProjectSelect(true);
+      }
+
+      // 2. Find the card
+      // state.allCards should be populated after onProjectSelect -> loadCards
+      const card = state.allCards.find((c) => c.id === cardId);
+      if (card) {
+        selectCard(card, true);
+      } else {
+        console.warn(
+          `[ChatManager] Card ${cardId} not found in project ${projectId}`
+        );
+        showStatus("Card not found", "error");
+      }
+    } catch (e) {
+      console.error("[ChatManager] Error showing card:", e);
+      showStatus("Error switching card", "error");
+    }
   }
 }

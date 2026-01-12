@@ -51,6 +51,11 @@ export class ToolCallManager {
         label: "Generating Image",
         color: "#ec4899",
       },
+      showUserCard: {
+        icon: "visibility",
+        label: "Showing Card",
+        color: "#8b5cf6",
+      },
     };
     return (
       metadata[toolName] || { icon: "build", label: toolName, color: "#6b7280" }
@@ -89,6 +94,8 @@ export class ToolCallManager {
           return "Updated project settings";
         case "generateImage":
           return "Started image generation";
+        case "showUserCard":
+          return `Showing ${result?.cardName ?? ""} card.`.replace("  ", " ");
         default:
           return "Completed";
       }

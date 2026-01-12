@@ -212,6 +212,24 @@ export class ChatService {
               required: ["projectId", "cardId"],
             },
           },
+          {
+            name: "showUserCard",
+            description: "Switch the UI to show the user a specific card.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                projectId: {
+                  type: "STRING",
+                  description: "The ID of the project.",
+                },
+                cardId: {
+                  type: "STRING",
+                  description: "The ID of the card.",
+                },
+              },
+              required: ["projectId", "cardId"],
+            },
+          },
         ],
       },
     ];
@@ -540,6 +558,18 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
             };
           }
           break;
+        case "showUserCard": {
+          const cards = await this.dataService.getCards(args.projectId);
+          const selectedCard = cards.find((c) => c.id === args.cardId);
+          result = {
+            success: true,
+            clientAction: "showUserCard",
+            projectId: args.projectId,
+            cardId: args.cardId,
+            cardName: selectedCard?.name || "card",
+          };
+          break;
+        }
         default:
           result = { error: "Unknown tool" };
       }
