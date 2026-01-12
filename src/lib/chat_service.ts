@@ -22,13 +22,11 @@ export interface Conversation {
 export class ChatService {
   private genAI: GoogleGenerativeAI | null = null;
   private dataService: DataService;
-  private imageGenerator: ImageGenerator | null = null;
   private conversationsDir: string;
 
   constructor(apiKey: string | undefined, dataService: DataService) {
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.imageGenerator = new ImageGenerator(apiKey);
     }
     this.dataService = dataService;
     this.conversationsDir = path.join(process.cwd(), "data", "conversations");
@@ -161,6 +159,29 @@ export class ChatService {
             },
           },
           {
+            name: "updateProject",
+            description:
+              "Update project-level settings like global prefix, suffix, and description.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                projectId: { type: "STRING" },
+                updates: {
+                  type: "OBJECT",
+                  properties: {
+                    name: { type: "STRING" },
+                    description: { type: "STRING" },
+                    globalPrefix: { type: "STRING" },
+                    globalSuffix: { type: "STRING" },
+                    defaultAspectRatio: { type: "STRING" },
+                    defaultResolution: { type: "STRING" },
+                  },
+                },
+              },
+              required: ["projectId", "updates"],
+            },
+          },
+          {
             name: "generateImage",
             description: "Trigger image generation for a card.",
             parameters: {
@@ -215,85 +236,57 @@ export class ChatService {
 
     // 3. Send Message and Stream
     try {
-      const result = await chat.sendMessageStream(message);
+      let currentMessage: string | any[] = message;
+      let finished = false;
 
-      // We need to handle tool calls manually if we were doing it raw,
-      // but SDK `sendMessageStream` might return tool calls in the stream.
-      // However, automatic tool execution is NOT supported in streaming in all SDK versions yet,
-      // or requires manual handling.
-      // NOTE: Node SDK does not auto-execute tools in streaming. We must check `functionCalls`.
-      // Actually recent SDKs might support it but let's assume we need to handle it.
+      while (!finished) {
+        const result = await chat.sendMessageStream(currentMessage);
+        const toolCalls: any[] = [];
 
-      // Wait, `sendMessageStream` returns a stream of chunks.
-      // If the model wants to call a tool, it yields `functionCalls`.
-      // We must gather them, execute, and send `functionResponse`.
-
-      let aggregatedText = "";
-      let toolCalls: any[] = [];
-      let currentFunctionCall: any = null;
-
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) {
-          aggregatedText += text;
-          res.write(
-            `data: ${JSON.stringify({ type: "text", content: text })}\n\n`
-          );
-        }
-
-        // Check for function calls
-        // Note: SDK 0.24 might expose it differently.
-        const calls = chunk.functionCalls();
-        if (calls && calls.length > 0) {
-          toolCalls.push(...calls);
-          res.write(
-            `data: ${JSON.stringify({ type: "tool_call", content: calls })}\n\n`
-          );
-        }
-      }
-
-      // If we have tool calls, we MUST execute them and report back.
-      // But standard chat interface via SSE usually expects the server to handle it
-      // and stream the FINAL answer, OR the client handles it?
-      // "The agent can call to generate cards".
-      // It's better if the Server handles the tool execution loop and streams the results + final generated text.
-      // BUT, if we are streaming, we lose the 'loop' ability easily unless we recurse.
-
-      // Implementation complexity: Streaming with tools in Node SDK.
-      // If tool calls exist, the stream ends. We then execute tools, and send `functionResponse` to model, and get a NEW stream.
-
-      if (toolCalls.length > 0) {
-        const toolResponses = [];
-        for (const call of toolCalls) {
-          logger.info(`[ChatService] Tool Call: ${call.name}`);
-          const args = call.args;
-          const result = await this.executeTool(call.name, args);
-          toolResponses.push({
-            functionResponse: {
-              name: call.name,
-              response: { result: result }, // Wrap in object for Protobuf Struct compatibility
-            },
-          });
-          res.write(
-            `data: ${JSON.stringify({
-              type: "tool_result",
-              name: call.name,
-              result: result,
-            })}\n\n`
-          );
-        }
-
-        // Feed back to model
-        // We need to send these responses back to the same chat.
-        // `chat.sendMessageStream` accepts parts.
-        const result2 = await chat.sendMessageStream(toolResponses);
-        for await (const chunk2 of result2.stream) {
-          const text = chunk2.text();
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
           if (text) {
             res.write(
               `data: ${JSON.stringify({ type: "text", content: text })}\n\n`
             );
           }
+
+          // Check for function calls
+          const calls = chunk.functionCalls();
+          if (calls && calls.length > 0) {
+            toolCalls.push(...calls);
+            res.write(
+              `data: ${JSON.stringify({
+                type: "tool_call",
+                content: calls,
+              })}\n\n`
+            );
+          }
+        }
+
+        if (toolCalls.length > 0) {
+          const toolResponses = [];
+          for (const call of toolCalls) {
+            logger.info(`[ChatService] Tool Call: ${call.name}`);
+            const toolResult = await this.executeTool(call.name, call.args);
+            toolResponses.push({
+              functionResponse: {
+                name: call.name,
+                response: { result: toolResult }, // Wrap in object for Protobuf Struct compatibility
+              },
+            });
+            res.write(
+              `data: ${JSON.stringify({
+                type: "tool_result",
+                name: call.name,
+                result: toolResult,
+              })}\n\n`
+            );
+          }
+          // Feed tool responses back to model in next turn
+          currentMessage = toolResponses;
+        } else {
+          finished = true;
         }
       }
 
@@ -414,11 +407,15 @@ export class ChatService {
           Object.assign(card, args.updates);
           await this.dataService.saveCard(card);
           return { updated: card };
+        case "updateProject":
+          const projectToUpdate = await this.dataService.getProject(
+            args.projectId
+          );
+          if (!projectToUpdate) return { error: "Project not found" };
+          Object.assign(projectToUpdate, args.updates);
+          await this.dataService.saveProject(projectToUpdate);
+          return { updated: projectToUpdate };
         case "generateImage":
-          // To behave like the main API, we need:
-          // 1. Get Project and Card
-          // 2. Resolve paths
-          // 3. Generate and Save
           const pId = args.projectId;
           const cId = args.cardId;
           const proj = await this.dataService.getProject(pId);
