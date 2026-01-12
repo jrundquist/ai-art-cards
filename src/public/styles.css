@@ -445,7 +445,7 @@ button {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 40px;
+  padding: 0px 40px 10px;
   overflow-y: auto;
   position: relative;
   height: 100%;
@@ -456,8 +456,26 @@ button {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 40px;
-  padding-bottom: 20px;
+  padding: 24px 0 20px 10px; /* Add top padding to handle container padding removal if needed, but let's just use it to space from top */
   border-bottom: var(--glass-border);
+  position: sticky;
+  top: 0;
+  background: rgba(var(--bg-app), 0.5);
+  background-image: radial-gradient(
+    circle at 50% 0%,
+    rgba(var(--primary-rgb), 0.1) 0%,
+    transparent 70%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 110;
+  margin-top: -40px; /* Offset the container padding */
+  padding-right: 10px;
+  margin-right: 10px;
+  padding-top: 40px; /* Restore it inside the sticky header */
+
+  width: calc(100% + 80px);
+  margin-left: -40px;
 }
 
 .top-bar h1 {
@@ -473,6 +491,10 @@ button {
   -webkit-text-fill-color: transparent;
   cursor: text;
   transition: all 0.2s;
+}
+
+.top-bar .key-manager {
+  margin-right: 20px;
 }
 
 .title-wrapper {
@@ -1087,12 +1109,9 @@ button {
    Here we re-declare position to be safe or just ensure this block is robust. 
 */
 .chat-toggle-btn {
-  position: fixed !important; /* Force absolute over glow-effect's relative */
-  bottom: 48px;
-  right: 24px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
   background: var(--bg-panel);
   border: 1px solid var(--border);
   color: var(--text-main);
@@ -1122,36 +1141,6 @@ button {
   to {
     transform: translate(-50%, -50%) rotate(360deg);
   }
-}
-
-/* If Sidebar is OPEN, hide the toggle button to avoid clutter? 
-   Or move it? 
-   Let's say: when chat is open, we hide the toggle button. 
-   Styles handled via JS adding .hidden class.
-*/
-
-/* Adjust Title Bar if Chat Toggle is present? 
-   The toggle is position:absolute top:24 left:24.
-   The top-bar has padding-bottom: 20px, margin-bottom: 40px. 
-   Normally it just flows.
-   If chat button is there, it might overlap content?
-   If sidebar is closed -> Chat Toggle is visible -> It sits on top of content.
-   We should probably add padding to the main-content or top-bar to accommodate it if it's "in the corner".
-   "Add a toggle button in the top-left corner"
-   If we use position absolute, it floats.
-   We should ensure it doesn't block the "Select a Card" title.
-   Let's add left padding to top-bar when chat is closed (managed by JS class on main-content? or just always padding).
-*/
-.main-content {
-  padding-right: 80px; /* Make space for the button if it enters from left or is fixed */
-}
-
-/* But if sidebar is open, we don't need the padding? 
-   Actually, if sidebar is open, the button is hidden, so padding is wasted space.
-   We can toggle a class on main-content. 'chat-open' vs 'chat-closed'.
-*/
-.main-content.chat-open {
-  padding-right: 40px; /* Reset to normal */
 }
 
 /* Favorite Button */
