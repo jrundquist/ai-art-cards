@@ -5,6 +5,8 @@ import * as projectCtrl from "./controllers/projectController.js";
 import * as cardCtrl from "./controllers/cardController.js";
 import * as galleryCtrl from "./controllers/galleryController.js";
 
+import { ChatManager } from "./chat.js";
+
 // Key Management Logic
 async function loadKeys() {
   const keys = await api.fetchKeys();
@@ -53,11 +55,56 @@ function updateKeyHighlight() {
   }
 }
 
+// Global instance
+const chatManager = new ChatManager();
+
 async function init() {
+  await loadKeys();
   await projectCtrl.loadProjects();
-  dom.projectSelect.addEventListener("change", () =>
-    projectCtrl.onProjectSelect(true)
-  );
+  // Initial Context if project loaded
+  if (state.currentProject) {
+    chatManager.onProjectSelected(state.currentProject.id);
+    chatManager.setContext(
+      `User selected project: ${state.currentProject.name} (ID: ${state.currentProject.id})`
+    );
+  }
+  dom.projectSelect.addEventListener("change", async () => {
+    projectCtrl.onProjectSelect(true);
+    // Update Chat Context
+    if (state.currentProject) {
+      chatManager.onProjectSelected(state.currentProject.id);
+      chatManager.setContext(
+        `User selected project: ${state.currentProject.name} (ID: ${state.currentProject.id})`
+      );
+    }
+  });
+
+  // Listen for data refresh from chat
+  document.addEventListener("cards-updated", async () => {
+    if (state.currentProject) {
+      const currentCardId = state.currentCard ? state.currentCard.id : null;
+      // Reload cards
+      await projectCtrl.onProjectSelect(false);
+
+      // Re-select current card to update UI with fresh data if it still exists
+      if (currentCardId) {
+        const updatedCard = state.allCards.find((c) => c.id === currentCardId);
+        if (updatedCard) {
+          cardCtrl.selectCard(updatedCard, false);
+        }
+      }
+    }
+  });
+
+  // Listen for card selection to update Chat Context
+  document.addEventListener("card-selected", (e) => {
+    const card = e.detail.card;
+    if (card) {
+      chatManager.setContext(
+        `User selected card: "${card.name}" (ID: ${card.id})\nPrompt: "${card.prompt}"`
+      );
+    }
+  });
 
   // Electron Navigation Integration
   if (window.electronAPI && window.electronAPI.onNavigateToCard) {
@@ -97,8 +144,6 @@ async function init() {
   if (state.projects.length === 0) {
     dom.helpModal.self.classList.remove("hidden");
   }
-
-  await loadKeys();
 
   // Electron Open Folder Integration
   if (window.electronAPI && dom.openFolderBtn) {
@@ -145,6 +190,12 @@ async function init() {
       dom.keyModal.value.value = "";
       await loadKeys();
       dom.inputs.keySelect.value = key; // Select the new key
+
+      // Refresh chat list if project is active
+      if (state.currentProject) {
+        chatManager.onProjectSelected(state.currentProject.id);
+      }
+
       showStatus("API Key Saved", "success");
     } else {
       showStatus("Please enter both Name and Key", "error");
@@ -288,9 +339,8 @@ async function init() {
 
     // Help Shortcut
     if (
-      e.key === "?" ||
-      (e.key === "/" &&
-        !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName))
+      (e.key === "?" || e.key === "/") &&
+      !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)
     ) {
       e.preventDefault();
       dom.helpModal.self.classList.remove("hidden");
@@ -363,6 +413,14 @@ async function restoreStateFromUrl() {
   if (pid && (!state.currentProject || state.currentProject.id !== pid)) {
     dom.projectSelect.value = pid;
     await projectCtrl.onProjectSelect(false);
+
+    // Update Chat Context for URL load
+    if (state.currentProject) {
+      chatManager.onProjectSelected(state.currentProject.id);
+      chatManager.setContext(
+        `User selected project: ${state.currentProject.name} (ID: ${state.currentProject.id})`
+      );
+    }
   } else if (!pid && state.currentProject) {
     // No project in URL but we have one selected - clear it
     dom.projectSelect.value = "";

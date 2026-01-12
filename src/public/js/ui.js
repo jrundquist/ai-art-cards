@@ -52,6 +52,7 @@ export const dom = {
     id: document.getElementById("newProjectId"),
     idDisplay: document.getElementById("newProjectIdDisplay"),
     name: document.getElementById("newProjectName"),
+    description: document.getElementById("newProjectDescription"),
     root: document.getElementById("newProjectRoot"),
     prefix: document.getElementById("globalPrefix"),
     suffix: document.getElementById("globalSuffix"),

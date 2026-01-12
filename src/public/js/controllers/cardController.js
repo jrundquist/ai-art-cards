@@ -102,6 +102,11 @@ export function selectCard(card, updateHistory = true) {
   if (updateHistory) updateUrl();
 
   loadImagesForCard(state.currentProject.id, card.id);
+
+  // Dispatch event for other components (e.g., Chat)
+  document.dispatchEvent(
+    new CustomEvent("card-selected", { detail: { card } })
+  );
 }
 
 export async function createNewCard() {
@@ -163,18 +168,29 @@ export async function deleteCard(card) {
   );
 }
 
-export async function generateArt() {
-  if (!state.currentCard) return;
+export async function generateArt(overrides = null) {
+  // If overrides provided, use them. Otherwise check state.currentCard.
+  const targetCardId = overrides?.cardId || state.currentCard?.id;
+  const targetProjectId = overrides?.projectId || state.currentProject?.id;
 
-  // Auto-save silently before generating
-  await saveCurrentCard(true);
+  if (!targetCardId || !targetProjectId) return;
 
-  const count = parseInt(dom.inputs.count.value) || 1;
+  // If we are generating for the current card, try to save first
+  if (state.currentCard && state.currentCard.id === targetCardId) {
+    await saveCurrentCard(true);
+  }
+
+  const count = overrides?.count || parseInt(dom.inputs.count.value) || 1;
   const promises = [];
 
-  const generatingProjectId = state.currentProject.id;
-  const generatingCardId = state.currentCard.id;
-  const generatingCardName = state.currentCard.name;
+  const generatingProjectId = targetProjectId;
+  const generatingCardId = targetCardId;
+  // If not current card, we might not have name easily. Fetch or pass?
+  // Ideally overrides has name, or we fetch.
+  // For chat efficiency, let's assume if it is not current card, we might miss the name in toast unless passed.
+  const generatingCardName =
+    overrides?.cardName ||
+    (state.currentCard?.id === targetCardId ? state.currentCard.name : "Card");
 
   state.pendingGenerationCount += count;
   const imageWord = state.pendingGenerationCount === 1 ? "image" : "images";
@@ -190,12 +206,13 @@ export async function generateArt() {
 
       try {
         const payload = {
-          cardId: state.currentCard.id,
-          projectId: state.currentProject.id,
+          cardId: generatingCardId,
+          projectId: generatingProjectId,
           count: 1,
-          promptOverride: dom.inputs.prompt.value,
-          arOverride: dom.inputs.cardAspectRatio.value,
-          resOverride: dom.inputs.cardResolution.value,
+          promptOverride: overrides?.promptOverride || dom.inputs.prompt.value,
+          arOverride: overrides?.arOverride || dom.inputs.cardAspectRatio.value,
+          resOverride:
+            overrides?.resOverride || dom.inputs.cardResolution.value,
         };
 
         const data = await api.generateImages(payload);
@@ -205,7 +222,13 @@ export async function generateArt() {
 
         if (resJson.images && Array.isArray(resJson.images)) {
           resJson.images.forEach((imgUrl) => {
-            addImageToGallery(imgUrl, true); // prepend
+            // Only add to gallery if this card is currently selected
+            if (
+              state.currentCard &&
+              state.currentCard.id === generatingCardId
+            ) {
+              addImageToGallery(imgUrl, true); // prepend
+            }
           });
         }
 

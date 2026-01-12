@@ -13,9 +13,10 @@
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: blob: file: https:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: blob: file: https:;"
     />
   </head>
   <body>
@@ -125,167 +126,192 @@
           </div>
         </aside>
 
+        <!-- Chat Sidebar moved to right -->
+
         <!-- Main Content -->
         <main class="main-content">
-          <header class="top-bar">
-            <div class="title-wrapper">
-              <h1 id="currentCardTitle" title="Click to edit">Select a Card</h1>
-              <input
-                type="text"
-                id="cardTitleInput"
-                class="title-input hidden"
-                aria-label="Card Title"
-              />
-              <button
-                id="editTitleBtn"
-                class="icon-btn-ghost"
-                title="Rename Card"
-                aria-label="Rename Card"
-              >
-                <span class="material-icons">edit</span>
-              </button>
-            </div>
-            <div class="actions key-manager">
-              <div id="keySelectWrapper" class="key-select-wrapper">
-                <select id="keySelect" aria-label="Select API Key">
-                  <option value="">Select API Key...</option>
-                </select>
+          <div class="content-scroll-wrapper">
+            <header class="top-bar">
+              <div class="title-wrapper">
+                <h1 id="currentCardTitle" title="Click to edit">
+                  Select a Card
+                </h1>
+                <input
+                  type="text"
+                  id="cardTitleInput"
+                  class="title-input hidden"
+                  aria-label="Card Title"
+                />
+                <button
+                  id="editTitleBtn"
+                  class="icon-btn-ghost"
+                  title="Rename Card"
+                  aria-label="Rename Card"
+                >
+                  <span class="material-icons">edit</span>
+                </button>
               </div>
-              <button
-                id="addKeyToggleBtn"
-                class="icon-btn"
-                title="Add New Key"
-                aria-label="Add New API Key"
-                aria-haspopup="dialog"
-              >
-                <span class="material-icons">add</span>
-              </button>
+              <div class="actions key-manager">
+                <div id="keySelectWrapper" class="key-select-wrapper">
+                  <select id="keySelect" aria-label="Select API Key">
+                    <option value="">Select API Key...</option>
+                  </select>
+                </div>
+                <button
+                  id="addKeyToggleBtn"
+                  class="icon-btn"
+                  title="Add New Key"
+                  aria-label="Add New API Key"
+                  aria-haspopup="dialog"
+                >
+                  <span class="material-icons">add</span>
+                </button>
 
-              <!-- Hidden old input compatibility if needed, or just removed -->
-              <input type="hidden" id="apiKeyInput" />
+                <button
+                  id="chatToggleBtn"
+                  class="chat-toggle-btn glow-effect"
+                  title="Open AI Chat"
+                >
+                  <span class="material-icons">chat_bubble_outline</span>
+                </button>
+
+                <!-- Hidden old input compatibility if needed, or just removed -->
+                <input type="hidden" id="apiKeyInput" />
+              </div>
+            </header>
+
+            <!-- Project Selection View -->
+            <div
+              id="projectSelectionView"
+              class="project-selection-view hidden"
+            >
+              <div class="project-selection-header">
+                <h2>Choose a Project</h2>
+                <button id="projectSelectionCreateBtn" class="primary-btn">
+                  <span
+                    class="material-icons"
+                    style="font-size: 18px; margin-right: 8px"
+                    >add</span
+                  >Create Project
+                </button>
+              </div>
+              <div id="projectGridContainer" class="project-grid">
+                <!-- Project cards will be inserted here -->
+              </div>
             </div>
-          </header>
 
-          <!-- Project Selection View -->
-          <div id="projectSelectionView" class="project-selection-view hidden">
-            <div class="project-selection-header">
-              <h2>Choose a Project</h2>
-              <button id="projectSelectionCreateBtn" class="primary-btn">
-                <span
-                  class="material-icons"
-                  style="font-size: 18px; margin-right: 8px"
-                  >add</span
-                >Create Project
-              </button>
-            </div>
-            <div id="projectGridContainer" class="project-grid">
-              <!-- Project cards will be inserted here -->
-            </div>
-          </div>
+            <div id="editorArea" class="editor-area hidden">
+              <div class="form-grid">
+                <!-- Hidden fields -->
+                <input type="hidden" id="cardNameInput" />
 
-          <div id="editorArea" class="editor-area hidden">
-            <div class="form-grid">
-              <!-- Hidden fields -->
-              <input type="hidden" id="cardNameInput" />
+                <div class="form-group full-width">
+                  <label>Prompt</label>
+                  <textarea
+                    id="promptInput"
+                    rows="4"
+                    placeholder="Describe the image..."
+                  ></textarea>
+                </div>
 
-              <div class="form-group full-width">
-                <label>Prompt</label>
-                <textarea
-                  id="promptInput"
-                  rows="4"
-                  placeholder="Describe the image..."
-                ></textarea>
+                <div class="combined-row full-width">
+                  <div class="form-group">
+                    <label>Output Subfolder</label>
+                    <input
+                      type="text"
+                      id="subfolderInput"
+                      placeholder="default"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Aspect Ratio</label>
+                    <select id="cardAspectRatio">
+                      <option value="">Project Default</option>
+                      <option value="Auto">Auto</option>
+                      <option value="1:1">1:1</option>
+                      <option value="16:9">16:9</option>
+                      <option value="9:16">9:16</option>
+                      <option value="3:4">3:4</option>
+                      <option value="4:3">4:3</option>
+                      <option value="3:2">3:2</option>
+                      <option value="2:3">2:3</option>
+                      <option value="5:4">5:4</option>
+                      <option value="4:5">4:5</option>
+                      <option value="21:9">21:9</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Resolution</label>
+                    <select id="cardResolution">
+                      <option value="">Project Default</option>
+                      <option value="1K">1K</option>
+                      <option value="2K">2K</option>
+                      <option value="4K">4K</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div class="combined-row full-width">
-                <div class="form-group">
-                  <label>Output Subfolder</label>
+              <div class="generation-controls">
+                <div class="count-input">
+                  <label>Count:</label>
                   <input
-                    type="text"
-                    id="subfolderInput"
-                    placeholder="default"
+                    type="number"
+                    id="genCount"
+                    value="1"
+                    min="1"
+                    max="10"
                   />
                 </div>
-
-                <div class="form-group">
-                  <label>Aspect Ratio</label>
-                  <select id="cardAspectRatio">
-                    <option value="">Project Default</option>
-                    <option value="Auto">Auto</option>
-                    <option value="1:1">1:1</option>
-                    <option value="16:9">16:9</option>
-                    <option value="9:16">9:16</option>
-                    <option value="3:4">3:4</option>
-                    <option value="4:3">4:3</option>
-                    <option value="3:2">3:2</option>
-                    <option value="2:3">2:3</option>
-                    <option value="5:4">5:4</option>
-                    <option value="4:5">4:5</option>
-                    <option value="21:9">21:9</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Resolution</label>
-                  <select id="cardResolution">
-                    <option value="">Project Default</option>
-                    <option value="1K">1K</option>
-                    <option value="2K">2K</option>
-                    <option value="4K">4K</option>
-                  </select>
-                </div>
+                <button id="saveCardBtn" class="secondary-btn">
+                  Save Card
+                </button>
+                <button id="generateBtn" class="primary-btn glow">
+                  Generate Art ✨
+                </button>
+                <button
+                  id="openCardFolderBtn"
+                  class="secondary-btn icon-btn hidden"
+                  title="Open Card Folder"
+                  aria-label="Open Card Folder"
+                >
+                  <span class="material-icons">folder_open</span>
+                </button>
+                <button
+                  id="galleryFilterFavorites"
+                  class="secondary-btn icon-btn"
+                  title="Show Favorites Only"
+                  aria-label="Show Favorites Only"
+                  style="margin-left: auto"
+                  aria-pressed="false"
+                >
+                  <span class="material-icons">favorite_border</span>
+                </button>
+                <button
+                  id="galleryFilterArchive"
+                  class="secondary-btn icon-btn"
+                  title="Show Archived (Trash)"
+                  aria-label="Show Archived Images"
+                  style="margin-left: 5px"
+                  aria-pressed="false"
+                >
+                  <span class="material-icons">delete_outline</span>
+                </button>
+                <button
+                  id="galleryDownloadBtn"
+                  class="secondary-btn icon-btn"
+                  title="Download Displayed Images"
+                  aria-label="Download Displayed Images as Zip"
+                  style="margin-left: 5px"
+                >
+                  <span class="material-icons">download</span>
+                </button>
               </div>
-            </div>
 
-            <div class="generation-controls">
-              <div class="count-input">
-                <label>Count:</label>
-                <input type="number" id="genCount" value="1" min="1" max="10" />
+              <div id="gallery" class="gallery-grid">
+                <!-- Images go here -->
               </div>
-              <button id="saveCardBtn" class="secondary-btn">Save Card</button>
-              <button id="generateBtn" class="primary-btn glow">
-                Generate Art ✨
-              </button>
-              <button
-                id="openCardFolderBtn"
-                class="secondary-btn icon-btn hidden"
-                title="Open Card Folder"
-                aria-label="Open Card Folder"
-              >
-                <span class="material-icons">folder_open</span>
-              </button>
-              <button
-                id="galleryFilterFavorites"
-                class="secondary-btn icon-btn"
-                title="Show Favorites Only"
-                aria-label="Show Favorites Only"
-                style="margin-left: auto"
-                aria-pressed="false"
-              >
-                <span class="material-icons">favorite_border</span>
-              </button>
-              <button
-                id="galleryFilterArchive"
-                class="secondary-btn icon-btn"
-                title="Show Archived (Trash)"
-                aria-label="Show Archived Images"
-                style="margin-left: 5px"
-                aria-pressed="false"
-              >
-                <span class="material-icons">delete_outline</span>
-              </button>
-              <button
-                id="galleryDownloadBtn"
-                class="secondary-btn icon-btn"
-                title="Download Displayed Images"
-                aria-label="Download Displayed Images as Zip"
-                style="margin-left: 5px"
-              >
-                <span class="material-icons">download</span>
-              </button>
-            </div>
-
-            <div id="gallery" class="gallery-grid">
-              <!-- Images go here -->
             </div>
           </div>
           <div
@@ -295,6 +321,48 @@
             aria-live="polite"
           ></div>
         </main>
+
+        <!-- Chat Sidebar -->
+        <aside id="chatSidebar" class="chat-sidebar hidden">
+          <div class="chat-header">
+            <h3>AI Assistant</h3>
+            <div class="chat-actions">
+              <button id="newChatBtn" class="icon-btn-sm" title="New Chat">
+                <span class="material-icons">add_comment</span>
+              </button>
+              <button id="closeChatBtn" class="icon-btn-sm" title="Close Chat">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </div>
+          <div id="chatHistoryList" class="chat-history-list">
+            <!-- Previous conversations list -->
+          </div>
+          <div id="chatMessages" class="chat-messages">
+            <!-- Messages go here -->
+            <div class="chat-welcome">
+              <p>
+                Hello! I can help you manage your cards and generate art. Try
+                asking:
+              </p>
+              <ul>
+                <li>"Create a card for a Cyberpunk City"</li>
+                <li>"List my cards"</li>
+                <li>"Generate images for the Dragon card"</li>
+              </ul>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea
+              id="chatInput"
+              placeholder="Type a message..."
+              rows="1"
+            ></textarea>
+            <button id="sendChatBtn" class="primary-btn-sm">
+              <span class="material-icons">send</span>
+            </button>
+          </div>
+        </aside>
       </div>
       <!-- End main-layout -->
 
@@ -333,6 +401,17 @@
             placeholder="e.g. Tarot Deck"
             aria-label="Project Name"
           />
+        </div>
+
+        <div class="form-group">
+          <label for="newProjectDescription">Description</label>
+          <textarea
+            id="newProjectDescription"
+            placeholder="Describe the project intent for the AI..."
+            aria-label="Project Description"
+            rows="3"
+            style="font-family: inherit"
+          ></textarea>
         </div>
 
         <input type="hidden" id="newProjectId" />
