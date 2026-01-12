@@ -412,7 +412,6 @@ async function restoreStateFromUrl() {
 
   if (pid && (!state.currentProject || state.currentProject.id !== pid)) {
     dom.projectSelect.value = pid;
-    dom.projectSelect.value = pid;
     await projectCtrl.onProjectSelect(false);
 
     // Update Chat Context for URL load
