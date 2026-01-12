@@ -1,0 +1,218 @@
+/* Card List */
+.card-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.card-item {
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.card-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+}
+
+.card-item.active {
+  background: rgba(var(--primary-rgb), 0.1);
+  border-color: rgba(var(--primary-rgb), 0.3);
+  color: var(--text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
+}
+
+/* Delete Card Icon */
+.delete-card-icon {
+  opacity: 0.6;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.delete-card-icon:hover {
+  opacity: 1;
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Gallery Grid */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+  align-items: start;
+}
+
+.gallery-item {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gallery-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.gallery-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gallery-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gallery-item:hover .gallery-overlay {
+  opacity: 1;
+}
+
+.gallery-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.gallery-btn:hover {
+  background: var(--primary);
+}
+
+/* Selection State (if needed in future) */
+/* Gallery Item Favorite Overlay */
+.gallery-fav-icon {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s, transform 0.2s;
+  z-index: 10;
+}
+
+.gallery-archive-icon {
+  position: absolute;
+  
+  top: 5px;
+  
+  left: 5px;
+  
+  background: rgba(0, 0, 0, 0.6);
+  
+  color: white;
+   
+  border-radius: 50%;
+  
+  width: 30px;
+  
+  height: 30px;
+  
+  display: flex;
+  
+  align-items: center;
+  
+  justify-content: center;
+  
+  cursor: pointer;
+  
+  opacity: 0;
+  
+  transition: opacity 0.2s, background 0.2s, transform 0.2s;
+  
+  z-index: 10;
+  
+}
+
+.gallery-archive-icon .material-icons,
+.gallery-fav-icon .material-icons {
+  font-size: 18px;
+  
+}
+
+.gallery-item:hover .gallery-fav-icon,
+.gallery-item:hover .gallery-archive-icon {
+  opacity: 1;
+}
+.gallery-fav-icon.active {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.gallery-fav-icon:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.gallery-archive-icon:hover {
+  background: rgba(239, 68, 68, 0.8);
+   
+  transform: scale(1.1);
+  
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gallery-item.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
