@@ -140,11 +140,24 @@ export function confirmAction(title, message, onConfirm) {
   dom.confirmModal.self.classList.remove("hidden");
 
   const cleanup = () => {
+    window.removeEventListener("keydown", handleKeydown);
     dom.confirmModal.self.classList.add("hidden");
     dom.confirmModal.confirm.onclick = null;
     dom.confirmModal.confirm.innerText = "Confirm"; // Reset in case it was loading
     dom.confirmModal.cancel.onclick = null;
   };
+
+  const handleKeydown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      dom.confirmModal.confirm.click();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      dom.confirmModal.cancel.click();
+    }
+  };
+
+  window.addEventListener("keydown", handleKeydown);
 
   dom.confirmModal.confirm.onclick = async () => {
     // maybe show loading state?
