@@ -212,6 +212,7 @@ export class ChatService {
     projectId: string,
     conversationId: string,
     message: string,
+    activeCardId: string | null,
     res: any // Express Response
   ) {
     // 1. Load History
@@ -224,10 +225,30 @@ export class ChatService {
       throw new Error("API Key not set. Cannot generate response.");
     }
 
-    // 2. Initialize Model with Tools
+    // 2. Load Global & Card Context
+    const project = await this.dataService.getProject(projectId);
+    let contextStr = `\n\n---
+CURRENT STATE:
+`;
+
+    if (project) {
+      contextStr += `Active Project: "${project.name}" (ID: ${project.id})
+Project Description: ${project.description || "No description."}\n`;
+    }
+
+    if (project && activeCardId) {
+      const cards = await this.dataService.getCards(projectId);
+      const card = cards.find((c) => c.id === activeCardId);
+      if (card) {
+        contextStr += `Active Card: "${card.name}" (ID: ${card.id})
+Card Prompt: ${card.prompt || "Empty"}\n`;
+      }
+    }
+
+    // 3. Initialize Model with Tools
     const model = this.genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp",
-      systemInstruction: SYSTEM_INSTRUCTION,
+      systemInstruction: SYSTEM_INSTRUCTION + contextStr,
       tools: this.getTools() as any,
     });
 

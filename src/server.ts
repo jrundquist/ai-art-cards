@@ -652,7 +652,7 @@ export function createApp(dataRoot?: string) {
 
     // Check if we need to manually enable tool usage if we haven't already
 
-    const { projectId, conversationId, message } = req.body;
+    const { projectId, conversationId, message, activeCardId } = req.body;
 
     // Set headers for SSE
     res.setHeader("Content-Type", "text/event-stream");
@@ -664,6 +664,7 @@ export function createApp(dataRoot?: string) {
         projectId,
         conversationId,
         message,
+        activeCardId || null,
         res
       );
     } catch (e: any) {

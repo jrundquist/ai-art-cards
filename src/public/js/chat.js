@@ -122,12 +122,7 @@ export class ChatManager {
   }
 
   setContext(message) {
-    this.pendingContext.push(message);
-    // Keep only last 3 context updates to avoid staleness/bloat?
-    // Or just append all. Let's keep reasonable limit
-    if (this.pendingContext.length > 3) {
-      this.pendingContext.shift();
-    }
+    // Deprecated: Server now handles context injection via activeCardId
   }
 
   async sendMessage() {
@@ -148,15 +143,9 @@ export class ChatManager {
     // Append User Message
     this.appendMessage("user", text);
 
-    // Prepare message payload including buffered context
+    // Prepare message payload
     let fullMessage = text;
-    if (this.pendingContext && this.pendingContext.length > 0) {
-      const contextStr = this.pendingContext
-        .map((c) => `<system_context>${c}</system_context>`)
-        .join("\n");
-      fullMessage = `${contextStr}\n\n${text}`;
-      this.pendingContext = []; // Clear buffer
-    }
+    this.pendingContext = []; // Clear buffer if any
 
     // Prepare for streaming response
     const aiMessageDiv = this.createMessageDiv("model");
@@ -217,6 +206,7 @@ export class ChatManager {
         projectId,
         conversationId: this.currentConversationId,
         message,
+        activeCardId: state.currentCard?.id || null,
       }),
     });
 
@@ -477,12 +467,6 @@ export class ChatManager {
   }
 
   cleanContent(role, content) {
-    if (role === "user") {
-      return content
-        .replace(/^\s*\[System Context: [\s\S]*?\]\s*/g, "")
-        .replace(/<system_context>[\s\S]*?<\/system_context>\s*/g, "")
-        .trim();
-    }
     return content;
   }
 
