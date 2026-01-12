@@ -447,6 +447,7 @@ button {
   flex-direction: column;
   padding: 0px 40px 10px;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   height: 100%;
 }
