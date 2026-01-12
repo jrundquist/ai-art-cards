@@ -52,7 +52,8 @@ export class ChatService {
         functionDeclarations: [
           {
             name: "listProjects",
-            description: "List all available projects.",
+            description:
+              "List all available projects. Returns IDs, names, and descriptions/intent.",
           },
           {
             name: "getProject",
@@ -68,7 +69,8 @@ export class ChatService {
           },
           {
             name: "listCards",
-            description: "List all cards in the current project.",
+            description:
+              "List all cards in the current project. Returns only summary info (IDs and names). Use getCard for full details like prompts.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -82,7 +84,8 @@ export class ChatService {
           },
           {
             name: "getCard",
-            description: "Get details of a specific card.",
+            description:
+              "Get the full details of a specific card, including its full prompt and specific settings.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -95,7 +98,7 @@ export class ChatService {
           {
             name: "findCard",
             description:
-              "Find a card by name (fuzzy match). Use this to get the ID when you only have the name.",
+              "Find a card by name (fuzzy match). Returns ID and Name. Use this to get the ID when you only have the name.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -388,7 +391,12 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
     try {
       switch (name) {
         case "listProjects":
-          return await this.dataService.getProjects();
+          const projs = await this.dataService.getProjects();
+          return projs.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+          }));
         case "getProject":
           return (
             (await this.dataService.getProject(args.projectId)) || {
@@ -396,7 +404,8 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
             }
           );
         case "listCards":
-          return await this.dataService.getCards(args.projectId);
+          const cardsInProj = await this.dataService.getCards(args.projectId);
+          return cardsInProj.map((c) => ({ id: c.id, name: c.name }));
         case "getCard": // Get cards
           const cards = await this.dataService.getCards(args.projectId);
           return (
