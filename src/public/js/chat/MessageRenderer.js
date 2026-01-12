@@ -19,13 +19,26 @@ export class MessageRenderer {
   }
 
   /**
-   * Append a message to the container
+   * Append a message to the container (plain text)
    * @param {string} role - 'user' or 'model'
    * @param {string} text - Message text content
    */
   appendMessage(role, text) {
     const msgDiv = this.createMessageDiv(role);
     msgDiv.querySelector(".message-content").textContent = text;
+    this.messagesContainer.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  /**
+   * Append a message with markdown rendering
+   * @param {string} role - 'user' or 'model'
+   * @param {string} markdown - Message markdown content
+   */
+  appendMessageWithMarkdown(role, markdown) {
+    const msgDiv = this.createMessageDiv(role);
+    msgDiv.querySelector(".message-content").innerHTML =
+      this.renderMarkdown(markdown);
     this.messagesContainer.appendChild(msgDiv);
     this.scrollToBottom();
   }

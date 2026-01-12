@@ -246,7 +246,10 @@ export class ChatManager {
           } else {
             // If we have accumulated text, render it first
             if (accumulatedText) {
-              this.messageRenderer.appendMessage(role, accumulatedText);
+              this.messageRenderer.appendMessageWithMarkdown(
+                role,
+                accumulatedText
+              );
               accumulatedText = "";
             }
 
@@ -290,7 +293,7 @@ export class ChatManager {
 
         // Render remaining text
         if (accumulatedText) {
-          this.messageRenderer.appendMessage(role, accumulatedText);
+          this.messageRenderer.appendMessageWithMarkdown(role, accumulatedText);
         }
       }
     });
