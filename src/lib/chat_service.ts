@@ -232,7 +232,9 @@ CURRENT STATE:
 `;
 
     if (project) {
-      contextStr += `Active Project: "${project.name}" (ID: ${project.id})
+      contextStr += `Active Project: "${project.name}" (Internal ID: ${
+        project.id
+      })
 Project Description: ${project.description || "No description."}\n`;
     }
 
@@ -240,7 +242,7 @@ Project Description: ${project.description || "No description."}\n`;
       const cards = await this.dataService.getCards(projectId);
       const card = cards.find((c) => c.id === activeCardId);
       if (card) {
-        contextStr += `Active Card: "${card.name}" (ID: ${card.id})
+        contextStr += `Active Card: "${card.name}" (Internal ID: ${card.id})
 Card Prompt: ${card.prompt || "Empty"}\n`;
       }
     }
