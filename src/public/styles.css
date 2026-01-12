@@ -605,11 +605,11 @@ button {
   display: flex;
   gap: 16px;
   align-items: center;
-  padding: 24px;
+  padding: 0;
   background: rgba(0, 0, 0, 0.2);
   border: var(--glass-border);
   border-radius: var(--radius-md);
-  margin-top: 32px;
+  margin-top: 0px;
   backdrop-filter: blur(10px);
 }
 .count-input {
@@ -1455,6 +1455,102 @@ kbd {
   color: white;
   border-color: var(--primary);
   transform: scale(1.1);
+}
+
+/* Combined Generate Button & Picker */
+.generate-group {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(
+    135deg,
+    var(--primary-dark) 0%,
+    var(--secondary-dark) 100%
+  );
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+  height: 42px;
+}
+
+.generate-group:hover {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.generate-group.glow {
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.4);
+}
+.generate-group.glow:hover {
+  box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.6);
+}
+
+.generate-group-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.generate-group-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.generate-group-btn:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.generate-group-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0 2px;
+  width: 50px;
+  transition: background 0.2s;
+}
+
+.generate-group-picker:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.generate-group-picker input {
+  background: transparent;
+  border: none;
+  color: white;
+  width: 100%;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  box-shadow: none !important;
+  -moz-appearance: textfield;
+  appearance: none;
+}
+
+.generate-group-picker input:focus {
+  background: transparent;
+  outline: none;
+}
+
+.generate-group-picker input::-webkit-outer-spin-button,
+.generate-group-picker input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Toast Notifications */
