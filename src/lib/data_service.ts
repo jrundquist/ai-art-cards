@@ -21,6 +21,8 @@ export interface Project {
   globalPrefix: string;
   globalSuffix: string;
   outputRoot: string;
+  /** Sequentially increasing counter for card IDs */
+  nextCardIndex?: number;
   defaultAspectRatio: string;
   defaultResolution?: string;
   cards?: Card[];
@@ -93,6 +95,26 @@ export class DataService {
   }
 
   // --- Cards ---
+
+  /**
+   * Generates a new sequential ID for a card in the given project.
+   * Format: NNNN_card_RANDOM
+   */
+  async generateCardId(projectId: string): Promise<string> {
+    const project = await this.getProject(projectId);
+    if (!project) throw new Error("Project not found");
+
+    const index = project.nextCardIndex || 1;
+    project.nextCardIndex = index + 1;
+    await this.saveProject(project);
+
+    // Random suffix to ensure global uniqueness even if index resets somehow (though it shouldn't)
+    const randomSuffix = Math.random().toString(36).substring(2, 9);
+    const prefix = String(index).padStart(4, "0");
+
+    return `${prefix}_card_${randomSuffix}`;
+  }
+
   async getCards(projectId: string): Promise<Card[]> {
     try {
       logger.info(`[DataService] Loading cards for project: ${projectId}`);
@@ -112,7 +134,9 @@ export class DataService {
         );
         cards.push(data);
       }
-      return cards;
+
+      // Sort cards by ID (alphabetical), which will now be chronological due to prefix
+      return cards.sort((a, b) => a.id.localeCompare(b.id));
     } catch {
       return [];
     }

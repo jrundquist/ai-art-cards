@@ -76,11 +76,12 @@ export async function toggleFavorite(cardId, projectId, filename) {
 }
 
 export async function saveCard(card) {
-  return await fetch("/api/cards", {
+  const res = await fetch("/api/cards", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(card),
   });
+  return await res.json();
 }
 
 export async function deleteProject(projectId) {

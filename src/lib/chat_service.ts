@@ -423,8 +423,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
           const newCards = [];
           for (const cardData of args.cards) {
-            const id =
-              Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            const id = await this.dataService.generateCardId(args.projectId);
             const newCard: Card = {
               id,
               projectId: args.projectId,

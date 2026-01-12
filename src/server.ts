@@ -236,6 +236,14 @@ export function createApp(dataRoot?: string) {
 
   app.post("/api/cards", async (req, res) => {
     const card: Card = req.body;
+    // Auto-generate ID if missing
+    if (!card.id) {
+      try {
+        card.id = await dataService.generateCardId(card.projectId);
+      } catch (e: any) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
     await dataService.saveCard(card);
     res.json({ success: true, card });
   });
