@@ -236,6 +236,10 @@
   width: 100%;
 }
 
+.message-content p {
+  margin: 0;
+}
+
 .message.user .message-content {
   background: var(--primary-dark);
   color: white;
