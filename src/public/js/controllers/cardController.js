@@ -187,10 +187,18 @@ export async function generateArt(overrides = null) {
       cardId: targetCardId,
       projectId: targetProjectId,
       count: count,
-      promptOverride: overrides?.promptOverride || dom.inputs.prompt.value,
-      arOverride: overrides?.arOverride || dom.inputs.cardAspectRatio.value,
-      resOverride: overrides?.resOverride || dom.inputs.cardResolution.value,
     };
+
+    // Only include override fields if they are explicitly provided
+    if (overrides?.promptOverride !== undefined) {
+      payload.promptOverride = overrides.promptOverride;
+    }
+    if (overrides?.arOverride !== undefined) {
+      payload.arOverride = overrides.arOverride;
+    }
+    if (overrides?.resOverride !== undefined) {
+      payload.resOverride = overrides.resOverride;
+    }
 
     const data = await api.generateImages(payload);
     const resJson = await data.json();
