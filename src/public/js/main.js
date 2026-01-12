@@ -82,8 +82,17 @@ async function init() {
   // Listen for data refresh from chat
   document.addEventListener("cards-updated", async () => {
     if (state.currentProject) {
+      const currentCardId = state.currentCard ? state.currentCard.id : null;
       // Reload cards
       await projectCtrl.onProjectSelect(false);
+
+      // Re-select current card to update UI with fresh data if it still exists
+      if (currentCardId) {
+        const updatedCard = state.allCards.find((c) => c.id === currentCardId);
+        if (updatedCard) {
+          cardCtrl.selectCard(updatedCard, false);
+        }
+      }
     }
   });
 
