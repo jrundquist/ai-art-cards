@@ -6,6 +6,9 @@
   flex-direction: column;
   gap: 8px;
   padding-right: 4px;
+  border-top: var(--glass-border);
+  border-width: 2px;
+  border-bottom: var(--glass-border);
 }
 
 .card-item {

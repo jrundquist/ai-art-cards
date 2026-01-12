@@ -22,8 +22,8 @@
   border-right: var(--glass-border);
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  gap: 24px;
+  padding: 12px 12px 0px;
+  gap: 12px;
   transition: transform 0.3s ease;
 }
 
@@ -64,53 +64,48 @@
 
 .top-bar {
   display: flex;
-  
+
   justify-content: space-between;
-  
+
   align-items: center;
-  
+
   margin-bottom: 40px;
-  
+
   padding: 24px 0 20px 10px;
-   
+
   border-bottom: var(--glass-border);
-  
+
   position: sticky;
-  
+
   top: 0;
-  
-  background: rgba(
-    var(--bg-app),
-    0.5
-  );
-   
+
+  background: rgba(var(--bg-app), 0.5);
+
   background: var(--bg-panel);
-   
+
   background-image: radial-gradient(
     circle at 50% 0%,
     var(--gradient-overlay-1) 0%,
     transparent 70%
   );
-  
+
   backdrop-filter: blur(12px);
-  
+
   -webkit-backdrop-filter: blur(12px);
-  
+
   z-index: 110;
-  
+
   margin-top: -40px;
-   
+
   padding-right: 10px;
-  
+
   margin-right: 10px;
-  
+
   padding-top: 40px;
-   
 
   width: calc(100% + 80px);
-  
+
   margin-left: -40px;
-  
 }
 
 .top-bar h1 {
@@ -141,7 +136,6 @@
 }
 .sidebar-search-wrapper input {
   flex: 1;
-  
 }
 
 .card-list::-webkit-scrollbar {
