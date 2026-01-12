@@ -55,6 +55,18 @@ export class ChatService {
             description: "List all available projects.",
           },
           {
+            name: "getProject",
+            description:
+              "Get details of a specific project, including its global settings and description/intent.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                projectId: { type: "STRING" },
+              },
+              required: ["projectId"],
+            },
+          },
+          {
             name: "listCards",
             description: "List all cards in the current project.",
             parameters: {
@@ -197,7 +209,7 @@ You are an intelligent assistant for the "AI Art Cards" application. Your goal i
 5. **Chain Actions**: If the user asks for an action that requires a lookup (e.g., "Generate image for X"), and you successfully find "X" using \`findCard\`, you **MUST** immediately call the \`generateImage\` tool in the same turn. Do not stop to confirm findings with the user. Just do it.
 
 **Application Concepts:**
-- **Projects**: Top-level containers with global settings (Resolution, Aspect Ratio, Prefix, Suffix).
+- **Projects**: Top-level containers with global settings (Resolution, Aspect Ratio, Prefix, Suffix) and a **Description** which provides context and intent for the project. Always read the project description to understand the desired art style or theme.
 - **Cards**: Individual prompt units. Each card has its own Name, Prompt, and Subfolder.
 ## Safety Guidelines & Known Triggers
 The Gemini API has strict safety filters. The following terms are known to trigger blocks and should be avoided or described via **surrogate prompts**:
@@ -377,6 +389,12 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
       switch (name) {
         case "listProjects":
           return await this.dataService.getProjects();
+        case "getProject":
+          return (
+            (await this.dataService.getProject(args.projectId)) || {
+              error: "Project not found",
+            }
+          );
         case "listCards":
           return await this.dataService.getCards(args.projectId);
         case "getCard": // Get cards
