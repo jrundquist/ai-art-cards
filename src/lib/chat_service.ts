@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, Content, Part } from "@google/generative-ai";
-import { DataService, Card, Project } from "./data_service";
+import { DataService, Card } from "./data_service";
 import { ImageGenerator } from "./image_generator";
 import { logger } from "./logger";
 import { SYSTEM_INSTRUCTION } from "./system_instruction";
