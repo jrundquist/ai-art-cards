@@ -570,13 +570,13 @@ button {
 
 .toast.error {
   border-color: #ef4444;
-  color: #fca5a5;
+  color: var(--error-text);
   background: rgba(239, 68, 68, 0.1);
 }
 
 .toast.success {
   border-color: var(--primary);
-  color: #6ee7b7;
+  color: var(--success-text);
   background: rgba(16, 185, 129, 0.1);
 }
 
