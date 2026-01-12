@@ -193,6 +193,10 @@ export class ChatService {
                   type: "STRING",
                   description: "Optional prompt override",
                 },
+                count: {
+                  type: "INTEGER",
+                  description: "Number of images to generate (default: 1)",
+                },
               },
               required: ["projectId", "cardId"],
             },
@@ -434,6 +438,7 @@ export class ChatService {
             projectId: pId,
             cardId: cId,
             promptOverride: args.promptOverride,
+            count: args.count || 1,
           };
         default:
           return { error: "Unknown tool" };

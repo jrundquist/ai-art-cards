@@ -282,7 +282,7 @@ export class ChatManager {
                 projectId: data.result.projectId,
                 cardId: data.result.cardId,
                 promptOverride: data.result.promptOverride,
-                count: 1, // Default to 1 for chat
+                count: data.result.count || 1,
               });
             } else if (data.result.path) {
               displayResult = `Image Generated: ${data.result.path}`;
