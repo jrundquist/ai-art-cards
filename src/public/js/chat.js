@@ -19,6 +19,8 @@ export class ChatManager {
     this.currentConversationId = null;
     this.isGenerating = false;
     this.pendingContext = [];
+    this.toolCallCounter = 0;
+    this.activeToolCalls = new Map();
 
     // Resize state
     this.isResizing = false;
@@ -26,6 +28,80 @@ export class ChatManager {
     this.startWidth = 0;
 
     this.init();
+  }
+
+  generateToolCallId() {
+    return `tool-${Date.now()}-${this.toolCallCounter++}`;
+  }
+
+  getToolMetadata(toolName) {
+    const metadata = {
+      listProjects: {
+        icon: "folder",
+        label: "Listing Projects",
+        color: "#3b82f6",
+      },
+      getProject: { icon: "info", label: "Getting Project", color: "#3b82f6" },
+      listCards: {
+        icon: "view_list",
+        label: "Listing Cards",
+        color: "#8b5cf6",
+      },
+      getCard: { icon: "style", label: "Getting Card", color: "#8b5cf6" },
+      findCard: { icon: "search", label: "Finding Card", color: "#8b5cf6" },
+      createCards: {
+        icon: "add_circle",
+        label: "Creating Cards",
+        color: "#10b981",
+      },
+      updateCard: { icon: "edit", label: "Updating Card", color: "#f59e0b" },
+      updateProject: {
+        icon: "settings",
+        label: "Updating Project",
+        color: "#f59e0b",
+      },
+      generateImage: {
+        icon: "auto_awesome",
+        label: "Generating Image",
+        color: "#ec4899",
+      },
+    };
+    return (
+      metadata[toolName] || { icon: "build", label: toolName, color: "#6b7280" }
+    );
+  }
+
+  summarizeToolResult(toolName, args, result) {
+    try {
+      switch (toolName) {
+        case "listProjects":
+          return `Found ${result?.length || 0} project(s)`;
+        case "getProject":
+          return `Loaded project: ${result?.name || "Unknown"}`;
+        case "listCards":
+          return `Found ${result?.length || 0} card(s)`;
+        case "getCard":
+          return `Loaded card: ${result?.name || "Unknown"}`;
+        case "findCard":
+          if (result && result.id) {
+            return `Found: ${result.name}`;
+          }
+          return "No match found";
+        case "createCards":
+          const created = result?.created || [];
+          return `Created ${created.length} card(s)`;
+        case "updateCard":
+          return `Updated ${result?.name || "card"}`;
+        case "updateProject":
+          return "Updated project settings";
+        case "generateImage":
+          return "Started image generation";
+        default:
+          return "Completed";
+      }
+    } catch (e) {
+      return "Completed";
+    }
   }
 
   init() {
@@ -266,24 +342,61 @@ export class ChatManager {
               targetElement.innerText = accumulatedMarkdown;
             }
           } else if (data.type === "tool_call") {
-            // Show tool usage
+            // Show tool usage with icons
             const calls = data.content;
             for (const call of calls) {
+              const toolId = this.generateToolCallId();
+              const metadata = this.getToolMetadata(call.name);
+
               const toolDiv = document.createElement("div");
               toolDiv.className = "tool-call";
-              toolDiv.textContent = `Using tool: ${call.name}(${JSON.stringify(
-                call.args
-              )}) ...`;
+              toolDiv.setAttribute("data-tool-call-id", toolId);
+              toolDiv.setAttribute("data-tool-name", call.name);
+              toolDiv.style.borderLeftColor = metadata.color;
+              toolDiv.innerHTML = `
+                <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
+                <span class="tool-label">${metadata.label}<span class="tool-dots">...</span></span>
+              `;
+
               targetElement.parentNode.insertBefore(toolDiv, targetElement);
+              this.activeToolCalls.set(toolId, {
+                element: toolDiv,
+                name: call.name,
+                args: call.args,
+              });
             }
           } else if (data.type === "tool_result") {
-            const toolDiv = document.createElement("div");
-            toolDiv.className = "tool-result";
-            // If result has image path, show it?
-            let displayResult = JSON.stringify(data.result);
+            // Find and replace the corresponding tool call
+            const toolName = data.toolName;
+            let toolCallEntry = null;
 
+            // Find the most recent tool call with this name
+            for (const [id, entry] of this.activeToolCalls.entries()) {
+              if (entry.name === toolName) {
+                toolCallEntry = { id, ...entry };
+                this.activeToolCalls.delete(id);
+                break;
+              }
+            }
+
+            if (toolCallEntry) {
+              const metadata = this.getToolMetadata(toolName);
+              const summary = this.summarizeToolResult(
+                toolName,
+                toolCallEntry.args,
+                data.result
+              );
+
+              // Update the element to show completion
+              toolCallEntry.element.className = "tool-completed";
+              toolCallEntry.element.innerHTML = `
+                <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
+                <span class="tool-label">${summary}</span>
+              `;
+            }
+
+            // Handle special result types
             if (data.result.clientAction === "generateImage") {
-              displayResult = "Starting Image Generation...";
               // Trigger Frontend Generation
               generateArt({
                 projectId: data.result.projectId,
@@ -291,21 +404,13 @@ export class ChatManager {
                 promptOverride: data.result.promptOverride,
                 count: data.result.count || 1,
               });
-            } else if (data.result.path) {
-              displayResult = `Image Generated: ${data.result.path}`;
-              // Maybe emit an event to refresh cards?
-              // If we detect "created" or "updated" or "image generated", reload cards.
-              this.triggerDataRefresh();
-            } else if (data.result.created) {
-              displayResult = `Created ${data.result.created.length} cards.`;
-              this.triggerDataRefresh();
-            } else if (data.result.updated) {
-              displayResult = `Updated card.`;
+            } else if (
+              data.result.path ||
+              data.result.created ||
+              data.result.updated
+            ) {
               this.triggerDataRefresh();
             }
-
-            toolDiv.textContent = `Result: ${displayResult}`;
-            targetElement.parentNode.insertBefore(toolDiv, targetElement);
           } else if (data.type === "error") {
             targetElement.innerHTML += `<div class="message-error">${data.content}</div>`;
           } else if (data.type === "title") {
@@ -429,37 +534,50 @@ export class ChatManager {
 
                 // Render non-text part (tool call/response)
                 if (part.functionCall) {
-                  // Render Tool Call
+                  // Render Tool Call - we'll look for the corresponding response
+                  // and combine them if possible
                   const call = part.functionCall;
+                  const metadata = this.getToolMetadata(call.name);
+
                   const div = document.createElement("div");
-                  div.className = "tool-call";
-                  div.textContent = `Using tool: ${call.name}(${JSON.stringify(
-                    call.args
-                  )}) ...`;
+                  div.className = "tool-completed";
+                  div.setAttribute("data-tool-name", call.name);
+                  div.setAttribute("data-pending-result", "true");
+                  div.style.borderLeftColor = metadata.color;
+                  div.innerHTML = `
+                    <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
+                    <span class="tool-label">${metadata.label}</span>
+                  `;
                   this.messagesContainer.appendChild(div);
                 } else if (part.functionResponse) {
-                  // Render Tool Response
+                  // Update the pending tool call with the result
                   const response = part.functionResponse;
+                  const toolName = response.name;
                   const result = response.response.result || response.response;
 
-                  let displayResult = JSON.stringify(result);
+                  // Find the pending tool call div
+                  const pendingDiv = Array.from(this.messagesContainer.children)
+                    .reverse()
+                    .find(
+                      (el) =>
+                        el.getAttribute("data-tool-name") === toolName &&
+                        el.getAttribute("data-pending-result") === "true"
+                    );
 
-                  if (result && typeof result === "object") {
-                    if (result.clientAction === "generateImage") {
-                      displayResult = "Starting Image Generation...";
-                    } else if (result.path) {
-                      displayResult = `Image Generated: ${result.path}`;
-                    } else if (result.created) {
-                      displayResult = `Created ${result.created.length} cards.`;
-                    } else if (result.updated) {
-                      displayResult = `Updated card.`;
-                    }
+                  if (pendingDiv) {
+                    const metadata = this.getToolMetadata(toolName);
+                    const summary = this.summarizeToolResult(
+                      toolName,
+                      {},
+                      result
+                    );
+
+                    pendingDiv.removeAttribute("data-pending-result");
+                    pendingDiv.innerHTML = `
+                      <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
+                      <span class="tool-label">${summary}</span>
+                    `;
                   }
-
-                  const div = document.createElement("div");
-                  div.className = "tool-result";
-                  div.textContent = `Result: ${displayResult}`;
-                  this.messagesContainer.appendChild(div);
                 }
               }
             });

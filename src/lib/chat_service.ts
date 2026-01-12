@@ -311,7 +311,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
             res.write(
               `data: ${JSON.stringify({
                 type: "tool_result",
-                name: call.name,
+                toolName: call.name,
                 result: toolResult,
               })}\n\n`
             );
