@@ -81,10 +81,16 @@ export async function onProjectSelect(updateHistory = true) {
     state.currentProject.defaultResolution || "2K"
   })`;
 
-  await loadCards(pid);
+  const cards = await loadCards(pid);
   if (updateHistory) {
-    state.currentCard = null;
-    updateUrl();
+    // If no card is selected, try to auto-select the first one
+    if (!state.currentCard && cards.length > 0) {
+      const { selectCard } = await import("./cardController.js");
+      selectCard(cards[0], true);
+    } else {
+      state.currentCard = null;
+      updateUrl();
+    }
   }
 }
 
