@@ -40,42 +40,165 @@ const DEFAULT_KEYS_FILE = path.join(__dirname, "../../data/keys.json");
 
 export class DataService {
   private projectsDir: string;
-  private cardsDir: string;
-  private keysFile: string;
+  // Previously separate dirs, now we mainly track the root "projects" dir
+  // and resolve everything relative to specific project folders.
+  private legacyCardsDir: string; // for migration
+  private legacyKeysFile: string; // for migration
+  private dataRoot: string;
 
   constructor(dataRoot?: string) {
     if (dataRoot) {
+      this.dataRoot = dataRoot;
       this.projectsDir = path.join(dataRoot, "projects");
-      this.cardsDir = path.join(dataRoot, "cards");
-      this.keysFile = path.join(dataRoot, "keys.json");
+      this.legacyCardsDir = path.join(dataRoot, "cards");
+      this.legacyKeysFile = path.join(dataRoot, "keys.json");
     } else {
+      this.dataRoot = path.join(__dirname, "../../data");
       this.projectsDir = DEFAULT_PROJECTS_DIR;
-      this.cardsDir = DEFAULT_CARDS_DIR;
-      this.keysFile = DEFAULT_KEYS_FILE;
+      this.legacyCardsDir = DEFAULT_CARDS_DIR;
+      this.legacyKeysFile = DEFAULT_KEYS_FILE;
     }
-    this.ensureDirs();
   }
 
   // Helper ensure dirs
   private async ensureDirs() {
-    logger.info(
-      `[DataService] Ensuring directories exist: ${this.projectsDir}, ${this.cardsDir}`
-    );
+    // Only need to ensure the main projects directory exists
     await fs.mkdir(this.projectsDir, { recursive: true });
-    await fs.mkdir(this.cardsDir, { recursive: true });
+  }
+
+  // --- Migration ---
+  async migrate() {
+    await this.ensureDirs();
+
+    // Check for legacy keys file
+    try {
+      await fs.access(this.legacyKeysFile);
+      logger.info(
+        `[Migration] Legacy keys file found. It will be kept as is for now.`
+      );
+      // We might want to move it to dataRoot/keys.json if it's not there already,
+      // but current logic uses it centrally, so it's fine.
+    } catch {}
+
+    // Check for legacy project files (json files directly in projectsDir)
+    try {
+      const files = await fs.readdir(this.projectsDir);
+      for (const f of files) {
+        if (f.endsWith(".json")) {
+          const projectId = f.replace(".json", "");
+          logger.info(`[Migration] Migrating project: ${projectId}`);
+
+          const projectJsonPath = path.join(this.projectsDir, f);
+          const projectData = JSON.parse(
+            await fs.readFile(projectJsonPath, "utf-8")
+          );
+
+          // 1. Create new project folder
+          const newProjectDir = path.join(this.projectsDir, projectId);
+          await fs.mkdir(newProjectDir, { recursive: true });
+
+          // 2. Move project.json
+          await fs.rename(
+            projectJsonPath,
+            path.join(newProjectDir, "project.json")
+          );
+
+          // 3. Move Cards
+          const legacyProjectCardDir = path.join(
+            this.legacyCardsDir,
+            projectId
+          );
+          const newCardsDir = path.join(newProjectDir, "cards");
+          try {
+            await fs.access(legacyProjectCardDir);
+            await fs.rename(legacyProjectCardDir, newCardsDir);
+            logger.info(`[Migration] Moved cards for ${projectId}`);
+          } catch {
+            // No cards or already moved
+          }
+
+          // 4. Move Conversations
+          const legacyConvDir = path.join(
+            this.dataRoot,
+            "conversations",
+            projectId
+          );
+          const newConvDir = path.join(newProjectDir, "conversations");
+          try {
+            await fs.access(legacyConvDir);
+            await fs.rename(legacyConvDir, newConvDir);
+            logger.info(`[Migration] Moved conversations for ${projectId}`);
+          } catch {
+            // No convs
+          }
+
+          // Cleanup legacy conversations parent dir if empty
+          try {
+            await fs.rmdir(path.join(this.dataRoot, "conversations"));
+          } catch {}
+
+          // 5. Move Assets (Output)
+          // Project likely has an outputRoot.
+          // OLD: data/output/{outputRoot}
+          // NEW: data/projects/{projectId}/assets
+          // If outputRoot was defined, we try to move it.
+          if (projectData.outputRoot) {
+            const oldOutputPath = path.join(
+              this.dataRoot,
+              "output",
+              projectData.outputRoot
+            );
+            const newAssetsPath = path.join(newProjectDir, "assets");
+
+            try {
+              await fs.access(oldOutputPath);
+              await fs.rename(oldOutputPath, newAssetsPath);
+              logger.info(
+                `[Migration] Moved assets from ${oldOutputPath} to ${newAssetsPath}`
+              );
+            } catch (e) {
+              logger.warn(
+                `[Migration] Could not move assets for ${projectId}:`,
+                e
+              );
+            }
+
+            // Cleanup legacy output parent dir if empty
+            // (Only if we moved the last one, hard to know, so skip for now)
+          }
+
+          logger.info(`[Migration] Project ${projectId} migration complete.`);
+        }
+      }
+    } catch (e) {
+      logger.error("[Migration] Error during migration scan:", e);
+    }
   }
 
   // --- Projects ---
   async getProjects(): Promise<Project[]> {
+    await this.ensureDirs();
     try {
-      const files = await fs.readdir(this.projectsDir);
+      const entries = await fs.readdir(this.projectsDir, {
+        withFileTypes: true,
+      });
       const projects: Project[] = [];
-      for (const f of files) {
-        if (!f.endsWith(".json")) continue;
-        const data = JSON.parse(
-          await fs.readFile(path.join(this.projectsDir, f), "utf-8")
-        );
-        projects.push(data);
+
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          // Look for project.json inside
+          try {
+            const pPath = path.join(
+              this.projectsDir,
+              entry.name,
+              "project.json"
+            );
+            const data = JSON.parse(await fs.readFile(pPath, "utf-8"));
+            projects.push(data);
+          } catch {
+            // Not a project dir or unreadable
+          }
+        }
       }
       return projects;
     } catch {
@@ -88,8 +211,11 @@ export class DataService {
       `[DataService] Saving project: ${project.id} (${project.name})`
     );
     await this.ensureDirs();
+    const projectDir = path.join(this.projectsDir, project.id);
+    await fs.mkdir(projectDir, { recursive: true });
+
     await fs.writeFile(
-      path.join(this.projectsDir, `${project.id}.json`),
+      path.join(projectDir, "project.json"),
       JSON.stringify(project, null, 2)
     );
   }
@@ -117,8 +243,9 @@ export class DataService {
 
   async getCards(projectId: string): Promise<Card[]> {
     try {
-      logger.info(`[DataService] Loading cards for project: ${projectId}`);
-      const projectCardDir = path.join(this.cardsDir, projectId);
+      // New Path: data/projects/{projectId}/cards
+      const projectCardDir = path.join(this.projectsDir, projectId, "cards");
+
       try {
         await fs.access(projectCardDir);
       } catch {
@@ -146,8 +273,8 @@ export class DataService {
     logger.info(
       `[DataService] Saving card: ${card.id} in project: ${card.projectId}`
     );
-    await this.ensureDirs();
-    const projectCardDir = path.join(this.cardsDir, card.projectId);
+    // New Path: data/projects/{projectId}/cards
+    const projectCardDir = path.join(this.projectsDir, card.projectId, "cards");
     await fs.mkdir(projectCardDir, { recursive: true });
 
     await fs.writeFile(
@@ -159,7 +286,7 @@ export class DataService {
   async getProject(id: string): Promise<Project | null> {
     try {
       const data = await fs.readFile(
-        path.join(this.projectsDir, `${id}.json`),
+        path.join(this.projectsDir, id, "project.json"),
         "utf-8"
       );
       return JSON.parse(data);
@@ -171,7 +298,7 @@ export class DataService {
   // --- Keys ---
   async getKeys(): Promise<StoredKey[]> {
     try {
-      const data = await fs.readFile(this.keysFile, "utf-8");
+      const data = await fs.readFile(this.legacyKeysFile, "utf-8"); // Keeping central keys for now
       return JSON.parse(data);
     } catch {
       return [];
@@ -181,6 +308,9 @@ export class DataService {
   async saveKey(name: string, key: string): Promise<void> {
     logger.info(`[DataService] Saving API key: ${name}`);
     await this.ensureDirs();
+    // Keys file might need its own dir if we removed legacyCardsDir
+    await fs.mkdir(path.dirname(this.legacyKeysFile), { recursive: true });
+
     const keys = await this.getKeys();
     // Check if exists, update or push
     const existing = keys.find((k) => k.name === name);
@@ -189,41 +319,46 @@ export class DataService {
     } else {
       keys.push({ name, key });
     }
-    await fs.writeFile(this.keysFile, JSON.stringify(keys, null, 2));
+    await fs.writeFile(this.legacyKeysFile, JSON.stringify(keys, null, 2));
   }
 
   // --- Deletion ---
   async deleteProject(id: string): Promise<void> {
     logger.info(`[DataService] Deleting project: ${id}`);
-    // 1. Delete project json
-    await fs.rm(path.join(this.projectsDir, `${id}.json`), { force: true });
-    // 2. Delete cards dir for project
-    await fs.rm(path.join(this.cardsDir, id), { recursive: true, force: true });
-    // 3. User must handle output dir deletion manually?
-    // DataService only manages the metadata files technically, but it's convenient to do it here.
-    // However, DataService doesn't know "resolvedDataRoot" easily unless we passed it.
-    // We did pass dataRoot in constructor.
-    // And we have this.projectsDir = dataRoot/projects.
-    // So output should be dataRoot/output.
-    // But let's check if output structure is standard.
-    // Project has outputRoot.
+    // Simply delete the project folder
+    await fs.rm(path.join(this.projectsDir, id), {
+      recursive: true,
+      force: true,
+    });
   }
 
   async deleteCard(projectId: string, cardId: string): Promise<void> {
     logger.info(
       `[DataService] Deleting card: ${cardId} in project: ${projectId}`
     );
-    await fs.rm(path.join(this.cardsDir, projectId, `${cardId}.json`), {
-      force: true,
-    });
+    await fs.rm(
+      path.join(this.projectsDir, projectId, "cards", `${cardId}.json`),
+      {
+        force: true,
+      }
+    );
   }
 
   // --- Temp Image Cache ---
   async saveTempImage(
     buffer: Buffer,
-    mimeType: string
+    mimeType: string,
+    projectId?: string
   ): Promise<{ id: string; path: string }> {
-    const cacheDir = path.join(this.projectsDir, "../cache"); // data/cache
+    let cacheDir: string;
+
+    if (projectId) {
+      cacheDir = path.join(this.projectsDir, projectId, "cache");
+    } else {
+      // Fallback global cache
+      cacheDir = path.join(this.dataRoot, "cache");
+    }
+
     await fs.mkdir(cacheDir, { recursive: true });
 
     const id =
@@ -236,25 +371,54 @@ export class DataService {
     return { id, path: filePath };
   }
 
-  async getTempImage(id: string): Promise<Buffer | null> {
-    const cacheDir = path.join(this.projectsDir, "../cache");
-    const files = await fs.readdir(cacheDir);
-    const file = files.find((f) => f.startsWith(`${id}.`));
-    if (!file) return null;
-    return fs.readFile(path.join(cacheDir, file));
-  }
+  async getTempImage(id: string, projectId?: string): Promise<Buffer | null> {
+    // Try project cache first if projectId provided
+    if (projectId) {
+      const pCache = path.join(this.projectsDir, projectId, "cache");
+      try {
+        const files = await fs.readdir(pCache);
+        const file = files.find((f) => f.startsWith(`${id}.`));
+        if (file) return fs.readFile(path.join(pCache, file));
+      } catch {}
+    }
 
-  async deleteTempImage(id: string): Promise<void> {
-    const cacheDir = path.join(this.projectsDir, "../cache");
+    // Try global cache
+    const cacheDir = path.join(this.dataRoot, "cache");
     try {
       const files = await fs.readdir(cacheDir);
       const file = files.find((f) => f.startsWith(`${id}.`));
+      if (file) return fs.readFile(path.join(cacheDir, file));
+    } catch {
+      return null;
+    }
+
+    // Also try to find it in ANY project cache?
+    // Might be expensive. For now, assume if projectId not passed, check global.
+    // Ideally we always pass projectId.
+
+    return null;
+  }
+
+  async deleteTempImage(id: string, projectId?: string): Promise<void> {
+    if (projectId) {
+      const pCache = path.join(this.projectsDir, projectId, "cache");
+      await this.deleteFromDir(pCache, id);
+    }
+    // Also try global
+    const cacheDir = path.join(this.dataRoot, "cache");
+    await this.deleteFromDir(cacheDir, id);
+  }
+
+  private async deleteFromDir(dir: string, id: string) {
+    try {
+      const files = await fs.readdir(dir);
+      const file = files.find((f) => f.startsWith(`${id}.`));
       if (file) {
-        await fs.unlink(path.join(cacheDir, file));
-        logger.info(`[DataService] Deleted temp image: ${file}`);
+        await fs.unlink(path.join(dir, file));
+        logger.info(`[DataService] Deleted temp image: ${file} from ${dir}`);
       }
     } catch (e) {
-      logger.warn(`[DataService] Failed to delete temp image ${id}:`, e);
+      // ignore
     }
   }
 }

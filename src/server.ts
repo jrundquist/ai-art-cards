@@ -25,15 +25,24 @@ export function createApp(dataRoot?: string) {
     ? path.resolve(dataRoot)
     : path.join(process.cwd(), "data");
 
-  const projectsDir = path.join(resolvedDataRoot, "projects");
-  const cardsDir = path.join(resolvedDataRoot, "cards");
-  const outputDir = path.join(resolvedDataRoot, "output");
+  // Legacy paths for reference, but we mainly use dataService now
+  const outputDirLegacy = path.join(resolvedDataRoot, "output");
 
   logger.info(`Initializing DataService with root: ${resolvedDataRoot}`);
   const dataService = new DataService(resolvedDataRoot);
   // Renamed for clarity in the new endpoint
   const projectService = dataService;
   const cardService = dataService;
+
+  // Perform one-time migration check
+  // (Async, but we don't await blocking server start - or maybe we should?)
+  // Better to look messy for a second than block completely, or await?
+  // Let's await it to ensure consistency before requests come in.
+  // Converting createApp to async would be a breaking change for index.ts/main.
+  // So we'll fire and forget, but log heavily.
+  dataService.migrate().then(() => {
+    logger.info("[Server] Data migration check complete.");
+  });
 
   // Config API Key (Naive in-memory for now, or use ENV)
   let API_KEY = process.env.GEMINI_API_KEY || "";
@@ -44,9 +53,8 @@ export function createApp(dataRoot?: string) {
     // Always init, even if no key (for history access)
     // Re-create instance to update key if changed
     chatService = new ChatService(API_KEY, dataService);
-    chatService.setConversationsDir(
-      path.join(resolvedDataRoot, "conversations")
-    );
+    // Update to set data root
+    chatService.setDataRoot(resolvedDataRoot);
   };
   initChatService();
 
@@ -101,27 +109,30 @@ export function createApp(dataRoot?: string) {
     path.join(process.cwd(), "src", "public"),
   ];
 
-  let publicDir = possiblePaths.find((p) => fsSync.existsSync(p));
+  const publicDir = possiblePaths.find((p) => fsSync.existsSync(p));
   if (!publicDir) {
     logger.error(
       "CRITICAL: Could not find 'public' directory. Checked:",
       possiblePaths
     );
-    publicDir = path.join(__dirname, "public"); // Fallback to avoid crash
+    // Fallback to avoid crash (though it will error 404s)
+  } else {
+    logger.info(`Serving static files from: ${publicDir}`);
+    app.use(express.static(publicDir));
   }
-
-  logger.info(`Serving static files from: ${publicDir}`);
-
-  app.use(express.static(publicDir));
 
   // Serve static data (images, jsons)
   // Serve /data from the resolved data root
+  // This allows accessing `data/projects/{id}/assets/...`
   app.use("/data", express.static(resolvedDataRoot));
 
   // Helper: Secure Path Resolution
-  function resolveSecurePath(segments: string[]): string | null {
-    // Relative to outputDir
-    const root = outputDir;
+  // Now resolves into project assets: data/projects/{projectId}/assets/...
+  function resolveProjectAssetsPath(
+    projectId: string,
+    segments: string[]
+  ): string | null {
+    const root = path.join(resolvedDataRoot, "projects", projectId, "assets");
     const target = path.resolve(root, ...segments);
     if (!target.startsWith(root)) return null;
     return target;
@@ -208,25 +219,9 @@ export function createApp(dataRoot?: string) {
       const p = await dataService.getProject(id);
       if (!p) return res.status(404).json({ error: "Project not found" });
 
-      // Delete Metadata
+      // Delete Metadata & All Files (DataService handles the whole folder now)
       await dataService.deleteProject(id);
 
-      // Delete Output Files
-      if (p.outputRoot) {
-        const outPath = path.join(outputDir, p.outputRoot);
-        logger.info(
-          `[Server] Attempting to delete project output directory: ${outPath}`
-        );
-        // Security check: ensure it is within outputDir
-        if (outPath.startsWith(outputDir) && outPath !== outputDir) {
-          await fs.rm(outPath, { recursive: true, force: true });
-          logger.info(`[Server] Project output directory deleted.`);
-        } else {
-          logger.warn(
-            `[Server] Project output directory outside outputDir, skipping deletion: ${outPath}`
-          );
-        }
-      }
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -262,22 +257,27 @@ export function createApp(dataRoot?: string) {
       await dataService.deleteCard(projectId, cardId);
 
       // Delete Output Files
-      if (project && project.outputRoot && card.outputSubfolder) {
+      // New Path: data/projects/{projectId}/assets/{cardSubfolder}
+      if (card.outputSubfolder) {
         const outPath = path.join(
-          outputDir,
-          project.outputRoot,
+          resolvedDataRoot,
+          "projects",
+          projectId,
+          "assets",
           card.outputSubfolder
         );
         logger.info(
           `[Server] Attempting to delete card output directory: ${outPath}`
         );
         // Security check
-        if (outPath.startsWith(outputDir) && outPath !== outputDir) {
+        if (
+          outPath.startsWith(path.join(resolvedDataRoot, "projects", projectId))
+        ) {
           await fs.rm(outPath, { recursive: true, force: true });
           logger.info(`[Server] Card output directory deleted.`);
         } else {
           logger.warn(
-            `[Server] Card output directory outside outputDir, skipping deletion: ${outPath}`
+            `[Server] Card output directory outside project dir, skipping deletion: ${outPath}`
           );
         }
       }
@@ -335,33 +335,35 @@ export function createApp(dataRoot?: string) {
         `[Server] Using reference images: ${referenceImageIds.join(", ")}`
       );
       for (const id of referenceImageIds) {
-        const buf = await dataService.getTempImage(id);
+        // Pass projectId to check project cache
+        const buf = await dataService.getTempImage(id, projectId);
         if (buf) referenceImages.push(buf);
       }
     }
     logger.info("------------------------------------------------");
 
     // Resolve output folder - SECURE
-    // Use outputDir from closure
-    const SAFE_OUTPUT_BASE = outputDir;
-
-    // Clean relative paths to prevent directory traversal
-    const projectDir = (project.outputRoot || "default").replace(
-      /^(\.\.(\/|\\|$))+/,
-      ""
-    );
-    const cardDir = (card.outputSubfolder || "default").replace(
+    // NEW: data/projects/{projectId}/assets/{cardSubfolder}
+    const cardSubfolder = (card.outputSubfolder || "default").replace(
       /^(\.\.(\/|\\|$))+/,
       ""
     );
 
-    const outputFolder = path.resolve(SAFE_OUTPUT_BASE, projectDir, cardDir);
+    const outputFolder = path.join(
+      resolvedDataRoot,
+      "projects",
+      projectId,
+      "assets",
+      cardSubfolder
+    );
 
-    // Security Check
-    if (!outputFolder.startsWith(SAFE_OUTPUT_BASE)) {
-      res.status(403).json({
-        error: "Security Error: Output path must be within data/output",
-      });
+    // Security check
+    if (
+      !outputFolder.startsWith(
+        path.join(resolvedDataRoot, "projects", projectId)
+      )
+    ) {
+      res.status(403).json({ error: "Security Error: Invalid output path" });
       return;
     }
 
@@ -425,6 +427,9 @@ export function createApp(dataRoot?: string) {
           );
 
           // Return relative path for frontend
+          // Front end expects "data/..."
+          // savedPath is .../data/projects/123/assets/sub/img.png
+          // relToRoot is projects/123/assets/sub/img.png
           const relToRoot = path.relative(resolvedDataRoot, savedPath);
           const webPath = path.join("data", relToRoot);
           results.push(webPath);
@@ -465,11 +470,15 @@ export function createApp(dataRoot?: string) {
       const enriched = await Promise.all(
         cards.map(async (c) => {
           try {
-            const outDir = path.resolve(
-              outputDir,
-              project?.outputRoot || "default",
+            // New path: data/projects/{projectId}/assets/{subfolder}
+            const outDir = path.join(
+              resolvedDataRoot,
+              "projects",
+              req.params.projectId,
+              "assets",
               c.outputSubfolder || "default"
             );
+
             // Check if dir exists
             await fs.access(outDir);
             const files = await fs.readdir(outDir);
@@ -502,9 +511,12 @@ export function createApp(dataRoot?: string) {
 
       // Collect images from all cards
       for (const card of cards) {
-        const outDir = path.resolve(
-          outputDir,
-          project.outputRoot || "default",
+        // New path: data/projects/{projectId}/assets/{subfolder}
+        const outDir = path.join(
+          resolvedDataRoot,
+          "projects",
+          projectId,
+          "assets",
           card.outputSubfolder || "default"
         );
 
@@ -551,10 +563,8 @@ export function createApp(dataRoot?: string) {
       if (!card) return res.status(404).json({ error: "Card not found" });
 
       const subfolder = card.outputSubfolder || "default";
-      const securePath = resolveSecurePath([
-        project.outputRoot || "default",
-        subfolder,
-      ]);
+      const securePath = resolveProjectAssetsPath(projectId, [subfolder]);
+
       if (!securePath) return res.status(403).json({ error: "Access denied" });
 
       // Check if dir exists
@@ -576,8 +586,6 @@ export function createApp(dataRoot?: string) {
         )
         .map((f: string) => {
           // We serve resolvedDataRoot at /data
-          // securePath is <dataRoot>/output/...
-          // We want "data/output/..."
           const rel = path.relative(resolvedDataRoot, path.join(securePath, f));
           return path.join("data", rel);
         });
@@ -595,26 +603,20 @@ export function createApp(dataRoot?: string) {
       return res.status(400).json({ error: "Path required" });
 
     try {
-      const SAFE_OUTPUT_BASE = outputDir;
-      // relativePath comes from frontend as "data/output/..."
-      // We need to resolve it relative to... CWD? No, relative to data root?
-      // Frontend sends what we gave it: "data/output/..."
-      // But we are mapping "/data" -> resolvedDataRoot
-      // So if path starts with "data/", strip it?
+      // relativePath comes from frontend as "data/projects/123/assets/..."
 
       let filePathOnDisk = "";
       if (relativePath.startsWith("data/")) {
         const stripped = relativePath.substring(5); // remove 'data/'
         filePathOnDisk = path.join(resolvedDataRoot, stripped);
       } else {
-        // Fallback or error?
         filePathOnDisk = path.resolve(process.cwd(), relativePath);
       }
 
       const fullPath = path.resolve(filePathOnDisk);
 
-      if (!fullPath.startsWith(SAFE_OUTPUT_BASE)) {
-        // Strict check: must be in output
+      // Security Check: must be within resolvedDataRoot (simplest check now)
+      if (!fullPath.startsWith(resolvedDataRoot)) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -705,14 +707,19 @@ export function createApp(dataRoot?: string) {
         return res.status(404).json({ error: "Project or Card not found" });
       }
 
-      const cardDir = path.resolve(
-        outputDir,
-        project.outputRoot || "default",
+      // New Path
+      const cardDir = path.join(
+        resolvedDataRoot,
+        "projects",
+        projectId,
+        "assets",
         card.outputSubfolder || "default"
       );
 
       // Security check
-      if (!cardDir.startsWith(outputDir)) {
+      if (
+        !cardDir.startsWith(path.join(resolvedDataRoot, "projects", projectId))
+      ) {
         return res.status(403).json({ error: "Access denied" });
       }
 

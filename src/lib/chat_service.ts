@@ -21,23 +21,29 @@ export interface Conversation {
 export class ChatService {
   private genAI: GoogleGenerativeAI | null = null;
   private dataService: DataService;
-  private conversationsDir: string;
+  private dataRoot: string;
 
   constructor(apiKey: string | undefined, dataService: DataService) {
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
     }
     this.dataService = dataService;
-    this.conversationsDir = path.join(process.cwd(), "data", "conversations");
+    this.dataRoot = path.join(process.cwd(), "data");
   }
 
-  // Allow setting the specific conversations directory (called from server)
-  setConversationsDir(dir: string) {
-    this.conversationsDir = dir;
+  // Allow setting the root data directory (called from server)
+  setDataRoot(dir: string) {
+    this.dataRoot = dir;
   }
 
   private async ensureDir(projectId: string) {
-    const dir = path.join(this.conversationsDir, projectId);
+    // New Path: data/projects/{projectId}/conversations
+    const dir = path.join(
+      this.dataRoot,
+      "projects",
+      projectId,
+      "conversations"
+    );
     await fs.mkdir(dir, { recursive: true });
     return dir;
   }
@@ -281,9 +287,11 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
       for (const img of images) {
         const buffer = Buffer.from(img.data, "base64");
+        // Pass projectId to save in project cache
         const { id } = await this.dataService.saveTempImage(
           buffer,
-          img.mimeType
+          img.mimeType,
+          projectId
         );
         imageIds.push(id);
 
@@ -670,7 +678,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               `[ChatService] Found ${imageIdsToClean.size} cached images to cleanup for conversation ${conversationId}`
             );
             for (const id of imageIdsToClean) {
-              await this.dataService.deleteTempImage(id);
+              await this.dataService.deleteTempImage(id, p.id);
             }
           }
 
