@@ -1,11 +1,12 @@
 import { state } from "./state.js";
-import { dom, showStatus } from "./ui.js";
+import { dom, showStatus, updateStatusBar } from "./ui.js";
 import * as api from "./api.js";
 import * as projectCtrl from "./controllers/projectController.js";
 import * as cardCtrl from "./controllers/cardController.js";
 import * as galleryCtrl from "./controllers/galleryController.js";
 
 import { ChatManager } from "./chat.js";
+import { statusService } from "./statusService.js";
 
 // Key Management Logic
 async function loadKeys() {
@@ -104,6 +105,21 @@ async function init() {
         `User selected card: "${card.name}" (ID: ${card.id})\nPrompt: "${card.prompt}"`
       );
     }
+  });
+
+  // Initialize Status Service for SSE notifications
+  statusService.connect();
+
+  // Listen for generation completion to refresh gallery
+  document.addEventListener("generation-completed", async (e) => {
+    const { cardId } = e.detail;
+
+    // Refresh gallery if this is the current card
+    if (state.currentCard && state.currentCard.id === cardId) {
+      await galleryCtrl.loadImagesForCard(state.currentProject.id, cardId);
+    }
+
+    // Status bar is now handled by statusService based on active jobs
   });
 
   // Electron Navigation Integration

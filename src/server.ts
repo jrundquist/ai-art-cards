@@ -49,6 +49,48 @@ export function createApp(dataRoot?: string) {
   };
   initChatService();
 
+  // Generation Status Tracking for SSE
+  interface GenerationJob {
+    id: string;
+    projectId: string;
+    cardId: string;
+    cardName: string;
+    status: "generating" | "completed" | "error";
+    current: number;
+    total: number;
+    error?: string;
+    startedAt: number;
+    completedAt?: number;
+  }
+
+  const activeJobs = new Map<string, GenerationJob>();
+  const sseClients = new Set<express.Response>();
+
+  // Broadcast status update to all SSE clients
+  const broadcastStatus = (job: GenerationJob) => {
+    const message = `data: ${JSON.stringify(job)}\n\n`;
+    sseClients.forEach((client) => {
+      try {
+        client.write(message);
+      } catch (e) {
+        logger.error("Error broadcasting to SSE client:", e);
+      }
+    });
+  };
+
+  // Cleanup old completed jobs (run periodically)
+  const CLEANUP_INTERVAL = 60000; // 1 minute
+  const JOB_RETENTION_TIME = 300000; // 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    for (const [jobId, job] of activeJobs.entries()) {
+      if (job.completedAt && now - job.completedAt > JOB_RETENTION_TIME) {
+        activeJobs.delete(jobId);
+        logger.info(`[Status] Cleaned up old job: ${jobId}`);
+      }
+    }
+  }, CLEANUP_INTERVAL);
+
   // Serve Static Frontend
   // In dev (ts-node), __dirname is src/. In built (node), it's dist/.
   // We need to find where 'public' actually lives.
@@ -105,6 +147,47 @@ export function createApp(dataRoot?: string) {
   app.get("/api/keys", async (req, res) => {
     const keys = await dataService.getKeys();
     res.json(keys);
+  });
+
+  // SSE endpoint for status updates
+  app.get("/api/status/stream", (req, res) => {
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Disable buffering in nginx
+
+    // Add this client to the set
+    sseClients.add(res);
+    logger.info(`[SSE] Client connected. Total clients: ${sseClients.size}`);
+
+    // Send current active jobs to the new client
+    // Only send jobs that are still generating (not completed/error)
+    const activeJobsArray = Array.from(activeJobs.values()).filter(
+      (job) => job.status === "generating"
+    );
+    if (activeJobsArray.length > 0) {
+      res.write(
+        `data: ${JSON.stringify({
+          type: "initial",
+          jobs: activeJobsArray,
+        })}\n\n`
+      );
+    }
+
+    // Send heartbeat every 30 seconds to keep connection alive
+    const heartbeat = setInterval(() => {
+      res.write(": heartbeat\n\n");
+    }, 30000);
+
+    // Clean up on client disconnect
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+      logger.info(
+        `[SSE] Client disconnected. Total clients: ${sseClients.size}`
+      );
+    });
   });
 
   // Projects
@@ -260,57 +343,91 @@ export function createApp(dataRoot?: string) {
 
     const results = [];
 
-    try {
-      const num = count || 1;
-      const aspectRatio =
-        arOverride || card.aspectRatio || project.defaultAspectRatio || "2:3";
-      let resolution =
-        resOverride || card.resolution || project.defaultResolution || "2K";
+    // Create generation job
+    const jobId = `job_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+    const num = count || 1;
+    const job: GenerationJob = {
+      id: jobId,
+      projectId,
+      cardId,
+      cardName: card.name,
+      status: "generating",
+      current: 0,
+      total: num,
+      startedAt: Date.now(),
+    };
 
-      if (!aspectRatio) resolution = "2K";
+    activeJobs.set(jobId, job);
+    broadcastStatus(job);
+    logger.info(
+      `[Status] Started job ${jobId} for ${card.name} (${num} images)`
+    );
 
-      logger.info(`Config: AR=${aspectRatio}, Res=${resolution}`);
+    // Start generation asynchronously
+    (async () => {
+      try {
+        const aspectRatio =
+          arOverride || card.aspectRatio || project.defaultAspectRatio || "2:3";
+        let resolution =
+          resOverride || card.resolution || project.defaultResolution || "2K";
 
-      for (let i = 0; i < num; i++) {
-        const { buffer, mimeType } = await generator.generateImageBuffer(
-          fullPrompt,
-          {
-            aspectRatio,
-            resolution,
-          }
-        );
+        if (!aspectRatio) resolution = "2K";
 
-        const savedPath = await generator.saveImage(
-          buffer,
-          mimeType,
-          outputFolder,
-          card.id,
-          fullPrompt,
-          {
-            title: card.name,
-            project: project.name,
-            cardId: card.id,
-          }
-        );
+        logger.info(`Config: AR=${aspectRatio}, Res=${resolution}`);
 
-        // Return relative path for frontend
-        // Currently frontend expects path relative to CWD roughly?
-        // The frontend receives a string.
-        // In the old code: path.relative(process.cwd(), savedPath)
-        // If we serve /data -> resolvedDataRoot
-        // Then we should return paths compatible with that.
-        // e.g. "data/output/foo/bar.png"
+        for (let i = 0; i < num; i++) {
+          const { buffer, mimeType } = await generator.generateImageBuffer(
+            fullPrompt,
+            {
+              aspectRatio,
+              resolution,
+            }
+          );
 
-        const relToRoot = path.relative(resolvedDataRoot, savedPath);
-        // We serve resolvedDataRoot at /data
-        const webPath = path.join("data", relToRoot);
-        results.push(webPath);
+          const savedPath = await generator.saveImage(
+            buffer,
+            mimeType,
+            outputFolder,
+            card.id,
+            fullPrompt,
+            {
+              title: card.name,
+              project: project.name,
+              cardId: card.id,
+            }
+          );
+
+          // Return relative path for frontend
+          const relToRoot = path.relative(resolvedDataRoot, savedPath);
+          const webPath = path.join("data", relToRoot);
+          results.push(webPath);
+
+          // Update job progress
+          job.current = i + 1;
+          broadcastStatus(job);
+          logger.info(
+            `[Status] Job ${jobId} progress: ${job.current}/${job.total}`
+          );
+        }
+
+        // Mark job as completed
+        job.status = "completed";
+        job.completedAt = Date.now();
+        broadcastStatus(job);
+        logger.info(`[Status] Job ${jobId} completed successfully`);
+      } catch (e: any) {
+        logger.error(`[Status] Job ${jobId} failed:`, e);
+        job.status = "error";
+        job.error = e.message;
+        job.completedAt = Date.now();
+        broadcastStatus(job);
       }
-      res.json({ success: true, images: results });
-    } catch (e: any) {
-      logger.error(e);
-      res.status(500).json({ error: e.message });
-    }
+    })();
+
+    // Respond immediately with job ID
+    res.json({ success: true, jobId, message: "Generation started" });
   });
 
   // Get Cards

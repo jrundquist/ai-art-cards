@@ -181,87 +181,28 @@ export async function generateArt(overrides = null) {
   }
 
   const count = overrides?.count || parseInt(dom.inputs.count.value) || 1;
-  const promises = [];
 
-  const generatingProjectId = targetProjectId;
-  const generatingCardId = targetCardId;
-  // If not current card, we might not have name easily. Fetch or pass?
-  // Ideally overrides has name, or we fetch.
-  // For chat efficiency, let's assume if it is not current card, we might miss the name in toast unless passed.
-  const generatingCardName =
-    overrides?.cardName ||
-    (state.currentCard?.id === targetCardId ? state.currentCard.name : "Card");
+  try {
+    const payload = {
+      cardId: targetCardId,
+      projectId: targetProjectId,
+      count: count,
+      promptOverride: overrides?.promptOverride || dom.inputs.prompt.value,
+      arOverride: overrides?.arOverride || dom.inputs.cardAspectRatio.value,
+      resOverride: overrides?.resOverride || dom.inputs.cardResolution.value,
+    };
 
-  state.pendingGenerationCount += count;
-  const imageWord = state.pendingGenerationCount === 1 ? "image" : "images";
-  updateStatusBar(`Generating ${state.pendingGenerationCount} ${imageWord}...`);
+    const data = await api.generateImages(payload);
+    const resJson = await data.json();
 
-  for (let i = 0; i < count; i++) {
-    const p = (async () => {
-      const toast = createToast(
-        `✨ Generating "${generatingCardName}" ${i + 1}/${count}...`,
-        "ai-generating",
-        0
-      );
+    if (resJson.error) {
+      showStatus(`Error: ${resJson.error}`, "error");
+      return;
+    }
 
-      try {
-        const payload = {
-          cardId: generatingCardId,
-          projectId: generatingProjectId,
-          count: 1,
-          promptOverride: overrides?.promptOverride || dom.inputs.prompt.value,
-          arOverride: overrides?.arOverride || dom.inputs.cardAspectRatio.value,
-          resOverride:
-            overrides?.resOverride || dom.inputs.cardResolution.value,
-        };
-
-        const data = await api.generateImages(payload);
-        const resJson = await data.json();
-
-        if (resJson.error) throw new Error(resJson.error);
-
-        if (resJson.images && Array.isArray(resJson.images)) {
-          resJson.images.forEach((imgUrl) => {
-            // Only add to gallery if this card is currently selected
-            if (
-              state.currentCard &&
-              state.currentCard.id === generatingCardId
-            ) {
-              addImageToGallery(imgUrl, true); // prepend
-            }
-          });
-        }
-
-        toast.update(`Success #${i + 1}`, "success");
-        setTimeout(() => toast.remove(), 4000);
-
-        if (window.electronAPI && window.electronAPI.showNotification) {
-          window.electronAPI.showNotification(
-            "Image Generated",
-            `"${generatingCardName}" image ${i + 1}/${count} completed`,
-            generatingProjectId,
-            generatingCardId
-          );
-        }
-      } catch (e) {
-        toast.update(`Error #${i + 1}: ${e.message}`, "error");
-        setTimeout(() => toast.remove(), 8000);
-      } finally {
-        state.pendingGenerationCount--;
-        if (state.pendingGenerationCount <= 0) {
-          state.pendingGenerationCount = 0;
-          updateStatusBar("Ready");
-        } else {
-          const imageWord =
-            state.pendingGenerationCount === 1 ? "image" : "images";
-          updateStatusBar(
-            `Generating ${state.pendingGenerationCount} ${imageWord}...`
-          );
-        }
-      }
-    })();
-    promises.push(p);
+    // Server will handle notifications and status bar via SSE
+    console.log(`[Generate] Started job ${resJson.jobId} for ${count} images`);
+  } catch (e) {
+    showStatus(`Error: ${e.message}`, "error");
   }
-
-  await Promise.all(promises);
 }
