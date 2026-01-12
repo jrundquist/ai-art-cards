@@ -1,11 +1,39 @@
 :root {
-  /* Core Colors */
+  /* Core Colors - Dark Mode Default */
   --bg-app: #030304;
-  --bg-panel: rgba(20, 20, 23, 0.6);
+  --bg-panel: rgba(20, 20, 23, 0.402); /* Translucent panel */
+  --bg-panel-solid: #141417; /* Solid fallback */
+  /* Subtle purple tint for Dark Mode header */
+  --bg-header: linear-gradient(
+    135deg,
+    rgba(var(--secondary-rgb), 0.05),
+    rgba(var(--secondary-rgb), 0.15)
+  );
+  /* Subtle primary tint for Dark Mode sections */
+  --bg-section: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.05),
+    rgba(var(--primary-rgb), 0.1)
+  );
   --bg-input: rgba(255, 255, 255, 0.03);
   --bg-input-focus: rgba(255, 255, 255, 0.07);
+  --bg-ai-input: rgba(255, 255, 255, 0.1);
+  --bg-message-model: rgba(23, 18, 18, 0.07);
+  --bg-tool: rgba(0, 0, 0, 0.3);
+  --bg-welcome-ul: rgba(255, 255, 255, 0.03);
 
-  /* Accents */
+  /* Text */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #475569;
+  --text-on-accent: #ffffff;
+
+  /* Borders & Effects */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.2);
+
+  /* Accents - Shared */
   --primary-rgb: 16, 185, 129;
   --primary: rgb(var(--primary-rgb)); /* Emerald 500 */
   --primary-dark: #059669; /* Emerald 600 */
@@ -17,15 +45,7 @@
 
   --accent: #a3e635; /* Lime 400 */
 
-  /* Text */
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #475569;
-
-  /* Borders & Effects */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.12);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+  /* Misc */
   --backdrop-blur: 20px;
   --radius-sm: 6px;
   --radius-md: 12px;
@@ -35,6 +55,71 @@
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
   --shadow-glow: 0 0 20px rgba(var(--primary-rgb), 0.2);
+  --shadow-fab: 0 4px 12px rgba(0, 0, 0, 0.3); /* Stronger in dark mode */
+
+  /* Gradient Overlays */
+  --gradient-overlay-1: rgba(var(--primary-rgb), 0.15);
+  --gradient-overlay-2: rgba(var(--secondary-rgb), 0.1);
+
+  /* Text Gradients */
+  --text-gradient-main: linear-gradient(to right, #fff, #94a3b8);
+  --text-gradient-brand: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+}
+
+[data-theme="light"] {
+  /* Core Colors - Light Mode */
+  --bg-app: #f1f5f9; /* Slate 100 */
+  --bg-panel: rgba(255, 255, 255, 0.7);
+  --bg-panel-solid: #ffffff;
+  /* Lighter nested section with subtle primary tint */
+  --bg-section: linear-gradient(
+    135deg,
+    rgba(var(--primary-rgb), 0.03),
+    rgba(var(--primary-rgb), 0.08)
+  );
+  /* Distinct header with purple tint */
+  --bg-header: linear-gradient(
+    135deg,
+    rgba(var(--secondary-rgb), 0.05),
+    rgba(var(--secondary-rgb), 0.1)
+  );
+  --bg-input: rgba(0, 0, 0, 0.03);
+  --bg-input-focus: rgba(0, 0, 0, 0.06);
+  --bg-ai-input: rgba(0, 0, 0, 0.06); /* Distinct light grey for AI input */
+  --bg-message-model: rgba(255, 255, 255, 0.8);
+  --bg-tool: rgba(255, 255, 255, 0.6);
+  --bg-welcome-ul: rgba(255, 255, 255, 0.5);
+
+  /* Text */
+  --text-main: #0f172a; /* Slate 900 */
+  --text-muted: #64748b; /* Slate 500 */
+  --text-dim: #94a3b8; /* Slate 400 */
+
+  /* Borders & Effects */
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.12);
+  --glass-border: 1px solid rgba(0, 0, 0, 0.05);
+
+  /* Accents - Adjusted for Light Mode contrast if needed, mostly kept similar for brand */
+  --primary-rgb: 16, 185, 129;
+  --primary: #059669; /* Darker emerald for light bg text readability if used as text, or keep same */
+
+  /* Shadows */
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-fab: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer in light mode */
+
+  /* Gradient Overlays */
+  --gradient-overlay-1: rgba(var(--primary-rgb), 0.08);
+  --gradient-overlay-2: rgba(var(--secondary-rgb), 0.05);
+
+  /* Text Gradients */
+  --text-gradient-main: linear-gradient(to right, #0f172a, #64748b);
+  --text-gradient-brand: linear-gradient(
+    135deg,
+    #0f172a 0%,
+    var(--primary) 100%
+  );
 }
 
 body {
@@ -43,12 +128,12 @@ body {
   background-color: var(--bg-app);
   background-image: radial-gradient(
       circle at 10% 20%,
-      rgba(var(--primary-rgb), 0.15) 0%,
+      var(--gradient-overlay-1) 0%,
       transparent 40%
     ),
     radial-gradient(
       circle at 90% 80%,
-      rgba(var(--secondary-rgb), 0.1) 0%,
+      var(--gradient-overlay-2) 0%,
       transparent 40%
     );
   color: var(--text-main);
@@ -128,7 +213,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+  background: var(--text-gradient-brand);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -222,8 +307,9 @@ button {
 .card-item.active {
   background: rgba(var(--primary-rgb), 0.1);
   border-color: rgba(var(--primary-rgb), 0.3);
-  color: #fff;
+  color: var(--text-main); /* Was #fff, unreadable on light bg */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
 }
 
 /* Buttons */
@@ -242,8 +328,8 @@ button {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--bg-input-focus);
+  color: var(--text-main);
   border-color: var(--border-light);
 }
 
@@ -337,8 +423,8 @@ button {
 }
 
 .secondary-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: var(--bg-input-focus);
+  color: var(--text-main);
   border-color: var(--border-light);
 }
 
@@ -362,7 +448,7 @@ button {
   font-size: 1.8rem;
   font-weight: 600;
   margin: 0;
-  background: linear-gradient(to right, #fff, #94a3b8);
+  background: var(--text-gradient-main);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -461,10 +547,14 @@ button {
   border-bottom: var(--glass-border);
   position: sticky;
   top: 0;
-  background: rgba(var(--bg-app), 0.5);
+  background: rgba(
+    var(--bg-app),
+    0.5
+  ); /* This might not work if bg-app is hex. Need to handle hex alpha or use just var(--bg-panel) */
+  background: var(--bg-panel); /* Better fallback */
   background-image: radial-gradient(
     circle at 50% 0%,
-    rgba(var(--primary-rgb), 0.1) 0%,
+    var(--gradient-overlay-1) 0%,
     transparent 70%
   );
   backdrop-filter: blur(12px);
@@ -483,10 +573,7 @@ button {
   font-size: 1.8rem;
   font-weight: 600;
   margin: 0;
-  background: linear-gradient(to right, #fff, #94a3b8);
-  background-clip: text;
-  -webkit-background-clip: text;
-  background: linear-gradient(to right, #fff, #94a3b8);
+  background: var(--text-gradient-main);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -607,7 +694,7 @@ button {
   gap: 16px;
   align-items: center;
   padding: 0;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-section);
   border: var(--glass-border);
   border-radius: var(--radius-md);
   margin-top: 0px;
@@ -686,7 +773,7 @@ button {
 }
 
 .modal-content {
-  background: #18181b; /* Solid dark background for readability */
+  background: var(--bg-panel-solid); /* Solid background for readability */
   border: 1px solid var(--border-light);
   padding: 32px;
   border-radius: var(--radius-lg);
@@ -706,7 +793,7 @@ button {
 .modal h3 {
   margin: 0 0 10px 0;
   font-size: 1.4rem;
-  color: white;
+  color: var(--text-main);
   user-select: none;
 }
 
@@ -744,8 +831,8 @@ button {
 }
 
 .modal-close-x:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.1); /* Could be var(--bg-input-focus) */
 }
 
 .modal-image-col {
@@ -807,7 +894,7 @@ button {
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-fab);
   z-index: 100;
   position: relative;
 }
@@ -865,7 +952,7 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--bg-header);
 }
 
 .chat-header h3 {
@@ -873,7 +960,9 @@ button {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-main);
-  background: linear-gradient(135deg, #fff 0%, var(--secondary) 100%);
+  /* Use brand gradient but with fallback or adjusted variable if needed. 
+     For now, let's use text-gradient-brand which we fixed. */
+  background: var(--text-gradient-brand);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -898,8 +987,8 @@ button {
 }
 
 .icon-btn-sm:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--bg-input-focus);
+  color: var(--text-main);
 }
 
 .chat-history-list {
@@ -907,8 +996,9 @@ button {
   max-height: 150px;
   overflow-y: auto;
   border-bottom: var(--glass-border);
-  display: block; /* Unhidden */
-  background: rgba(0, 0, 0, 0.2);
+  border-bottom-width: 2px;
+  display: block;
+  background: var(--bg-section);
 }
 
 .chat-history-item {
@@ -990,7 +1080,7 @@ button {
 }
 .chat-welcome ul {
   text-align: left;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-welcome-ul);
   padding: 12px 20px 12px 30px;
   border-radius: 8px;
   margin-top: 10px;
@@ -1048,9 +1138,10 @@ button {
 }
 
 .message.model .message-content {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--bg-message-model);
   color: var(--text-main);
   border-bottom-left-radius: 2px;
+  border: 1px solid var(--border-light);
 }
 
 .tool-call,
@@ -1059,7 +1150,7 @@ button {
   align-items: center;
   gap: 8px;
   font-size: 0.85em;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--bg-tool);
   padding: 8px 12px;
   border-radius: 6px;
   margin: 4px 0;
@@ -1067,6 +1158,9 @@ button {
   color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
 }
 
 .tool-call .material-icons,
@@ -1097,7 +1191,7 @@ button {
 }
 
 .tool-completed {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-tool);
   opacity: 0.9;
 }
 
@@ -1109,7 +1203,7 @@ button {
 /* Input Area */
 .chat-input-area {
   padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-section);
   border-top: var(--glass-border);
   display: flex;
   gap: 10px;
@@ -1117,7 +1211,7 @@ button {
 }
 
 .chat-input-area textarea {
-  background: var(--bg-input);
+  background: var(--bg-ai-input);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 10px 14px;
@@ -1189,7 +1283,7 @@ button {
 .chat-toggle-btn {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-sm);
+  border-radius: 100%;
   background: var(--bg-panel);
   border: 1px solid var(--border);
   color: var(--text-main);
@@ -1204,7 +1298,7 @@ button {
 }
 
 .chat-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-input-focus);
   transform: scale(1.05);
 }
 
@@ -1237,8 +1331,8 @@ button {
   transition: all 0.2s;
 }
 .icon-btn-round:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--bg-input-focus);
+  color: var(--text-main);
 }
 .icon-btn-round.active,
 .icon-btn.active {

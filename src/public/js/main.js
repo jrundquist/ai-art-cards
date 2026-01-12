@@ -7,6 +7,7 @@ import * as galleryCtrl from "./controllers/galleryController.js";
 
 import { ChatManager } from "./chat.js";
 import { statusService } from "./statusService.js";
+import * as theme from "./theme.js";
 
 // Key Management Logic
 async function loadKeys() {
@@ -440,6 +441,17 @@ async function restoreStateFromUrl() {
     const card = state.allCards.find((c) => c.id === cid);
     if (card) cardCtrl.selectCard(card, false);
   }
+}
+
+// Theme Initialization
+theme.initTheme();
+
+const themeSelect = document.getElementById("themeSelect");
+if (themeSelect) {
+  themeSelect.value = theme.getThemePreference();
+  themeSelect.addEventListener("change", (e) => {
+    theme.applyTheme(e.target.value);
+  });
 }
 
 init();
