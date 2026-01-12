@@ -218,11 +218,23 @@
                 <div class="combined-row full-width">
                   <div class="form-group">
                     <label>Output Subfolder</label>
-                    <input
-                      type="text"
-                      id="subfolderInput"
-                      placeholder="default"
-                    />
+                    <div style="display: flex; gap: 8px">
+                      <input
+                        type="text"
+                        id="subfolderInput"
+                        placeholder="default"
+                        style="flex: 1"
+                      />
+                      <button
+                        id="openCardFolderBtn"
+                        class="secondary-btn icon-btn hidden"
+                        title="Open Card Folder"
+                        aria-label="Open Card Folder"
+                        style="height: 38px; width: 38px"
+                      >
+                        <span class="material-icons">folder_open</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div class="form-group">
