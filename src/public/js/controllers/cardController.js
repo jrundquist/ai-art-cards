@@ -38,6 +38,10 @@ export function renderCardList(cards) {
   cards.forEach((card) => {
     const div = document.createElement("div");
     div.className = "card-item";
+    if (state.currentCard && state.currentCard.id === card.id) {
+      div.classList.add("active");
+    }
+    div.dataset.id = card.id;
 
     const count = card.imageCount !== undefined ? card.imageCount : 0;
 
@@ -102,6 +106,16 @@ export function selectCard(card, updateHistory = true) {
   if (updateHistory) updateUrl();
 
   loadImagesForCard(state.currentProject.id, card.id);
+
+  // Update .active class on DOM
+  const cardItems = dom.cardList.querySelectorAll(".card-item");
+  cardItems.forEach((item) => {
+    if (item.dataset.id === card.id) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
 
   // Dispatch event for other components (e.g., Chat)
   document.dispatchEvent(
