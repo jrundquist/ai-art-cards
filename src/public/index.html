@@ -175,6 +175,7 @@
                   <span class="material-icons">chat_bubble_outline</span>
                 </button>
 
+
                 <!-- Hidden old input compatibility if needed, or just removed -->
                 <input type="hidden" id="apiKeyInput" />
               </div>
@@ -251,33 +252,32 @@
                     </select>
                   </div>
                 </div>
+
+                <div class="form-group full-width" style="align-items: flex-end">
+                  <button id="saveCardBtn" class="secondary-btn">
+                    Save Card
+                  </button>
+                </div>
               </div>
 
               <div class="generation-controls">
-                <div class="count-input">
-                  <label>Count:</label>
-                  <input
-                    type="number"
-                    id="genCount"
-                    value="1"
-                    min="1"
-                    max="10"
-                  />
+                <div class="generate-group glow">
+                  <button id="generateBtn" class="generate-group-btn">
+                    Generate Art ✨
+                  </button>
+                  <div
+                    class="generate-group-picker"
+                    title="Number of images to generate"
+                  >
+                    <input
+                      type="number"
+                      id="genCount"
+                      value="1"
+                      min="1"
+                      max="10"
+                    />
+                  </div>
                 </div>
-                <button id="saveCardBtn" class="secondary-btn">
-                  Save Card
-                </button>
-                <button id="generateBtn" class="primary-btn glow">
-                  Generate Art ✨
-                </button>
-                <button
-                  id="openCardFolderBtn"
-                  class="secondary-btn icon-btn hidden"
-                  title="Open Card Folder"
-                  aria-label="Open Card Folder"
-                >
-                  <span class="material-icons">folder_open</span>
-                </button>
                 <button
                   id="galleryFilterFavorites"
                   class="secondary-btn icon-btn"
@@ -313,7 +313,6 @@
                 <!-- Images go here -->
               </div>
             </div>
-          </div>
           <div
             id="toast-container"
             class="toast-container"
