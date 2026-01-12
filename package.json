@@ -22,6 +22,9 @@
   "build": {
     "appId": "tech.rundquist.aiartcards.app",
     "productName": "AICardArts",
+    "asarUnpack": [
+      "node_modules/exiftool-vendored.*/**/*"
+    ],
     "files": [
       "dist/**/*",
       "package.json",

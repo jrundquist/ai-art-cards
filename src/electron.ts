@@ -11,6 +11,7 @@ import {
   nativeImage,
 } from "electron";
 import { startServer } from "./server";
+import { exiftool } from "exiftool-vendored";
 import { autoUpdater } from "electron-updater";
 import path from "path";
 import fs from "fs";
@@ -455,6 +456,12 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("before-quit", async () => {
+  // Clean up exiftool process
+  logger.info("Shutting down exiftool...");
+  await exiftool.end();
 });
 
 app.on("activate", () => {
