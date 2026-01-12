@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs/promises";
 import { DataService, Project, Card } from "./lib/data_service";
 import { ImageGenerator } from "./lib/image_generator";
+import { ChatService } from "./lib/chat_service";
 import { exiftool } from "exiftool-vendored";
 import archiver from "archiver";
 import fsSync from "fs";
@@ -35,6 +36,18 @@ export function createApp(dataRoot?: string) {
 
   // Config API Key (Naive in-memory for now, or use ENV)
   let API_KEY = process.env.GEMINI_API_KEY || "";
+
+  // Chat Service Definition (Moved up for access)
+  let chatService: ChatService | null = null;
+  const initChatService = () => {
+    // Always init, even if no key (for history access)
+    // Re-create instance to update key if changed
+    chatService = new ChatService(API_KEY, dataService);
+    chatService.setConversationsDir(
+      path.join(resolvedDataRoot, "conversations")
+    );
+  };
+  initChatService();
 
   // Serve Static Frontend
   // In dev (ts-node), __dirname is src/. In built (node), it's dist/.
@@ -81,6 +94,8 @@ export function createApp(dataRoot?: string) {
         await dataService.saveKey(name, apiKey);
       }
       API_KEY = apiKey;
+      // Re-init chat service to pick up new key
+      initChatService();
       res.json({ success: true });
     } else {
       res.status(400).json({ error: "Missing apiKey" });
@@ -617,6 +632,107 @@ export function createApp(dataRoot?: string) {
       if (!res.headersSent) {
         res.status(500).json({ error: e.message });
       }
+    }
+  });
+
+  // --- Chat ---
+
+  // --- Chat ---
+
+  // chatService init moved to top of function
+
+  app.post("/api/chat/message", async (req, res) => {
+    if (!chatService) {
+      initChatService();
+    }
+    // Deep check for generation capability
+    if (!API_KEY) {
+      return res.status(401).json({ error: "API Key not set" });
+    }
+
+    const { projectId, conversationId, message, activeCardId } = req.body;
+
+    // Set headers for SSE
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    try {
+      await chatService?.sendMessageStream(
+        projectId,
+        conversationId,
+        message,
+        activeCardId || null,
+        res
+      );
+    } catch (e: any) {
+      logger.error("[Chat API] Error processing message:", e);
+      if (!res.headersSent) {
+        res.status(500).json({ error: e.message });
+      } else {
+        // If headers sent (streaming started), we need to write error event
+        res.write(
+          `data: ${JSON.stringify({ type: "error", content: e.message })}\n\n`
+        );
+        res.end();
+      }
+    }
+  });
+
+  app.get("/api/projects/:projectId/conversations", async (req, res) => {
+    if (!chatService) {
+      if (API_KEY) initChatService();
+      // Attempt to init, but if failed just continue?
+      // List conversations only needs FS access which ChatService has if instantiated.
+      // If no API key, we cant instantiate ChatService easily because it expects one.
+      // But listConversations doesn't use it.
+      // For now, require API Key or fix ChatService to be optional-key.
+      if (!chatService)
+        return res.status(401).json({ error: "API Key not set" });
+    }
+    const { projectId } = req.params;
+    const convs = await chatService?.listConversations(projectId);
+    res.json(convs);
+  });
+
+  app.get(
+    "/api/projects/:projectId/conversations/:conversationId",
+    async (req, res) => {
+      if (!chatService) {
+        if (API_KEY) initChatService();
+        if (!chatService)
+          return res.status(401).json({ error: "API Key not set" });
+      }
+      const { projectId, conversationId } = req.params;
+      const conv = await chatService?.loadConversation(
+        projectId,
+        conversationId
+      );
+      if (!conv)
+        return res.status(404).json({ error: "Conversation not found" });
+      res.json(conv);
+    }
+  );
+
+  app.delete("/api/conversations/:conversationId", async (req, res) => {
+    if (!chatService) {
+      if (API_KEY) initChatService();
+      if (!chatService)
+        return res.status(401).json({ error: "API Key not set" });
+    }
+
+    try {
+      const { conversationId } = req.params;
+      // Delete the conversation by ID via ChatService.
+
+      const success = await chatService?.deleteConversation(conversationId);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Conversation not found" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

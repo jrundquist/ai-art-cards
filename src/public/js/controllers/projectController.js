@@ -92,10 +92,10 @@ export async function saveProjectConfig() {
   const p = {
     id: dom.modal.id.value,
     name: dom.modal.name.value,
+    description: dom.modal.description.value,
     outputRoot: dom.modal.root.value,
     globalPrefix: dom.modal.prefix.value,
     globalSuffix: dom.modal.suffix.value,
-    description: "",
     defaultAspectRatio: dom.modal.aspectRatio.value,
     defaultResolution: dom.modal.resolution.value,
   };
@@ -138,6 +138,7 @@ export function openProjectModal(project) {
     dom.modal.idDisplay.textContent = project.id;
     // ID is hidden input, no disabled property needed
     dom.modal.name.value = project.name;
+    dom.modal.description.value = project.description || "";
     dom.modal.root.value = project.outputRoot;
     dom.modal.prefix.value = project.globalPrefix;
     dom.modal.suffix.value = project.globalSuffix;
@@ -155,6 +156,7 @@ export function openProjectModal(project) {
     // ID is hidden input now, no disabled property to set
 
     dom.modal.name.value = "";
+    dom.modal.description.value = "";
     dom.modal.root.value = "";
     dom.modal.prefix.value = "";
     dom.modal.suffix.value = "";
