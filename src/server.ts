@@ -723,19 +723,7 @@ export function createApp(dataRoot?: string) {
 
     try {
       const { conversationId } = req.params;
-      // We need project ID too?
-      // The frontend calls `/api/conversations/:conversationId`.
-      // But our storage is by project. We need to find which project it belongs to?
-      // Or require projectId in API?
-      // `deleteConversation(conversationId)` in `ChatService` needs to know path.
-      // Easiest: Iterate projects or pass projectId.
-      // Frontend `chat.js` call: `fetch('/api/conversations/' + conversationId, ...)`
-      // It doesn't pass project ID.
-      // Wait, `ChatService` stores conversations in `data/conversations/<projectId>/<convId>.json`.
-      // Without project ID, we'd have to search.
-      // Let's UPDATE Frontend to pass projectId or search here.
-      // Optimization: Chat ID could keyspace globally? Unlikely with simple file system.
-      // Let's implement `deleteConversation` in service to find and delete.
+      // Delete the conversation by ID via ChatService.
 
       const success = await chatService?.deleteConversation(conversationId);
       if (success) {
