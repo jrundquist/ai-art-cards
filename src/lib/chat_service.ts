@@ -639,6 +639,41 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
         const dir = await this.ensureDir(p.id);
         const filepath = path.join(dir, `${conversationId}.json`);
         try {
+          // Read first to find images
+          const data = await fs.readFile(filepath, "utf-8");
+          const conversation: Conversation = JSON.parse(data);
+
+          // Find Reference Image IDs
+          // Format: [System: Attached Image IDs: <id1>, <id2>]
+          const imageIdsToClean = new Set<string>();
+          conversation.history.forEach((msg) => {
+            msg.parts.forEach((part) => {
+              if (
+                part.text &&
+                part.text.includes("[System: Attached Image IDs:")
+              ) {
+                const match = part.text.match(
+                  /\[System: Attached Image IDs: ([^\]]+)\]/
+                );
+                if (match && match[1]) {
+                  match[1].split(",").forEach((id) => {
+                    const cleanId = id.trim();
+                    if (cleanId) imageIdsToClean.add(cleanId);
+                  });
+                }
+              }
+            });
+          });
+
+          if (imageIdsToClean.size > 0) {
+            logger.info(
+              `[ChatService] Found ${imageIdsToClean.size} cached images to cleanup for conversation ${conversationId}`
+            );
+            for (const id of imageIdsToClean) {
+              await this.dataService.deleteTempImage(id);
+            }
+          }
+
           await fs.unlink(filepath);
           logger.info(
             `[ChatService] Deleted conversation ${conversationId} from project ${p.id}`

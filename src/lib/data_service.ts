@@ -243,4 +243,18 @@ export class DataService {
     if (!file) return null;
     return fs.readFile(path.join(cacheDir, file));
   }
+
+  async deleteTempImage(id: string): Promise<void> {
+    const cacheDir = path.join(this.projectsDir, "../cache");
+    try {
+      const files = await fs.readdir(cacheDir);
+      const file = files.find((f) => f.startsWith(`${id}.`));
+      if (file) {
+        await fs.unlink(path.join(cacheDir, file));
+        logger.info(`[DataService] Deleted temp image: ${file}`);
+      }
+    } catch (e) {
+      logger.warn(`[DataService] Failed to delete temp image ${id}:`, e);
+    }
+  }
 }
