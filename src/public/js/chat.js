@@ -425,18 +425,33 @@ export class ChatManager {
                   // Render Tool Call
                   const call = part.functionCall;
                   const div = document.createElement("div");
-                  div.className = "tool-output";
-                  div.innerHTML = `<div class="tool-name">Generated Tool Call: ${call.name}</div>`;
+                  div.className = "tool-call";
+                  div.textContent = `Using tool: ${call.name}(${JSON.stringify(
+                    call.args
+                  )}) ...`;
                   this.messagesContainer.appendChild(div);
                 } else if (part.functionResponse) {
                   // Render Tool Response
                   const response = part.functionResponse;
+                  const result = response.response.result || response.response;
+
+                  let displayResult = JSON.stringify(result);
+
+                  if (result && typeof result === "object") {
+                    if (result.clientAction === "generateImage") {
+                      displayResult = "Starting Image Generation...";
+                    } else if (result.path) {
+                      displayResult = `Image Generated: ${result.path}`;
+                    } else if (result.created) {
+                      displayResult = `Created ${result.created.length} cards.`;
+                    } else if (result.updated) {
+                      displayResult = `Updated card.`;
+                    }
+                  }
+
                   const div = document.createElement("div");
-                  div.className = "tool-output";
-                  const content = JSON.stringify(
-                    response.response.result || response.response
-                  );
-                  div.innerHTML = `<div class="tool-name">Tool Result: ${response.name}</div><div class="json-output">${content}</div>`;
+                  div.className = "tool-result";
+                  div.textContent = `Result: ${displayResult}`;
                   this.messagesContainer.appendChild(div);
                 }
               }
