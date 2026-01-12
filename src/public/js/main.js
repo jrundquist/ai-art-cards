@@ -65,18 +65,12 @@ async function init() {
   // Initial Context if project loaded
   if (state.currentProject) {
     chatManager.onProjectSelected(state.currentProject.id);
-    chatManager.setContext(
-      `User selected project: ${state.currentProject.name} (ID: ${state.currentProject.id})`
-    );
   }
   dom.projectSelect.addEventListener("change", async () => {
     projectCtrl.onProjectSelect(true);
     // Update Chat Context
     if (state.currentProject) {
       chatManager.onProjectSelected(state.currentProject.id);
-      chatManager.setContext(
-        `User selected project: ${state.currentProject.name} (ID: ${state.currentProject.id})`
-      );
     }
   });
 
@@ -94,16 +88,6 @@ async function init() {
           cardCtrl.selectCard(updatedCard, false);
         }
       }
-    }
-  });
-
-  // Listen for card selection to update Chat Context
-  document.addEventListener("card-selected", (e) => {
-    const card = e.detail.card;
-    if (card) {
-      chatManager.setContext(
-        `User selected card: "${card.name}" (ID: ${card.id})\nPrompt: "${card.prompt}"`
-      );
     }
   });
 
@@ -433,9 +417,6 @@ async function restoreStateFromUrl() {
     // Update Chat Context for URL load
     if (state.currentProject) {
       chatManager.onProjectSelected(state.currentProject.id);
-      chatManager.setContext(
-        `User selected project: ${state.currentProject.name} (ID: ${state.currentProject.id})`
-      );
     }
   } else if (!pid && state.currentProject) {
     // No project in URL but we have one selected - clear it
