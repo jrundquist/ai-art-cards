@@ -14,10 +14,16 @@ export class ChatManager {
     this.sendBtn = document.getElementById("sendChatBtn");
     this.mainContent = document.querySelector(".main-content");
     this.historyList = document.getElementById("chatHistoryList");
+    this.resizeHandle = document.getElementById("chatResizeHandle");
 
     this.currentConversationId = null;
     this.isGenerating = false;
     this.pendingContext = [];
+
+    // Resize state
+    this.isResizing = false;
+    this.startX = 0;
+    this.startWidth = 0;
 
     this.init();
   }
@@ -36,6 +42,11 @@ export class ChatManager {
       }
     });
 
+    // Resize event listeners
+    this.resizeHandle.addEventListener("mousedown", (e) => this.startResize(e));
+    document.addEventListener("mousemove", (e) => this.doResize(e));
+    document.addEventListener("mouseup", () => this.stopResize());
+
     // Handle project change to reset/load chat context
     // This needs to be hooked into the app's project selection logic.
     // We can expose a method `onProjectSelected(projectId)`.
@@ -44,6 +55,12 @@ export class ChatManager {
     const savedState = localStorage.getItem("chatPanelOpen");
     if (savedState === "true") {
       this.toggleSidebar(false); // Pass false to avoid saving again immediately if we wanted, but logic is simple enough
+    }
+
+    // Restore saved width
+    const savedWidth = localStorage.getItem("chatPanelWidth");
+    if (savedWidth) {
+      this.sidebar.style.setProperty("--chat-width", `${savedWidth}px`);
     }
   }
 
@@ -500,5 +517,46 @@ export class ChatManager {
     // We can dispatch a custom event
     const event = new CustomEvent("cards-updated");
     document.dispatchEvent(event);
+  }
+
+  startResize(e) {
+    this.isResizing = true;
+    this.startX = e.clientX;
+    this.startWidth = this.sidebar.offsetWidth;
+    this.resizeHandle.classList.add("resizing");
+    this.sidebar.classList.add("resizing");
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+    e.preventDefault();
+  }
+
+  doResize(e) {
+    if (!this.isResizing) return;
+
+    // Calculate new width (dragging left increases width)
+    const delta = this.startX - e.clientX;
+    const newWidth = this.startWidth + delta;
+
+    // Apply constraints
+    const minWidth = 280;
+    const maxWidth = 600;
+    const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+
+    // Apply the new width
+    this.sidebar.style.setProperty("--chat-width", `${constrainedWidth}px`);
+  }
+
+  stopResize() {
+    if (!this.isResizing) return;
+
+    this.isResizing = false;
+    this.resizeHandle.classList.remove("resizing");
+    this.sidebar.classList.remove("resizing");
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+
+    // Save the width to localStorage
+    const currentWidth = this.sidebar.offsetWidth;
+    localStorage.setItem("chatPanelWidth", currentWidth);
   }
 }

@@ -796,7 +796,9 @@ button {
 
 /* Chat Sidebar */
 .chat-sidebar {
-  width: 320px;
+  width: var(--chat-width, 320px);
+  min-width: 280px;
+  max-width: 600px;
   background: var(--bg-panel);
   backdrop-filter: blur(var(--backdrop-blur));
   -webkit-backdrop-filter: blur(var(--backdrop-blur));
@@ -806,6 +808,46 @@ button {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   z-index: 100;
+  position: relative;
+}
+
+.chat-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 101;
+  transition: background-color 0.2s;
+}
+
+.chat-resize-handle:hover,
+.chat-resize-handle.resizing {
+  background: rgba(var(--primary-rgb), 0.3);
+}
+
+.chat-resize-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 40px;
+  background: var(--border);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chat-resize-handle:hover::before,
+.chat-resize-handle.resizing::before {
+  opacity: 1;
+}
+
+.chat-sidebar.resizing {
+  transition: none;
 }
 
 .hidden {
