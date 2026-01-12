@@ -1444,6 +1444,7 @@ button {
 .toast.ai-generating {
   position: relative;
   background: rgba(15, 15, 20, 0.9);
+  color: #ffffff;
   border: 1px solid transparent; /* Fallback */
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -1780,4 +1781,109 @@ kbd {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Chat Image Upload */
+.chat-image-previews {
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  min-height: 58px;
+  animation: slideIn 0.2s ease;
+  align-items: center;
+}
+.chat-image-previews.hidden {
+  display: none;
+}
+
+.chat-preview-item {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+  background: var(--bg-input);
+}
+
+.chat-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-preview-remove {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.chat-preview-remove::after {
+  content: "✕";
+}
+
+.chat-preview-remove:hover {
+  background: #ef4444;
+}
+
+.chat-input-area.drag-over {
+  border: 2px dashed var(--primary) !important;
+  background: rgba(var(--primary-rgb), 0.1) !important;
+}
+
+/* Secondary small icon button */
+.icon-btn-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.icon-btn-sm:hover {
+  background: var(--bg-input-focus);
+  color: var(--text-main);
+}
+.icon-btn-sm.secondary {
+  border-color: var(--border);
+}
+
+/* Chat History Images */
+.chat-message-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.chat-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
 }

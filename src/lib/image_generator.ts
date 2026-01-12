@@ -19,6 +19,7 @@ export class ImageGenerator {
     options: {
       aspectRatio?: string;
       resolution?: string;
+      referenceImages?: Buffer[];
     } = {}
   ): Promise<{ buffer: Buffer; mimeType: string }> {
     const modelName = "gemini-3-pro-image-preview";
@@ -41,7 +42,15 @@ export class ImageGenerator {
     const contents = [
       {
         role: "user",
-        parts: [{ text: `Aspect Ratio: ${aspectRatio}\n\n${prompt}` }],
+        parts: [
+          { text: `Aspect Ratio: ${aspectRatio}\n\n${prompt}` },
+          ...(options.referenceImages || []).map((buf) => ({
+            inlineData: {
+              mimeType: "image/png", // Assuming PNG for simplicity, or we could pass type
+              data: buf.toString("base64"),
+            },
+          })),
+        ],
       },
     ];
 
@@ -49,6 +58,29 @@ export class ImageGenerator {
       `[ImageGenerator] Starting generation with model: ${modelName}`
     );
     logger.info(`[ImageGenerator] Config: AR=${aspectRatio}, Res=${imageSize}`);
+    if (options.referenceImages?.length) {
+      logger.info(
+        `[ImageGenerator] Including ${options.referenceImages.length} reference images.`
+      );
+      options.referenceImages.forEach((img, i) => {
+        logger.info(`[ImageGenerator] Ref Image ${i + 1}: ${img.length} bytes`);
+      });
+    }
+
+    // Deep debug of contents structure
+    logger.info(
+      `[ImageGenerator] Payload Parts Count: ${contents[0].parts.length}`
+    );
+    contents[0].parts.forEach((p: any, i) => {
+      if (p.text)
+        logger.info(
+          `[ImageGenerator] Part ${i}: TEXT ("${p.text.substring(0, 50)}...")`
+        );
+      if (p.inlineData)
+        logger.info(
+          `[ImageGenerator] Part ${i}: INLINE_DATA (mime: ${p.inlineData.mimeType}, data_len: ${p.inlineData.data.length})`
+        );
+    });
 
     try {
       const result = await model.generateContentStream({ contents });

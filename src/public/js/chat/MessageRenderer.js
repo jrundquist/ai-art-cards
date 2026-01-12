@@ -56,6 +56,45 @@ export class MessageRenderer {
   }
 
   /**
+   * Append images to the container
+   * @param {string} role - 'user' or 'model'
+   * @param {Array} images - Array of { mimeType, data } objects (data is base64)
+   */
+  appendImages(role, images) {
+    const msgDiv = this.createMessageDiv(role);
+    const contentCheck = msgDiv.querySelector(".message-content");
+
+    const grid = document.createElement("div");
+    grid.className = "chat-images-grid";
+
+    images.forEach((img) => {
+      const imgEl = document.createElement("img");
+      imgEl.src = `data:${img.mimeType};base64,${img.data}`;
+      imgEl.className = "chat-message-image";
+
+      // Simple lightbox or full view on click
+      imgEl.onclick = () => {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("imgModalPreview");
+        if (modal && modalImg) {
+          modalImg.src = imgEl.src;
+          // Hide irrelevant fields in modal if re-using existing one
+          document.getElementById("imgModalTitle").textContent =
+            "Image Preview";
+          document.getElementById("imgModalPrompt").textContent = "";
+          modal.classList.remove("hidden");
+        }
+      };
+
+      grid.appendChild(imgEl);
+    });
+
+    contentCheck.appendChild(grid);
+    this.messagesContainer.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  /**
    * Display the welcome message with suggestions
    */
   showWelcomeMessage() {

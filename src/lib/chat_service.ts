@@ -196,6 +196,12 @@ export class ChatService {
                   type: "INTEGER",
                   description: "Number of images to generate (default: 1)",
                 },
+                referenceImageIds: {
+                  type: "ARRAY",
+                  items: { type: "STRING" },
+                  description:
+                    "Optional list of reference image IDs (from system context) to use for generation",
+                },
               },
               required: ["projectId", "cardId"],
             },
@@ -212,12 +218,15 @@ export class ChatService {
     conversationId: string,
     message: string,
     activeCardId: string | null,
+    images: { mimeType: string; data: string }[] = [],
     res: any // Express Response
   ) {
     // 1. Load History
     logger.info(
       `[ChatService] Sending message stream for conv: ${conversationId} in project: ${projectId}`
     );
+    logger.info(`[ChatService] Received ${images.length} images`);
+
     const conversation = await this.loadConversation(projectId, conversationId);
     if (!conversation) {
       logger.warn(`[ChatService] Conversation not found: ${conversationId}`);
@@ -266,7 +275,42 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
     // 3. Send Message and Stream
     try {
-      let currentMessage: string | any[] = message;
+      // Handle images: Cache them and add to message parts
+      const imageParts: Part[] = [];
+      const imageIds: string[] = [];
+
+      for (const img of images) {
+        const buffer = Buffer.from(img.data, "base64");
+        const { id } = await this.dataService.saveTempImage(
+          buffer,
+          img.mimeType
+        );
+        imageIds.push(id);
+
+        imageParts.push({
+          inlineData: {
+            mimeType: img.mimeType,
+            data: img.data,
+          },
+        });
+      }
+
+      // Inject system context about image IDs if present
+      let finalMessageText = message;
+      if (imageIds.length > 0) {
+        finalMessageText += `\n\n[System: Attached Image IDs: ${imageIds.join(
+          ", "
+        )}]`;
+      }
+
+      let currentMessage: string | Part[] = message;
+
+      if (imageParts.length > 0) {
+        currentMessage = [{ text: finalMessageText }, ...imageParts];
+      } else {
+        currentMessage = finalMessageText;
+      }
+
       let finished = false;
 
       while (!finished) {
@@ -484,6 +528,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               cardId: cId,
               promptOverride: args.promptOverride,
               count: args.count || 1,
+              referenceImageIds: args.referenceImageIds,
             };
           }
           break;

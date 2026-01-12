@@ -217,4 +217,30 @@ export class DataService {
       force: true,
     });
   }
+
+  // --- Temp Image Cache ---
+  async saveTempImage(
+    buffer: Buffer,
+    mimeType: string
+  ): Promise<{ id: string; path: string }> {
+    const cacheDir = path.join(this.projectsDir, "../cache"); // data/cache
+    await fs.mkdir(cacheDir, { recursive: true });
+
+    const id =
+      Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    const ext = mimeType.split("/")[1] || "bin";
+    const filename = `${id}.${ext}`;
+    const filePath = path.join(cacheDir, filename);
+
+    await fs.writeFile(filePath, buffer);
+    return { id, path: filePath };
+  }
+
+  async getTempImage(id: string): Promise<Buffer | null> {
+    const cacheDir = path.join(this.projectsDir, "../cache");
+    const files = await fs.readdir(cacheDir);
+    const file = files.find((f) => f.startsWith(`${id}.`));
+    if (!file) return null;
+    return fs.readFile(path.join(cacheDir, file));
+  }
 }

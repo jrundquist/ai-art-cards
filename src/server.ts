@@ -16,7 +16,8 @@ export function createApp(dataRoot?: string) {
   const app = express();
 
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
   // Data Path Setup
   // If dataRoot is provided, use it. Otherwise default to repo structure.
@@ -313,9 +314,12 @@ export function createApp(dataRoot?: string) {
 
     const generator = new ImageGenerator(API_KEY);
     // Use override if provided, else use saved card prompt
-    const promptToUse =
-      promptOverride !== undefined ? promptOverride : card.prompt;
-    const fullPrompt = `${project.globalPrefix} ${promptToUse} ${project.globalSuffix}`;
+    let fullPrompt = "";
+    if (promptOverride !== undefined) {
+      fullPrompt = promptOverride;
+    } else {
+      fullPrompt = `${project.globalPrefix} ${card.prompt} ${project.globalSuffix}`;
+    }
 
     logger.info("------------------------------------------------");
     logger.info(
@@ -323,6 +327,18 @@ export function createApp(dataRoot?: string) {
     );
     logger.info(`[Server] Project: ${project.name} (ID: ${project.id})`);
     logger.info(`[Server] Full Prompt: ${fullPrompt}`);
+    // Resolve reference images if any
+    const referenceImageIds: string[] = req.body.referenceImageIds || [];
+    const referenceImages: Buffer[] = [];
+    if (referenceImageIds.length > 0) {
+      logger.info(
+        `[Server] Using reference images: ${referenceImageIds.join(", ")}`
+      );
+      for (const id of referenceImageIds) {
+        const buf = await dataService.getTempImage(id);
+        if (buf) referenceImages.push(buf);
+      }
+    }
     logger.info("------------------------------------------------");
 
     // Resolve output folder - SECURE
@@ -391,6 +407,7 @@ export function createApp(dataRoot?: string) {
             {
               aspectRatio,
               resolution,
+              referenceImages,
             }
           );
 
@@ -788,6 +805,7 @@ export function createApp(dataRoot?: string) {
         conversationId,
         message,
         activeCardId || null,
+        req.body.images || [], // Pass images if present
         res
       );
     } catch (e: any) {
@@ -876,7 +894,11 @@ export async function startServer(
   }
   const app = createApp(dataRoot);
   return new Promise<void>((resolve) => {
-    app.listen(port, () => {
+    app.listen(port, (err) => {
+      if (err) {
+        logger.error(`Failed to start server: ${err}`);
+        process.exit(1);
+      }
       logger.info(`Server running at http://localhost:${port}`);
       resolve();
     });

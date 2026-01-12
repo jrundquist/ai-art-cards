@@ -367,7 +367,23 @@
               </ul>
             </div>
           </div>
-          <div class="chat-input-area">
+          <div id="chatImagePreviews" class="chat-image-previews hidden"></div>
+          <div class="chat-input-area" id="chatInputArea">
+            <input
+              type="file"
+              id="chatFileInput"
+              multiple
+              accept="image/*"
+              class="hidden"
+            />
+            <button
+              id="chatUploadBtn"
+              class="icon-btn-sm secondary"
+              title="Upload Images"
+              style="margin-right: 8px"
+            >
+              <span class="material-icons">add_photo_alternate</span>
+            </button>
             <textarea
               id="chatInput"
               placeholder="Type a message..."

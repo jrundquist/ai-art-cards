@@ -22,6 +22,7 @@ export class StreamingService {
     conversationId,
     message,
     activeCardId,
+    images = [],
     callbacks
   ) {
     const response = await fetch("/api/chat/message", {
@@ -34,6 +35,7 @@ export class StreamingService {
         conversationId,
         message,
         activeCardId,
+        images,
       }),
     });
 

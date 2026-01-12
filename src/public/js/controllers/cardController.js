@@ -231,6 +231,9 @@ export async function generateArt(overrides = null) {
     if (overrides?.resOverride !== undefined) {
       payload.resOverride = overrides.resOverride;
     }
+    if (overrides?.referenceImageIds !== undefined) {
+      payload.referenceImageIds = overrides.referenceImageIds;
+    }
 
     const data = await api.generateImages(payload);
     const resJson = await data.json();
