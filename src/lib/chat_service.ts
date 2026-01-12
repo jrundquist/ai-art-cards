@@ -216,8 +216,12 @@ export class ChatService {
     res: any // Express Response
   ) {
     // 1. Load History
+    logger.info(
+      `[ChatService] Sending message stream for conv: ${conversationId} in project: ${projectId}`
+    );
     const conversation = await this.loadConversation(projectId, conversationId);
     if (!conversation) {
+      logger.warn(`[ChatService] Conversation not found: ${conversationId}`);
       throw new Error("Conversation not found");
     }
 
@@ -302,6 +306,9 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
                 response: { result: toolResult }, // Wrap in object for Protobuf Struct compatibility
               },
             });
+            logger.info(
+              `[ChatService] Tool result for ${call.name} ready to send.`
+            );
             res.write(
               `data: ${JSON.stringify({
                 type: "tool_result",
@@ -356,28 +363,34 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
   private async executeTool(name: string, args: any): Promise<any> {
     try {
+      logger.info(`[ChatService] Executing tool: ${name}`);
+      const startTime = Date.now();
+      let result;
+
       switch (name) {
         case "listProjects":
           const projs = await this.dataService.getProjects();
-          return projs.map((p) => ({
+          result = projs.map((p) => ({
             id: p.id,
             name: p.name,
             description: p.description,
           }));
+          break;
         case "getProject":
-          return (
-            (await this.dataService.getProject(args.projectId)) || {
-              error: "Project not found",
-            }
-          );
+          result = (await this.dataService.getProject(args.projectId)) || {
+            error: "Project not found",
+          };
+          break;
         case "listCards":
           const cardsInProj = await this.dataService.getCards(args.projectId);
-          return cardsInProj.map((c) => ({ id: c.id, name: c.name }));
+          result = cardsInProj.map((c) => ({ id: c.id, name: c.name }));
+          break;
         case "getCard": // Get cards
           const cards = await this.dataService.getCards(args.projectId);
-          return (
-            cards.find((c) => c.id === args.cardId) || { error: "Not found" }
-          );
+          result = cards.find((c) => c.id === args.cardId) || {
+            error: "Not found",
+          };
+          break;
         case "findCard":
           const query = args.query.toLowerCase();
           let projectsToSearch = [];
@@ -401,7 +414,8 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               }))
             );
           }
-          return found;
+          result = found;
+          break;
         case "createCards":
           const projects = await this.dataService.getProjects();
           const project = projects.find((p) => p.id === args.projectId);
@@ -426,22 +440,31 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
             await this.dataService.saveCard(newCard);
             newCards.push(newCard);
           }
-          return { created: newCards };
+          result = { created: newCards };
+          break;
         case "updateCard":
           const allCards = await this.dataService.getCards(args.projectId);
           const card = allCards.find((c) => c.id === args.cardId);
-          if (!card) return { error: "Card not found" };
-          Object.assign(card, args.updates);
-          await this.dataService.saveCard(card);
-          return { updated: card };
+          if (!card) {
+            result = { error: "Card not found" };
+          } else {
+            Object.assign(card, args.updates);
+            await this.dataService.saveCard(card);
+            result = { updated: card };
+          }
+          break;
         case "updateProject":
           const projectToUpdate = await this.dataService.getProject(
             args.projectId
           );
-          if (!projectToUpdate) return { error: "Project not found" };
-          Object.assign(projectToUpdate, args.updates);
-          await this.dataService.saveProject(projectToUpdate);
-          return { updated: projectToUpdate };
+          if (!projectToUpdate) {
+            result = { error: "Project not found" };
+          } else {
+            Object.assign(projectToUpdate, args.updates);
+            await this.dataService.saveProject(projectToUpdate);
+            result = { updated: projectToUpdate };
+          }
+          break;
         case "generateImage":
           const pId = args.projectId;
           const cId = args.cardId;
@@ -450,23 +473,35 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
             (x) => x.id === cId
           );
 
-          if (!proj || !c) return { error: "Project or Card not found" };
-
-          // Changed: We now return a signal to the client to trigger generation.
-          // This allows the frontend to show progress bars, toasts, etc.
-          logger.info("[ChatService] Delegating generation to client");
-          return {
-            success: true,
-            clientAction: "generateImage",
-            projectId: pId,
-            cardId: cId,
-            promptOverride: args.promptOverride,
-            count: args.count || 1,
-          };
+          if (!proj || !c) {
+            result = { error: "Project or Card not found" };
+          } else {
+            // Changed: We now return a signal to the client to trigger generation.
+            // This allows the frontend to show progress bars, toasts, etc.
+            logger.info("[ChatService] Delegating generation to client");
+            result = {
+              success: true,
+              clientAction: "generateImage",
+              projectId: pId,
+              cardId: cId,
+              promptOverride: args.promptOverride,
+              count: args.count || 1,
+            };
+          }
+          break;
         default:
-          return { error: "Unknown tool" };
+          result = { error: "Unknown tool" };
       }
+
+      const duration = Date.now() - startTime;
+      logger.info(
+        `[ChatService] Tool ${name} executed in ${duration}ms. Result keys: ${Object.keys(
+          result || {}
+        ).join(", ")}`
+      );
+      return result;
     } catch (e: any) {
+      logger.error(`[ChatService] Error executing tool ${name}:`, e);
       return { error: e.message };
     }
   }
