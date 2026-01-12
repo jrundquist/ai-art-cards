@@ -650,8 +650,6 @@ export function createApp(dataRoot?: string) {
       return res.status(401).json({ error: "API Key not set" });
     }
 
-    // Check if we need to manually enable tool usage if we haven't already
-
     const { projectId, conversationId, message, activeCardId } = req.body;
 
     // Set headers for SSE
