@@ -81,6 +81,25 @@ export class ChatService {
             },
           },
           {
+            name: "findCard",
+            description:
+              "Find a card by name (fuzzy match). Use this to get the ID when you only have the name.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                query: {
+                  type: "STRING",
+                  description: "The name or part of the name to search for.",
+                },
+                projectId: {
+                  type: "STRING",
+                  description: "Optional project ID to limit search.",
+                },
+              },
+              required: ["query"],
+            },
+          },
+          {
             name: "createCards",
             description: "Create one or more new cards in the project.",
             parameters: {
@@ -169,11 +188,13 @@ export class ChatService {
 You are an intelligent assistant for the "AI Art Cards" application. Your goal is to help users manage their generative art projects and prompts.
 **Core Rules:**
 1. **Use Names, Not IDs**: When referring to projects or cards, always use their human-readable "name". Only mention "id" if the user specifically asks for it or if it's necessary for debugging.
-2. **Context Awareness**: You have access to tools to list projects and cards. Use them to understand the user's workspace.
-3. **Prompt Engineering**: The application constructs prompts by combining:
+2. **Context Awareness**: You have access to tools to list projects and cards, and to **FIND** cards. Use them to understand the user's workspace.
+3. **Proactive Lookup**: If the user asks to perform an action on a card by Name (e.g., "Generate image for Dog Card"), and you do not have the ID, you **MUST** first use the \`findCard\` tool to look it up. Do **NOT** ask the user for the ID or to list cards manually.
+4. **Prompt Engineering**: The application constructs prompts by combining:
    \`[Project Global Prefix] + [Card Prompt] + [Project Global Suffix]\`
    Keep this in mind when advising on prompt structure.
 4. **Creativity & Assumptions**: If the user's request is vague (e.g., "Create a fun card"), **DO NOT** ask for details. Instead, use your creativity to invent a name and prompt that fits the mood or project theme. Be proactive and bold with your assumptions.
+5. **Chain Actions**: If the user asks for an action that requires a lookup (e.g., "Generate image for X"), and you successfully find "X" using \`findCard\`, you **MUST** immediately call the \`generateImage\` tool in the same turn. Do not stop to confirm findings with the user. Just do it.
 
 **Application Concepts:**
 - **Projects**: Top-level containers with global settings (Resolution, Aspect Ratio, Prefix, Suffix).
@@ -351,6 +372,30 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
           return (
             cards.find((c) => c.id === args.cardId) || { error: "Not found" }
           );
+        case "findCard":
+          const query = args.query.toLowerCase();
+          let projectsToSearch = [];
+          if (args.projectId) {
+            projectsToSearch.push({ id: args.projectId });
+          } else {
+            projectsToSearch = await this.dataService.getProjects();
+          }
+
+          const found = [];
+          for (const p of projectsToSearch) {
+            const cards = await this.dataService.getCards(p.id);
+            const matches = cards.filter((c) =>
+              c.name.toLowerCase().includes(query)
+            );
+            found.push(
+              ...matches.map((c) => ({
+                id: c.id,
+                name: c.name,
+                projectId: c.projectId,
+              }))
+            );
+          }
+          return found;
         case "createCards":
           const projects = await this.dataService.getProjects();
           const project = projects.find((p) => p.id === args.projectId);
@@ -399,6 +444,7 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
 
           // Changed: We now return a signal to the client to trigger generation.
           // This allows the frontend to show progress bars, toasts, etc.
+          logger.info("[ChatService] Delegating generation to client");
           return {
             success: true,
             clientAction: "generateImage",
@@ -406,9 +452,6 @@ To generate "spicy" or "risque" art while navigating safety filters, we use the 
             cardId: cId,
             promptOverride: args.promptOverride,
           };
-        /* Old Backend Logic Removed
-          // ... (removed generation code)
-          */
         default:
           return { error: "Unknown tool" };
       }

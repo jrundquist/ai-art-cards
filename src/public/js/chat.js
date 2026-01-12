@@ -1,5 +1,6 @@
 import { state } from "./state.js";
 import { showStatus, confirmAction } from "./ui.js";
+import { generateArt } from "./controllers/cardController.js";
 
 export class ChatManager {
   constructor() {
@@ -151,7 +152,7 @@ export class ChatManager {
     let fullMessage = text;
     if (this.pendingContext && this.pendingContext.length > 0) {
       const contextStr = this.pendingContext
-        .map((c) => `[System Context: ${c}]`)
+        .map((c) => `<system_context>${c}</system_context>`)
         .join("\n");
       fullMessage = `${contextStr}\n\n${text}`;
       this.pendingContext = []; // Clear buffer
@@ -273,7 +274,17 @@ export class ChatManager {
             toolDiv.className = "tool-result";
             // If result has image path, show it?
             let displayResult = JSON.stringify(data.result);
-            if (data.result.path) {
+
+            if (data.result.clientAction === "generateImage") {
+              displayResult = "Starting Image Generation...";
+              // Trigger Frontend Generation
+              generateArt({
+                projectId: data.result.projectId,
+                cardId: data.result.cardId,
+                promptOverride: data.result.promptOverride,
+                count: 1, // Default to 1 for chat
+              });
+            } else if (data.result.path) {
               displayResult = `Image Generated: ${data.result.path}`;
               // Maybe emit an event to refresh cards?
               // If we detect "created" or "updated" or "image generated", reload cards.
@@ -377,12 +388,9 @@ export class ChatManager {
         this.pendingContext = []; // Clear pending on load?
 
         // Re-render list to update active state
-        // Optimize: just toggle class
         Array.from(this.historyList.children).forEach((child) =>
           child.classList.remove("active")
         );
-        // We'd need ID on element to find it easily, but re-render is cheap enough or just rely on next list refresh
-        // Let's refresh list just to be sure title is updated if changed (future proof)
         this.loadConversationList(state.currentProject.id);
 
         this.messagesContainer.innerHTML = "";
@@ -392,33 +400,55 @@ export class ChatManager {
           const role = msg.role;
 
           if (msg.parts && msg.parts.length > 0) {
+            let accumulatedText = "";
+
             msg.parts.forEach((part) => {
-              if (typeof part === "string") {
-                // Should likely not happen in recent saved format but strictly possible
-                this.appendMessage(role, this.cleanContent(role, part));
-              } else if (part.text) {
-                this.appendMessage(role, this.cleanContent(role, part.text));
-              } else if (part.functionCall) {
-                // Render Tool Call
-                const call = part.functionCall;
-                const div = document.createElement("div");
-                div.className = "tool-output";
-                div.innerHTML = `<div class="tool-name">Generated Tool Call: ${call.name}</div>`;
-                // We could show args too if we want
-                this.messagesContainer.appendChild(div);
-              } else if (part.functionResponse) {
-                // Render Tool Response
-                const response = part.functionResponse;
-                const div = document.createElement("div");
-                div.className = "tool-output";
-                const content = JSON.stringify(
-                  response.response.result || response.response
-                );
-                // Truncate if too long?
-                div.innerHTML = `<div class="tool-name">Tool Result: ${response.name}</div><div class="json-output">${content}</div>`;
-                this.messagesContainer.appendChild(div);
+              // Extract text content if present
+              let textContent = null;
+              if (typeof part === "string") textContent = part;
+              else if (part.text) textContent = part.text;
+
+              if (textContent !== null) {
+                accumulatedText += textContent;
+              } else {
+                // If we have accumulated text, render it first
+                if (accumulatedText) {
+                  this.appendMessage(
+                    role,
+                    this.cleanContent(role, accumulatedText)
+                  );
+                  accumulatedText = "";
+                }
+
+                // Render non-text part (tool call/response)
+                if (part.functionCall) {
+                  // Render Tool Call
+                  const call = part.functionCall;
+                  const div = document.createElement("div");
+                  div.className = "tool-output";
+                  div.innerHTML = `<div class="tool-name">Generated Tool Call: ${call.name}</div>`;
+                  this.messagesContainer.appendChild(div);
+                } else if (part.functionResponse) {
+                  // Render Tool Response
+                  const response = part.functionResponse;
+                  const div = document.createElement("div");
+                  div.className = "tool-output";
+                  const content = JSON.stringify(
+                    response.response.result || response.response
+                  );
+                  div.innerHTML = `<div class="tool-name">Tool Result: ${response.name}</div><div class="json-output">${content}</div>`;
+                  this.messagesContainer.appendChild(div);
+                }
               }
             });
+
+            // Render remaining text
+            if (accumulatedText) {
+              this.appendMessage(
+                role,
+                this.cleanContent(role, accumulatedText)
+              );
+            }
           }
         });
 
@@ -433,7 +463,10 @@ export class ChatManager {
 
   cleanContent(role, content) {
     if (role === "user") {
-      return content.replace(/\[System Context: .*?\]\n\n?/g, "").trim();
+      return content
+        .replace(/^\s*\[System Context: [\s\S]*?\]\s*/g, "")
+        .replace(/<system_context>[\s\S]*?<\/system_context>\s*/g, "")
+        .trim();
     }
     return content;
   }
