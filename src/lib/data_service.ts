@@ -421,4 +421,77 @@ export class DataService {
       // ignore
     }
   }
+
+  // --- Images ---
+  async listCardImages(
+    projectId: string,
+    cardId: string,
+    includeArchived = false
+  ): Promise<{
+    images: {
+      path: string;
+      filename: string;
+      time: Date;
+      isFavorite: boolean;
+      isArchived: boolean;
+    }[];
+    count: number;
+  }> {
+    try {
+      const cards = await this.getCards(projectId);
+      const card = cards.find((c) => c.id === cardId);
+      if (!card) return { images: [], count: 0 };
+
+      const subfolder = card.outputSubfolder || "default";
+      const assetsDir = path.join(
+        this.projectsDir,
+        projectId,
+        "assets",
+        subfolder
+      );
+
+      try {
+        await fs.access(assetsDir);
+      } catch {
+        return { images: [], count: 0 };
+      }
+
+      const files = await fs.readdir(assetsDir);
+      const images = [];
+
+      for (const file of files) {
+        if (!/\.(png|jpg|jpeg|webp)$/i.test(file)) continue;
+
+        const isArchived = card.archivedImages?.includes(file) || false;
+        if (!includeArchived && isArchived) continue;
+
+        const isFavorite = card.favoriteImages?.includes(file) || false;
+        const stats = await fs.stat(path.join(assetsDir, file));
+
+        images.push({
+          // Relative path for frontend/client serving "data/projects/..."
+          path: path.join(
+            "data",
+            "projects",
+            projectId,
+            "assets",
+            subfolder,
+            file
+          ),
+          filename: file,
+          time: stats.birthtime,
+          isFavorite,
+          isArchived,
+        });
+      }
+
+      // Sort by newest first
+      images.sort((a, b) => b.time.getTime() - a.time.getTime());
+
+      return { images, count: images.length };
+    } catch (e) {
+      logger.error(`[DataService] Error listing images for card ${cardId}:`, e);
+      return { images: [], count: 0 };
+    }
+  }
 }

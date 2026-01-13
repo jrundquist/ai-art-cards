@@ -657,6 +657,15 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               notifyOnCompletion: args.notifyOnCompletion || false,
               referenceImageIds: args.referenceImageIds,
               referenceImageFiles: args.referenceImageFiles,
+              message: `Image generation started for: ${
+                args.promptOverride || "default prompt"
+              }. ${
+                args.referenceImageFiles
+                  ? "Using " +
+                    args.referenceImageFiles.length +
+                    " reference images."
+                  : ""
+              } This may take a bit of time.`,
             };
           }
           break;
@@ -708,6 +717,26 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
             projectId: args.projectId,
             cardId: args.cardId,
             cardName: selectedCard?.name || "card",
+          };
+          break;
+        }
+        case "listCardImages": {
+          const { projectId, cardId, includeArchived } = args;
+          const { images, count } = await this.dataService.listCardImages(
+            projectId,
+            cardId,
+            includeArchived
+          );
+
+          result = {
+            count,
+            // Map to simpler format for LLM consumption
+            images: images.map((img) => ({
+              filename: img.filename,
+              time: img.time.toISOString(),
+              isFavorite: img.isFavorite,
+              isArchived: img.isArchived,
+            })),
           };
           break;
         }

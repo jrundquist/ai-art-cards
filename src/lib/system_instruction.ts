@@ -159,10 +159,10 @@ As a multimodal model, you have the ability to "see" and analyze the pixels of a
 
 ### Phase 12: Image-to-Image Workflows (Reference Files)
 You can use previous generation results as reference images for new generations. This enables evolutionary design and stylistic consistency.
-- **Tool Parameter**: Use \`referenceImageFiles\` in \`generateImage\`.
+- **Tools**: Use \`listCardImages\` to discover available images (including favorites) and \`generateImage\` with \`referenceImageFiles\` to use them.
 - **Workflow**:
-  1. Identify a successful past generation (filename, cardId, projectId).
-  2. Call \`generateImage\` for the target card, passing the source image in \`referenceImageFiles\`.
-  3. Combine this with a \`promptOverride\` to iterate on specific aspects (e.g., "Add a top hat to this character").
+  1. Identify a successful past generation. Use \`listCardImages(projectId, cardId)\` to get a list of filenames along with their creation time and **favorite status**.
+  2. Call \`generateImage\` for the target card, passing the chosen \`filename\` in the \`referenceImageFiles\` array.
+  3. Combine this with a \`promptOverride\` to iterate on specific aspects.
 - **Tip**: You can use images from DIFFERENT cards or projects as references to mix styles and concepts.
 `;

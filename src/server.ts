@@ -633,35 +633,17 @@ export function createApp(dataRoot?: string) {
       const card = cards.find((c) => c.id === cardId);
       if (!card) return res.status(404).json({ error: "Card not found" });
 
-      const subfolder = card.outputSubfolder || "default";
-      const securePath = resolveProjectAssetsPath(projectId, [subfolder]);
-
-      if (!securePath) return res.status(403).json({ error: "Access denied" });
-
-      // Check if dir exists
-      try {
-        await fs.access(securePath);
-      } catch {
-        return res.json([]); // No directory, so no images. return empty.
-      }
-
-      const files = await fs.readdir(securePath);
       const includeArchived = req.query.includeArchived === "true";
-      const images = files
-        .filter((f: string) => /\.(png|jpg|jpeg|webp)$/i.test(f))
-        .filter(
-          (f) => includeArchived || !(card.archivedImages || []).includes(f)
-        )
-        .sort((a: string, b: string) =>
-          b.localeCompare(a, undefined, { numeric: true })
-        )
-        .map((f: string) => {
-          // We serve resolvedDataRoot at /data
-          const rel = path.relative(resolvedDataRoot, path.join(securePath, f));
-          return path.join("data", rel);
-        });
+      const { images } = await dataService.listCardImages(
+        projectId,
+        cardId,
+        includeArchived
+      );
 
-      res.json(images);
+      // Frontend expects array of string paths
+      const paths = images.map((img) => img.path);
+
+      res.json(paths);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

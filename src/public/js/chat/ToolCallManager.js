@@ -61,6 +61,11 @@ export class ToolCallManager {
         label: "Viewing Generated Image",
         color: "#ec4899",
       },
+      listCardImages: {
+        icon: "photo_library",
+        label: "Listing Images",
+        color: "#8b5cf6",
+      },
     };
     return (
       metadata[toolName] || { icon: "build", label: toolName, color: "#6b7280" }
@@ -104,6 +109,8 @@ export class ToolCallManager {
         case "getGeneratedImage":
           const fname = result?.filename || args.filename || "image";
           return `Viewing image: ${fname}`;
+        case "listCardImages":
+          return `Found ${result?.count || 0} image(s)`;
         default:
           return "Completed";
       }
