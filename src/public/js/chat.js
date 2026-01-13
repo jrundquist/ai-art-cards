@@ -45,6 +45,7 @@ export class ChatManager {
     this.isGenerating = false;
     this.pendingContext = [];
     this.selectedImages = []; // Array of { file, base64, mimeType, previewUrl }
+    this.trackedJobs = new Map(); // jobId -> { projectId, cardId }
 
     this.init();
   }
@@ -108,6 +109,11 @@ export class ChatManager {
       }
       return isOpen;
     };
+
+    // Listen for generation completions
+    document.addEventListener("generation-completed", (e) =>
+      this.handleGenerationCompleted(e.detail)
+    );
   }
 
   toggleSidebar() {
@@ -323,6 +329,8 @@ export class ChatManager {
     // Prepare for streaming response
     const aiContentDiv =
       this.messageRenderer.createStreamingMessageDiv("model");
+    let currentAiDiv = aiContentDiv;
+    let hasHiddenTag = false;
 
     try {
       let accumulatedMarkdown = "";
@@ -335,9 +343,24 @@ export class ChatManager {
         imagesToSend,
         {
           onText: (content) => {
+            const tag = "[System: OK]";
             accumulatedMarkdown += content;
+            const trimmed = accumulatedMarkdown.trim();
+
+            if (trimmed === tag) {
+              currentAiDiv.parentNode.classList.add("hidden");
+              hasHiddenTag = true;
+            } else if (hasHiddenTag && !content.includes("[System:")) {
+              // We hid a tag and now got new non-tag text
+              // Create a fresh div for the follow-up
+              currentAiDiv =
+                this.messageRenderer.createStreamingMessageDiv("model");
+              hasHiddenTag = false;
+              accumulatedMarkdown = content;
+            }
+
             this.messageRenderer.updateStreamingContent(
-              aiContentDiv,
+              currentAiDiv,
               accumulatedMarkdown
             );
           },
@@ -377,15 +400,22 @@ export class ChatManager {
             // Refresh conversation list to show updated title
             this.loadConversationList(state.currentProject.id);
           },
-          onSpecialAction: (action) => {
+          onSpecialAction: async (action) => {
             if (action.clientAction === "generateImage") {
-              generateArt({
+              const jobId = await generateArt({
                 projectId: action.projectId,
                 cardId: action.cardId,
                 promptOverride: action.promptOverride,
                 count: action.count || 1,
                 referenceImageIds: action.referenceImageIds,
               });
+
+              if (jobId && action.notifyOnCompletion) {
+                this.trackedJobs.set(jobId, {
+                  projectId: action.projectId,
+                  cardId: action.cardId,
+                });
+              }
             } else if (action.clientAction === "showUserCard") {
               this.handleShowUserCard(action);
             } else if (action.path || action.created || action.updated) {
@@ -437,6 +467,13 @@ export class ChatManager {
     // Render history
     data.history.forEach((msg) => {
       const role = msg.role;
+
+      // Skip rendering system-only turns
+      const shouldHide = msg.parts.some((part) => {
+        const text = part.text || (typeof part === "string" ? part : "");
+        return text.includes("[System:");
+      });
+      if (shouldHide) return;
 
       if (msg.parts && msg.parts.length > 0) {
         let accumulatedText = "";
@@ -563,6 +600,182 @@ export class ChatManager {
     } catch (e) {
       console.error("[ChatManager] Error showing card:", e);
       showStatus("Error switching card", "error");
+    }
+  }
+
+  async handleGenerationCompleted(detail) {
+    const { jobId, results } = detail;
+    const tracked = this.trackedJobs.get(jobId);
+    if (!tracked) return;
+
+    this.trackedJobs.delete(jobId);
+    console.log(
+      `[ChatManager] Tracked job ${jobId} completed. Sending feedback.`
+    );
+
+    try {
+      // Prepare multi-modal feedback turn
+      const parts = [
+        {
+          text: `[System: Generation Job ${jobId} completed successfully. ${
+            results?.length || 0
+          } images generated. Filenames: ${results
+            ?.map((r) => r.split("/").pop())
+            .join(", ")}]`,
+        },
+      ];
+
+      // Fetch and attach images as inlineData
+      if (results && results.length > 0) {
+        for (const relPath of results) {
+          try {
+            const base64Data = await this.urlToBase64(relPath);
+            const ext = relPath.split(".").pop().toLowerCase();
+            const mimeType =
+              ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+
+            parts.push({
+              inlineData: {
+                mimeType,
+                data: base64Data,
+              },
+            });
+          } catch (err) {
+            console.warn(
+              `[ChatManager] Failed to fetch image for LLM feedback: ${relPath}`,
+              err
+            );
+          }
+        }
+      }
+
+      // Send the feedback turn
+      await this.sendSystemTurn(parts);
+    } catch (e) {
+      console.error("[ChatManager] Error sending generation feedback:", e);
+    }
+  }
+
+  async urlToBase64(url) {
+    // Ensure URL starts with / if it's relative
+    const fetchUrl = url.startsWith("/") ? url : `/${url}`;
+    const response = await fetch(fetchUrl);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(",")[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async sendSystemTurn(parts) {
+    if (this.isGenerating) {
+      // If already generating, we might want to queue or wait?
+      // For now, let's just proceed as it's a priority "turn"
+    }
+
+    this.isGenerating = true;
+    this.sendBtn.disabled = true;
+
+    // Use current conversation ID
+    const conversationId = this.conversationService.getCurrentConversationId();
+    if (!conversationId) return;
+
+    // We don't append a "User" message to the UI for system turns,
+    // but the backend will record it in history as a turn.
+    // However, the current backend implementation expects sendMessageStream(projectId, conversationId, message, ...)
+    // where 'message' is a string or Part[].
+
+    const aiContentDiv =
+      this.messageRenderer.createStreamingMessageDiv("model");
+    let currentAiDiv = aiContentDiv;
+    let hasHiddenTag = false;
+
+    try {
+      let accumulatedMarkdown = "";
+
+      await this.streamingService.streamResponse(
+        state.currentProject.id,
+        conversationId,
+        "", // Message as string is empty, we'll use 'images' parameter or modify streamingService
+        state.currentCard?.id || null,
+        [], // We'll pass the parts in the message body
+        {
+          onText: (content) => {
+            const tag = "[System: OK]";
+            accumulatedMarkdown += content;
+            const trimmed = accumulatedMarkdown.trim();
+
+            if (trimmed === tag) {
+              currentAiDiv.parentNode.classList.add("hidden");
+              hasHiddenTag = true;
+            } else if (hasHiddenTag && !content.includes("[System:")) {
+              // We hid a tag and now got new non-tag text
+              // Create a fresh div for the follow-up
+              currentAiDiv =
+                this.messageRenderer.createStreamingMessageDiv("model");
+              hasHiddenTag = false;
+              accumulatedMarkdown = content;
+            }
+
+            this.messageRenderer.updateStreamingContent(
+              currentAiDiv,
+              accumulatedMarkdown
+            );
+          },
+          onToolCall: (calls) => {
+            // ... same tool call logic as sendMessage ...
+            for (const call of calls) {
+              const toolId = this.toolCallManager.generateToolCallId();
+              const toolElement = this.toolCallManager.createToolCallElement(
+                call.name,
+                toolId,
+                call.args
+              );
+              this.messagesContainer.insertBefore(
+                toolElement,
+                currentAiDiv.parentNode
+              );
+              this.messageRenderer.scrollToBottom();
+            }
+          },
+          onToolResult: (toolName, result) => {
+            const toolCallEntry =
+              this.toolCallManager.findPendingToolCall(toolName);
+            if (toolCallEntry) {
+              this.toolCallManager.updateToolResult(
+                toolCallEntry.element,
+                toolName,
+                toolCallEntry.args,
+                result
+              );
+              this.messageRenderer.scrollToBottom();
+            }
+          },
+          onError: (error) => {
+            this.messageRenderer.appendError(currentAiDiv, `Error: ${error}`);
+          },
+          onTitle: () => this.loadConversationList(state.currentProject.id),
+          onSpecialAction: (action) => {
+            // Reuse special action logic (simplified here)
+            if (action.clientAction === "generateImage") {
+              generateArt(action); // No recursion tracking needed for system turn usually
+            } else if (action.path || action.created || action.updated) {
+              this.triggerDataRefresh();
+            }
+          },
+        },
+        parts // PASS THE PARTS HERE
+      );
+    } catch (e) {
+      this.messageRenderer.appendError(currentAiDiv, e.message);
+    } finally {
+      this.isGenerating = false;
+      this.sendBtn.disabled = false;
     }
   }
 }

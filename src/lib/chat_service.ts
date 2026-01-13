@@ -22,6 +22,7 @@ export class ChatService {
   private genAI: GoogleGenerativeAI | null = null;
   private dataService: DataService;
   private dataRoot: string;
+  private getActiveJobs: () => any[] = () => [];
 
   constructor(apiKey: string | undefined, dataService: DataService) {
     if (apiKey) {
@@ -29,6 +30,10 @@ export class ChatService {
     }
     this.dataService = dataService;
     this.dataRoot = path.join(process.cwd(), "data");
+  }
+
+  setGetActiveJobs(getter: () => any[]) {
+    this.getActiveJobs = getter;
   }
 
   // Allow setting the root data directory (called from server)
@@ -202,6 +207,11 @@ export class ChatService {
                   type: "INTEGER",
                   description: "Number of images to generate (default: 1)",
                 },
+                notifyOnCompletion: {
+                  type: "BOOLEAN",
+                  description:
+                    "If true, the system will notify you when the generation is complete and show you the results. Use this if you need to follow up.",
+                },
                 referenceImageIds: {
                   type: "ARRAY",
                   items: { type: "STRING" },
@@ -210,6 +220,24 @@ export class ChatService {
                 },
               },
               required: ["projectId", "cardId"],
+            },
+          },
+          {
+            name: "getGeneratedImage",
+            description:
+              "Retrieve the raw image bytes for a generated image. As a multimodal model, this allows you to actually 'perceive' and analyze its visual content, artistic style, and composition directly.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                projectId: { type: "STRING" },
+                cardId: { type: "STRING" },
+                filename: {
+                  type: "STRING",
+                  description:
+                    "The filename of the image (e.g. image_v001.png)",
+                },
+              },
+              required: ["projectId", "cardId", "filename"],
             },
           },
           {
@@ -243,7 +271,8 @@ export class ChatService {
     message: string,
     activeCardId: string | null,
     images: { mimeType: string; data: string }[] = [],
-    res: any // Express Response
+    res: any, // Express Response
+    parts: any[] = []
   ) {
     // 1. Load History
     logger.info(
@@ -281,6 +310,26 @@ Project Description: ${project.description || "No description."}\n`;
         contextStr += `Active Card: "${card.name}" (Internal ID: ${card.id})
 Card Prompt: ${card.prompt || "Empty"}\n`;
       }
+    }
+
+    // New: Include info on recent/active generation jobs
+    const activeJobs = this.getActiveJobs().filter(
+      (j) => j.projectId === projectId
+    );
+    if (activeJobs.length > 0) {
+      contextStr += `\nRecent/Active Generation Jobs for this project:\n`;
+      activeJobs.forEach((job) => {
+        contextStr += `- Job ${job.id}: Card "${job.cardName}" (ID: ${job.cardId}) - Status: ${job.status}`;
+        if (job.status === "completed" && job.results) {
+          contextStr += ` - Results: ${job.results
+            .map((r: string) => path.basename(r))
+            .join(", ")}`;
+        } else if (job.status === "error") {
+          contextStr += ` - Error: ${job.error}`;
+        }
+        contextStr += `\n`;
+      });
+      contextStr += `\nNote: You can use 'getGeneratedImage' with the filenames above to analyze specific results.\n`;
     }
 
     // 3. Initialize Model with Tools
@@ -331,12 +380,15 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
       let currentMessage: string | Part[] = message;
 
-      if (imageParts.length > 0) {
+      if (parts && parts.length > 0) {
+        currentMessage = parts as Part[];
+      } else if (imageParts.length > 0) {
         currentMessage = [{ text: finalMessageText }, ...imageParts];
       } else {
         currentMessage = finalMessageText;
       }
 
+      let pendingImages: any[] = [];
       let finished = false;
 
       while (!finished) {
@@ -366,15 +418,32 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
         if (toolCalls.length > 0) {
           const toolResponses = [];
+          const followUpParts = [];
+
           for (const call of toolCalls) {
             logger.info(`[ChatService] Tool Call: ${call.name}`);
             const toolResult = await this.executeTool(call.name, call.args);
-            toolResponses.push({
-              functionResponse: {
-                name: call.name,
-                response: { result: toolResult }, // Wrap in object for Protobuf Struct compatibility
-              },
-            });
+
+            // If the tool result contains an image, we must send it as a follow-up turn
+            // because mixing FunctionResponse with inlineData in one turn is prohibited.
+            if (toolResult && toolResult.inlineData) {
+              const { inlineData, ...otherInfo } = toolResult;
+              toolResponses.push({
+                functionResponse: {
+                  name: call.name,
+                  response: { result: otherInfo || "Success" },
+                },
+              });
+              followUpParts.push({ inlineData });
+            } else {
+              toolResponses.push({
+                functionResponse: {
+                  name: call.name,
+                  response: { result: toolResult },
+                },
+              });
+            }
+
             logger.info(
               `[ChatService] Tool result for ${call.name} ready to send.`
             );
@@ -386,10 +455,27 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               })}\n\n`
             );
           }
-          // Feed tool responses back to model in next turn
+
+          // Feed tool responses back to model
           currentMessage = toolResponses;
+
+          // If we have images for follow-up, we don't finish yet.
+          if (followUpParts.length > 0) {
+            pendingImages = followUpParts;
+          }
         } else {
-          finished = true;
+          // No more tool calls. Check if we have pending images from the previous turn.
+          if (pendingImages.length > 0) {
+            // Tag this injected turn so the frontend can hide it from history if desired
+            currentMessage = [
+              { text: "[System: getGeneratedImage Result]" },
+              ...pendingImages,
+            ];
+            pendingImages = [];
+            // Loop once more with the images as a USER turn
+          } else {
+            finished = true;
+          }
         }
       }
 
@@ -554,10 +640,50 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               cardId: cId,
               promptOverride: args.promptOverride,
               count: args.count || 1,
+              notifyOnCompletion: args.notifyOnCompletion || false,
               referenceImageIds: args.referenceImageIds,
             };
           }
           break;
+        case "getGeneratedImage": {
+          const { projectId, cardId, filename } = args;
+          const cards = await this.dataService.getCards(projectId);
+          const card = cards.find((c) => c.id === cardId);
+          if (!card) {
+            result = { error: "Card not found" };
+            break;
+          }
+
+          const cardSubfolder = card.outputSubfolder || "default";
+          const filePath = path.join(
+            this.dataRoot,
+            "projects",
+            projectId,
+            "assets",
+            cardSubfolder,
+            filename
+          );
+
+          try {
+            const buffer = await fs.readFile(filePath);
+            const ext = path.extname(filename).toLowerCase();
+            const mimeType =
+              ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+            result = {
+              success: true,
+              filename,
+              message:
+                "Image retrieved. The raw pixels are being infra-injected. Please acknowledge with: '[System: OK]'",
+              inlineData: {
+                mimeType,
+                data: buffer.toString("base64"),
+              },
+            };
+          } catch (e) {
+            result = { error: "Could not read file: " + filename };
+          }
+          break;
+        }
         case "showUserCard": {
           const cards = await this.dataService.getCards(args.projectId);
           const selectedCard = cards.find((c) => c.id === args.cardId);

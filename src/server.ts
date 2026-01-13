@@ -55,6 +55,7 @@ export function createApp(dataRoot?: string) {
     chatService = new ChatService(API_KEY, dataService);
     // Update to set data root
     chatService.setDataRoot(resolvedDataRoot);
+    chatService.setGetActiveJobs(() => Array.from(activeJobs.values()));
   };
   initChatService();
 
@@ -70,6 +71,7 @@ export function createApp(dataRoot?: string) {
     error?: string;
     startedAt: number;
     completedAt?: number;
+    results?: string[]; // Array of web paths (data/...)
   }
 
   const activeJobs = new Map<string, GenerationJob>();
@@ -383,6 +385,7 @@ export function createApp(dataRoot?: string) {
       current: 0,
       total: num,
       startedAt: Date.now(),
+      results: [],
     };
 
     activeJobs.set(jobId, job);
@@ -433,6 +436,7 @@ export function createApp(dataRoot?: string) {
           const relToRoot = path.relative(resolvedDataRoot, savedPath);
           const webPath = path.join("data", relToRoot);
           results.push(webPath);
+          job.results?.push(webPath);
 
           // Update job progress
           job.current = i + 1;
@@ -799,7 +803,8 @@ export function createApp(dataRoot?: string) {
       return res.status(401).json({ error: "API Key not set" });
     }
 
-    const { projectId, conversationId, message, activeCardId } = req.body;
+    const { projectId, conversationId, message, activeCardId, images, parts } =
+      req.body;
 
     // Set headers for SSE
     res.setHeader("Content-Type", "text/event-stream");
@@ -807,13 +812,15 @@ export function createApp(dataRoot?: string) {
     res.setHeader("Connection", "keep-alive");
 
     try {
-      await chatService?.sendMessageStream(
+      if (!chatService) throw new Error("Chat service not initialized");
+      await chatService.sendMessageStream(
         projectId,
         conversationId,
         message,
         activeCardId || null,
-        req.body.images || [], // Pass images if present
-        res
+        images || [], // Pass images if present
+        res,
+        parts || []
       );
     } catch (e: any) {
       logger.error("[Chat API] Error processing message:", e);

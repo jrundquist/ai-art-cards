@@ -56,6 +56,11 @@ export class ToolCallManager {
         label: "Showing Card",
         color: "#8b5cf6",
       },
+      getGeneratedImage: {
+        icon: "image",
+        label: "Viewing Generated Image",
+        color: "#ec4899",
+      },
     };
     return (
       metadata[toolName] || { icon: "build", label: toolName, color: "#6b7280" }
@@ -96,6 +101,9 @@ export class ToolCallManager {
           return "Started image generation";
         case "showUserCard":
           return `Showing ${result?.cardName ?? ""} card.`.replace("  ", " ");
+        case "getGeneratedImage":
+          const fname = result?.filename || args.filename || "image";
+          return `Viewing image: ${fname}`;
         default:
           return "Completed";
       }
@@ -159,11 +167,30 @@ export class ToolCallManager {
     const metadata = this.getToolMetadata(toolName);
     const summary = this.summarizeToolResult(toolName, args, result);
 
-    toolElement.className = "tool-completed";
     toolElement.innerHTML = `
       <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
       <span class="tool-label">${summary}</span>
     `;
+
+    // Render image if present in result (for getGeneratedImage)
+    if (result && result.inlineData) {
+      const img = document.createElement("img");
+      img.src = `data:${result.inlineData.mimeType};base64,${result.inlineData.data}`;
+      img.className = "tool-result-image";
+      toolElement.appendChild(img);
+
+      // Add click handler for modal
+      img.onclick = () => {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("imgModalPreview");
+        if (modal && modalImg) {
+          modalImg.src = img.src;
+          document.getElementById("imgModalTitle").textContent = "Image Detail";
+          document.getElementById("imgModalPrompt").textContent = "";
+          modal.classList.remove("hidden");
+        }
+      };
+    }
   }
 
   /**
@@ -185,6 +212,13 @@ export class ToolCallManager {
       <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
       <span class="tool-label">${summary}</span>
     `;
+
+    if (result && result.inlineData) {
+      const img = document.createElement("img");
+      img.src = `data:${result.inlineData.mimeType};base64,${result.inlineData.data}`;
+      img.className = "tool-result-image";
+      div.appendChild(img);
+    }
 
     return div;
   }

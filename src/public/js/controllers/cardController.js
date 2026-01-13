@@ -254,12 +254,14 @@ export async function generateArt(overrides = null) {
 
     if (resJson.error) {
       showStatus(`Error: ${resJson.error}`, "error");
-      return;
+      return null;
     }
 
     // Server will handle notifications and status bar via SSE
     console.log(`[Generate] Started job ${resJson.jobId} for ${count} images`);
+    return resJson.jobId;
   } catch (e) {
     showStatus(`Error: ${e.message}`, "error");
+    return null;
   }
 }

@@ -137,7 +137,12 @@ class StatusService {
       // Dispatch event for gallery refresh
       document.dispatchEvent(
         new CustomEvent("generation-completed", {
-          detail: { jobId: id, projectId: job.projectId, cardId: job.cardId },
+          detail: {
+            jobId: id,
+            projectId: job.projectId,
+            cardId: job.cardId,
+            results: job.results,
+          },
         })
       );
 

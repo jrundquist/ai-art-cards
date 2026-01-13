@@ -566,3 +566,19 @@
   gap: 8px;
   margin-bottom: 8px;
 }
+
+.tool-result-image {
+  display: block;
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 4px;
+  margin-top: 10px;
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.tool-result-image:hover {
+  transform: scale(1.02);
+  border-color: var(--primary);
+}

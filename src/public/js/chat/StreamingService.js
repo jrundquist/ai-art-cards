@@ -15,6 +15,9 @@ export class StreamingService {
    * @param {Function} callbacks.onError - (error: string) => void
    * @param {Function} callbacks.onTitle - (title: string) => void
    * @param {Function} callbacks.onSpecialAction - (action: object) => void
+   * @param {Array} images
+   * @param {object} callbacks - Event handlers
+   * @param {Array} parts - Optional multi-modal parts
    * @returns {Promise<void>}
    */
   async streamResponse(
@@ -23,7 +26,8 @@ export class StreamingService {
     message,
     activeCardId,
     images = [],
-    callbacks
+    callbacks,
+    parts = []
   ) {
     const response = await fetch("/api/chat/message", {
       method: "POST",
@@ -36,6 +40,7 @@ export class StreamingService {
         message,
         activeCardId,
         images,
+        parts,
       }),
     });
 
