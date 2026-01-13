@@ -402,13 +402,8 @@ export class ChatManager {
           },
           onSpecialAction: async (action) => {
             if (action.clientAction === "generateImage") {
-              const jobId = await generateArt({
-                projectId: action.projectId,
-                cardId: action.cardId,
-                promptOverride: action.promptOverride,
-                count: action.count || 1,
-                referenceImageIds: action.referenceImageIds,
-              });
+              const actionClone = JSON.parse(JSON.stringify(action));
+              const jobId = await generateArt(actionClone);
 
               if (jobId && action.notifyOnCompletion) {
                 this.trackedJobs.set(jobId, {
@@ -763,7 +758,9 @@ export class ChatManager {
           onSpecialAction: (action) => {
             // Reuse special action logic (simplified here)
             if (action.clientAction === "generateImage") {
-              generateArt(action); // No recursion tracking needed for system turn usually
+              // Deep clone to prevent reference issues or accidental mutation
+              const actionClone = JSON.parse(JSON.stringify(action));
+              generateArt(actionClone);
             } else if (action.path || action.created || action.updated) {
               this.triggerDataRefresh();
             }

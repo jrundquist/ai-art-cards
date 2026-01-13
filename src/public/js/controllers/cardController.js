@@ -229,25 +229,18 @@ export async function generateArt(overrides = null) {
   const count = overrides?.count || parseInt(dom.inputs.count.value) || 1;
 
   try {
+    // Simplified override merging: preserve base payload but allow overrides to win
     const payload = {
       cardId: targetCardId,
       projectId: targetProjectId,
       count: count,
+      ...overrides, // Direct merge
     };
 
-    // Only include override fields if they are explicitly provided
-    if (overrides?.promptOverride !== undefined) {
-      payload.promptOverride = overrides.promptOverride;
-    }
-    if (overrides?.arOverride !== undefined) {
-      payload.arOverride = overrides.arOverride;
-    }
-    if (overrides?.resOverride !== undefined) {
-      payload.resOverride = overrides.resOverride;
-    }
-    if (overrides?.referenceImageIds !== undefined) {
-      payload.referenceImageIds = overrides.referenceImageIds;
-    }
+    // Explicitly clean up any undefined values if merge caused them (though fetch handles this mostly, cleaner to be sure)
+    Object.keys(payload).forEach(
+      (key) => payload[key] === undefined && delete payload[key]
+    );
 
     const data = await api.generateImages(payload);
     const resJson = await data.json();

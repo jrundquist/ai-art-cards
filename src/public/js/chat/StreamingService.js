@@ -76,7 +76,9 @@ export class StreamingService {
       if (payload === "[DONE]") break;
 
       try {
-        const data = JSON.parse(payload);
+        const rawData = JSON.parse(payload);
+        // Deep clone to prevent any listener from mutating shared state
+        const data = JSON.parse(JSON.stringify(rawData));
         await this.handleEvent(data, callbacks);
       } catch (e) {
         console.error("Failed to parse SSE line", line, e);

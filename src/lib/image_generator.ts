@@ -19,7 +19,7 @@ export class ImageGenerator {
     options: {
       aspectRatio?: string;
       resolution?: string;
-      referenceImages?: Buffer[];
+      referenceImages?: { buffer: Buffer; mimeType: string }[];
     } = {}
   ): Promise<{ buffer: Buffer; mimeType: string }> {
     const modelName = "gemini-3-pro-image-preview";
@@ -44,10 +44,10 @@ export class ImageGenerator {
         role: "user",
         parts: [
           { text: `Aspect Ratio: ${aspectRatio}\n\n${prompt}` },
-          ...(options.referenceImages || []).map((buf) => ({
+          ...(options.referenceImages || []).map((img) => ({
             inlineData: {
-              mimeType: "image/png", // Assuming PNG for simplicity, or we could pass type
-              data: buf.toString("base64"),
+              mimeType: img.mimeType,
+              data: img.buffer.toString("base64"),
             },
           })),
         ],
@@ -63,7 +63,11 @@ export class ImageGenerator {
         `[ImageGenerator] Including ${options.referenceImages.length} reference images.`
       );
       options.referenceImages.forEach((img, i) => {
-        logger.info(`[ImageGenerator] Ref Image ${i + 1}: ${img.length} bytes`);
+        logger.info(
+          `[ImageGenerator] Ref Image ${i + 1}: ${
+            img.buffer.length
+          } bytes (type: ${img.mimeType})`
+        );
       });
     }
 

@@ -291,6 +291,9 @@ export function createApp(dataRoot?: string) {
 
   // Generate
   app.post("/api/generate", async (req, res) => {
+    logger.info(
+      `[Server] POST /api/generate body: ${JSON.stringify(req.body)}`
+    );
     const {
       cardId,
       projectId,
@@ -331,15 +334,79 @@ export function createApp(dataRoot?: string) {
     logger.info(`[Server] Full Prompt: ${fullPrompt}`);
     // Resolve reference images if any
     const referenceImageIds: string[] = req.body.referenceImageIds || [];
-    const referenceImages: Buffer[] = [];
+    const referenceImageFiles: any[] = req.body.referenceImageFiles || [];
+    const referenceImages: { buffer: Buffer; mimeType: string }[] = [];
+
+    // 1. Resolve temporary IDs
     if (referenceImageIds.length > 0) {
       logger.info(
-        `[Server] Using reference images: ${referenceImageIds.join(", ")}`
+        `[Server] Using temporary reference images: ${referenceImageIds.join(
+          ", "
+        )}`
       );
       for (const id of referenceImageIds) {
-        // Pass projectId to check project cache
         const buf = await dataService.getTempImage(id, projectId);
-        if (buf) referenceImages.push(buf);
+        if (buf) {
+          // Temp images are usually PNGs or JPEGs, we'll assume PNG for now or try to detect
+          // For simplicity, we'll use a generic image/png if we don't know
+          referenceImages.push({ buffer: buf, mimeType: "image/png" });
+        }
+      }
+    }
+
+    // 2. Resolve historical files
+    if (referenceImageFiles.length > 0) {
+      logger.info(
+        `[Server] Resolving ${referenceImageFiles.length} historical reference files...`
+      );
+      for (const refFile of referenceImageFiles) {
+        try {
+          const {
+            projectId: refProjectId,
+            cardId: refCardId,
+            filename: refFilename,
+          } = refFile;
+
+          logger.info(
+            `[Server] Attempting to resolve: project=${refProjectId}, card=${refCardId}, file=${refFilename}`
+          );
+
+          const refCards = await dataService.getCards(refProjectId);
+          const refCard = refCards.find((c) => c.id === refCardId);
+
+          if (refCard) {
+            const refSubfolder = refCard.outputSubfolder || "default";
+            const filePath = path.join(
+              resolvedDataRoot,
+              "projects",
+              refProjectId,
+              "assets",
+              refSubfolder,
+              refFilename
+            );
+
+            logger.info(`[Server] Final resolved path: ${filePath}`);
+            const buf = await fs.readFile(filePath);
+
+            // Determine mime type from extension
+            const ext = path.extname(refFilename).toLowerCase();
+            const mimeType =
+              ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+
+            referenceImages.push({ buffer: buf, mimeType });
+            logger.info(
+              `[Server] Found and loaded reference image: ${refFilename} (${buf.length} bytes, type=${mimeType})`
+            );
+          } else {
+            logger.warn(
+              `[Server] Failed to find card for reference: ${refCardId} in project ${refProjectId}`
+            );
+          }
+        } catch (e: any) {
+          logger.warn(
+            `[Server] Failed to resolve reference file ${refFile.filename}: ${e.message}`
+          );
+        }
       }
     }
     logger.info("------------------------------------------------");

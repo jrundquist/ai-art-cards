@@ -216,7 +216,21 @@ export class ChatService {
                   type: "ARRAY",
                   items: { type: "STRING" },
                   description:
-                    "Optional list of reference image IDs (from system context) to use for generation",
+                    "Optional list of reference image IDs (from temporary uploads) to use for generation",
+                },
+                referenceImageFiles: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      projectId: { type: "STRING" },
+                      cardId: { type: "STRING" },
+                      filename: { type: "STRING" },
+                    },
+                    required: ["projectId", "cardId", "filename"],
+                  },
+                  description:
+                    "Optional list of previously generated image files to use as references. You can find these in the context from recent jobs or by listing card images.",
                 },
               },
               required: ["projectId", "cardId"],
@@ -642,6 +656,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
               count: args.count || 1,
               notifyOnCompletion: args.notifyOnCompletion || false,
               referenceImageIds: args.referenceImageIds,
+              referenceImageFiles: args.referenceImageFiles,
             };
           }
           break;

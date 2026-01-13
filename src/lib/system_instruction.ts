@@ -154,4 +154,15 @@ As a multimodal model, you have the ability to "see" and analyze the pixels of a
   4. The system will then immediately provide the image pixels as \`inlineData\` in the very next turn.
   5. You can then analyze the visual content of the image directly.
 - **NEVER** say you cannot "see" images. You can see them as long as you use the \`getGeneratedImage\` tool and follow the two-step acknowledgement flow.
+
+---
+
+### Phase 12: Image-to-Image Workflows (Reference Files)
+You can use previous generation results as reference images for new generations. This enables evolutionary design and stylistic consistency.
+- **Tool Parameter**: Use \`referenceImageFiles\` in \`generateImage\`.
+- **Workflow**:
+  1. Identify a successful past generation (filename, cardId, projectId).
+  2. Call \`generateImage\` for the target card, passing the source image in \`referenceImageFiles\`.
+  3. Combine this with a \`promptOverride\` to iterate on specific aspects (e.g., "Add a top hat to this character").
+- **Tip**: You can use images from DIFFERENT cards or projects as references to mix styles and concepts.
 `;
