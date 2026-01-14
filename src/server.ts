@@ -649,6 +649,28 @@ export function createApp(dataRoot?: string) {
     }
   });
 
+  // Helper: Resolve Reference Image URL
+  app.get("/api/ref-image/:projectId/:cardId/:filename", async (req, res) => {
+    const { projectId, cardId, filename } = req.params;
+    try {
+      const cards = await cardService.getCards(projectId);
+      const card = cards.find((c) => c.id === cardId);
+
+      if (!card) {
+        return res.status(404).json({ error: "Card not found" });
+      }
+
+      const subfolder = card.outputSubfolder || "default";
+      // Construct the static path served by /data
+      // Path format: /data/projects/{projectId}/assets/{subfolder}/{filename}
+      const staticUrl = `/data/projects/${projectId}/assets/${subfolder}/${filename}`;
+
+      res.redirect(staticUrl);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Image Metadata
   app.get("/api/image-metadata", async (req, res) => {
     const { path: relativePath } = req.query;

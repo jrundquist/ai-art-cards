@@ -14,7 +14,9 @@ export class MessageRenderer {
   createMessageDiv(role) {
     const div = document.createElement("div");
     div.className = `message ${role}`;
-    div.innerHTML = `<div class="message-content"></div>`;
+    const innerDiv = document.createElement("div");
+    innerDiv.className = "message-content";
+    div.appendChild(innerDiv);
     return div;
   }
 
@@ -36,10 +38,51 @@ export class MessageRenderer {
    * @param {string} markdown - Message markdown content
    */
   appendMessageWithMarkdown(role, markdown) {
+    // Check for Reference Images system tag
+    // Pattern: [System: Referenced Images (pass these to generateImage tool as 'referenceImageFiles'): [...json...]]
+    const refTagStart =
+      "[System: Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):";
+    const closingTag = "]]"; // It ends with array ] closing the json, and ] closing the system tag
+
+    let cleanMarkdown = markdown;
+    let references = [];
+
+    if (markdown.includes(refTagStart)) {
+      try {
+        const startIndex = markdown.indexOf(refTagStart);
+        const jsonStartIndex = startIndex + refTagStart.length;
+        // Find the end. Because JSON can have nested brackets, scanning for ]] might be naive but usually sufficient for this structure.
+        // A safer way: The system tag is usually at the very end of the message.
+        const endIndex = markdown.lastIndexOf("]]");
+
+        if (endIndex > jsonStartIndex) {
+          const jsonStr = markdown.substring(jsonStartIndex, endIndex + 1); // include the closing ] of the json array
+          references = JSON.parse(jsonStr);
+
+          // Remove the tag from display text
+          // Also remove any preceding newlines for cleanliness
+          cleanMarkdown = markdown.substring(0, startIndex).trim();
+        }
+      } catch (e) {
+        console.error("Failed to parse reference images from history:", e);
+      }
+    }
+
     const msgDiv = this.createMessageDiv(role);
     msgDiv.querySelector(".message-content").innerHTML =
-      this.renderMarkdown(markdown);
+      this.renderMarkdown(cleanMarkdown);
+
     this.messagesContainer.appendChild(msgDiv);
+
+    // If we extracted references, append them to the SAME message div or container
+    if (references.length > 0) {
+      // We reuse the existing logic but we need to inject it into the *current* message bubble or right after text
+      // appendReferences creates a NEW message div usually. Let's see if we can reuse the logic
+      // or just call appendReferences separately.
+      // Calling appendReferences separately creates a separate bubble, which is actually fine/good.
+      this.appendReferences(role, references);
+    }
+
     this.scrollToBottom();
   }
 
@@ -113,32 +156,33 @@ export class MessageRenderer {
       const refItem = document.createElement("div");
       refItem.className = "reference-preview-item";
 
-      if (ref.url) {
-        refItem.innerHTML = `
+      // Determine URL: use existing or fallback to API resolver
+      const displayUrl =
+        ref.url ||
+        `/api/ref-image/${ref.projectId}/${ref.cardId}/${ref.filename}`;
+
+      refItem.innerHTML = `
            <div class="reference-badge"><span class="material-icons">link</span></div>
-           <img src="/${ref.url}" alt="${ref.filename}" class="chat-message-image"/>
+           <img src="${
+             displayUrl.startsWith("/") ? displayUrl : "/" + displayUrl
+           }" alt="${ref.filename}" class="chat-message-image"/>
         `;
-        // Click to view?
-        refItem.onclick = () => {
-          const modal = document.getElementById("imageModal");
-          const modalImg = document.getElementById("imgModalPreview");
-          if (modal && modalImg) {
-            modalImg.src = "/" + ref.url;
-            document.getElementById("imgModalTitle").textContent =
-              "Reference Preview";
-            document.getElementById("imgModalPrompt").textContent =
-              ref.filename;
-            modal.classList.remove("hidden");
-          }
-        };
-      } else {
-        refItem.innerHTML = `
-           <div class="reference-placeholder">
-              <span class="material-icons">link</span>
-              <span class="ref-name">${ref.filename}</span>
-           </div>
-        `;
-      }
+
+      // Click to view
+      refItem.onclick = () => {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("imgModalPreview");
+        if (modal && modalImg) {
+          modalImg.src = displayUrl.startsWith("/")
+            ? displayUrl
+            : "/" + displayUrl;
+          document.getElementById("imgModalTitle").textContent =
+            "Reference Preview";
+          document.getElementById("imgModalPrompt").textContent = ref.filename;
+          modal.classList.remove("hidden");
+        }
+      };
+
       grid.appendChild(refItem);
     });
 

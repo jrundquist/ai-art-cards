@@ -542,10 +542,21 @@ export class ChatManager {
     data.history.forEach((msg) => {
       const role = msg.role;
 
-      // Skip rendering system-only turns
+      // Skip rendering system-only turns, BUT start showing messages with Reference Metadata
       const shouldHide = msg.parts.some((part) => {
         const text = part.text || (typeof part === "string" ? part : "");
-        return text.includes("[System:");
+        // If it sends purely [System: OK] (e.g. for image vision), hide it.
+        if (text.trim() === "[System: OK]") return true;
+
+        // If it starts with [System: and is NOT a reference context appended to a user message, hide it.
+        // We assume valid user messages might contain [System: Referenced Images...] at the end.
+        if (
+          text.trim().startsWith("[System:") &&
+          !text.includes("Referenced Images")
+        ) {
+          return true;
+        }
+        return false;
       });
       if (shouldHide) return;
 
