@@ -106,12 +106,12 @@ class StatusService {
     if (status === "generating") {
       if (!toast) {
         // Create new toast
-        const message = `✨ Generating "${cardName}" ${current}/${total}...`;
-        toast = createToast(message, "ai-generating", 0); // Infinite duration
+        const message = `Generating "${cardName}" ${current}/${total}...`;
+        toast = createToast(message, "ai-generating", 0, "auto_awesome"); // Infinite duration
         this.activeToasts.set(id, toast);
       } else {
         // Update existing toast
-        const message = `✨ Generating "${cardName}" ${current}/${total}...`;
+        const message = `Generating "${cardName}" ${current}/${total}...`;
         toast.update(message, "ai-generating");
       }
     } else if (status === "completed") {

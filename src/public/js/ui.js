@@ -101,10 +101,15 @@ export const dom = {
   toastContainer: document.getElementById("toast-container"),
 };
 
-export function createToast(msg, type = "info", duration = 5000) {
+export function createToast(msg, type = "info", duration = 5000, icon = null) {
   const div = document.createElement("div");
   div.className = `toast ${type}`;
-  div.textContent = msg;
+
+  if (icon) {
+    div.innerHTML = `<span class="material-icons" style="margin-right: 8px; font-size: 1.2em; vertical-align: middle;">${icon}</span><span style="vertical-align: middle;">${msg}</span>`;
+  } else {
+    div.textContent = msg;
+  }
 
   dom.toastContainer.appendChild(div);
 
