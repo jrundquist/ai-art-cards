@@ -51,9 +51,9 @@ export class ToolCallManager {
         label: "Generating Image",
         color: "#ec4899",
       },
-      showUserCard: {
+      navigateUI: {
         icon: "visibility",
-        label: "Showing Card",
+        label: "Navigating UI",
         color: "#8b5cf6",
       },
       getGeneratedImage: {
@@ -104,8 +104,12 @@ export class ToolCallManager {
           return "Updated project settings";
         case "generateImage":
           return "Started image generation";
-        case "showUserCard":
-          return `Showing ${result?.cardName ?? ""} card.`.replace("  ", " ");
+        case "navigateUI":
+          const dest = result?.cardName
+            ? `card '${result.cardName}'`
+            : "project";
+          if (result?.filename) return `Viewing image: ${result.filename}`;
+          return `Navigated to ${dest}`;
         case "getGeneratedImage":
           const fname = result?.filename || args.filename || "image";
           return `Viewing image: ${fname}`;
