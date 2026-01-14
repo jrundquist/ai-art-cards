@@ -869,7 +869,8 @@ export function createApp(dataRoot?: string) {
         activeCardId || null,
         images || [], // Pass images if present
         res,
-        parts || []
+        parts || [],
+        req.body.referenceImageFiles || []
       );
     } catch (e: any) {
       logger.error("[Chat API] Error processing message:", e);

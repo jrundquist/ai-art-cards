@@ -69,7 +69,8 @@ export class ChatService {
     activeCardId: string | null,
     images: { mimeType: string; data: string }[] = [],
     res: any, // Express Response
-    parts: any[] = []
+    parts: any[] = [],
+    referenceImageFiles: any[] = []
   ) {
     // 1. Load History
     logger.info(
@@ -168,11 +169,78 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
       }
 
       // Inject system context about image IDs if present
-      let finalMessageText = message;
+      // Process Reference Images (Historical/Gallery Images)
+      if (referenceImageFiles.length > 0) {
+        logger.info(
+          `[ChatService] Processing ${referenceImageFiles.length} reference images`
+        );
+        for (const ref of referenceImageFiles) {
+          try {
+            const { projectId, cardId, filename } = ref;
+            // We need to find the card to get the subfolder
+            const cards = await this.dataService.getCards(projectId);
+            const card = cards.find((c) => c.id === cardId);
+
+            if (card) {
+              const subfolder = card.outputSubfolder || "default";
+              const filePath = path.join(
+                this.dataRoot,
+                "projects",
+                projectId,
+                "assets",
+                subfolder,
+                filename
+              );
+
+              const buffer = await fs.readFile(filePath);
+              const ext = path.extname(filename).toLowerCase();
+              const mimeType =
+                ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+
+              imageParts.push({
+                inlineData: {
+                  mimeType,
+                  data: buffer.toString("base64"),
+                },
+              });
+              logger.info(
+                `[ChatService] Attached reference image: ${filename}`
+              );
+            } else {
+              logger.warn(
+                `[ChatService] Card not found for reference: ${cardId}`
+              );
+            }
+          } catch (e: any) {
+            logger.error(
+              `[ChatService] Failed to load reference image: ${e.message}`
+            );
+          }
+        }
+      }
+
+      // Inject system context about images (unify both uploaded and referenced)
+      const systemParts: string[] = [];
       if (imageIds.length > 0) {
-        finalMessageText += `\n\n[System: Attached Image IDs: ${imageIds.join(
-          ", "
-        )}]`;
+        systemParts.push(`Attached Image IDs: ${imageIds.join(", ")}`);
+      }
+      if (referenceImageFiles.length > 0) {
+        // Simplify the object for the LLM to reduce token usage and confusion
+        const simpleRefs = referenceImageFiles.map((r) => ({
+          projectId: r.projectId,
+          cardId: r.cardId,
+          filename: r.filename,
+        }));
+        systemParts.push(
+          `Referenced Images (pass these to generateImage tool as 'referenceImageFiles'): ${JSON.stringify(
+            simpleRefs
+          )}`
+        );
+      }
+
+      let finalMessageText = message;
+      if (systemParts.length > 0) {
+        finalMessageText += `\n\n[System: ${systemParts.join("; ")}]`;
       }
 
       let currentMessage: string | Part[] = message;

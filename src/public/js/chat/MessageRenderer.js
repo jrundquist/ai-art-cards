@@ -95,6 +95,59 @@ export class MessageRenderer {
   }
 
   /**
+   * Append reference images to the container
+   * @param {string} role - 'user' or 'model'
+   * @param {Array} references - Array of { filename, url, ... } objects
+   */
+  appendReferences(role, references) {
+    if (!references || references.length === 0) return;
+
+    const msgDiv = this.createMessageDiv(role);
+    const contentCheck = msgDiv.querySelector(".message-content");
+
+    const grid = document.createElement("div");
+    grid.className = "chat-images-grid references-grid";
+
+    references.forEach((ref) => {
+      // Container
+      const refItem = document.createElement("div");
+      refItem.className = "reference-preview-item";
+
+      if (ref.url) {
+        refItem.innerHTML = `
+           <div class="reference-badge"><span class="material-icons">link</span></div>
+           <img src="/${ref.url}" alt="${ref.filename}" class="chat-message-image"/>
+        `;
+        // Click to view?
+        refItem.onclick = () => {
+          const modal = document.getElementById("imageModal");
+          const modalImg = document.getElementById("imgModalPreview");
+          if (modal && modalImg) {
+            modalImg.src = "/" + ref.url;
+            document.getElementById("imgModalTitle").textContent =
+              "Reference Preview";
+            document.getElementById("imgModalPrompt").textContent =
+              ref.filename;
+            modal.classList.remove("hidden");
+          }
+        };
+      } else {
+        refItem.innerHTML = `
+           <div class="reference-placeholder">
+              <span class="material-icons">link</span>
+              <span class="ref-name">${ref.filename}</span>
+           </div>
+        `;
+      }
+      grid.appendChild(refItem);
+    });
+
+    contentCheck.appendChild(grid);
+    this.messagesContainer.appendChild(msgDiv);
+    this.scrollToBottom();
+  }
+
+  /**
    * Display the welcome message with suggestions
    */
   showWelcomeMessage() {

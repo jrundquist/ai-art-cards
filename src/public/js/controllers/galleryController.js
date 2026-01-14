@@ -131,6 +131,24 @@ export function addImageToGallery(
   const img = document.createElement("img");
   img.src = "/" + imgUrl;
   img.loading = "lazy";
+  img.draggable = true;
+
+  // Add drag start handler for reference passing
+  img.ondragstart = (e) => {
+    e.dataTransfer.effectAllowed = "copy";
+    // Construct reference data
+    const filename = imgUrl.split("/").pop();
+    const refData = {
+      projectId: state.currentProject?.id,
+      cardId: state.currentCard?.id,
+      filename: filename,
+      url: imgUrl, // Pass URL for preview
+    };
+    e.dataTransfer.setData(
+      "application/x-art-cards-reference",
+      JSON.stringify(refData)
+    );
+  };
 
   div.onclick = () => openImageDetails(imgUrl);
 

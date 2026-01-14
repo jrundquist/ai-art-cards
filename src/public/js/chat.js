@@ -45,6 +45,7 @@ export class ChatManager {
     this.isGenerating = false;
     this.pendingContext = [];
     this.selectedImages = []; // Array of { file, base64, mimeType, previewUrl }
+    this.selectedImageReferences = []; // Array of { projectId, cardId, filename }
     this.trackedJobs = new Map(); // jobId -> { projectId, cardId }
 
     this.init();
@@ -130,6 +131,30 @@ export class ChatManager {
   async handleDrop(e) {
     e.preventDefault();
     this.inputArea.classList.remove("drag-over");
+
+    // 0. Check for internal art card reference
+    const refData = e.dataTransfer.getData("application/x-art-cards-reference");
+    if (refData) {
+      try {
+        const ref = JSON.parse(refData);
+        if (ref.projectId && ref.cardId && ref.filename) {
+          // Check for duplicates
+          const exists = this.selectedImageReferences.some(
+            (r) =>
+              r.projectId === ref.projectId &&
+              r.cardId === ref.cardId &&
+              r.filename === ref.filename
+          );
+          if (!exists) {
+            this.selectedImageReferences.push(ref);
+            this.updateImagePreviews();
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse dropped reference", e);
+      }
+      return;
+    }
 
     // 1. Files from desktop
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -225,18 +250,53 @@ export class ChatManager {
 
   updateImagePreviews() {
     this.previewsContainer.innerHTML = "";
-    if (this.selectedImages.length === 0) {
+    if (
+      this.selectedImages.length === 0 &&
+      this.selectedImageReferences.length === 0
+    ) {
       this.previewsContainer.classList.add("hidden");
       return;
     }
     this.previewsContainer.classList.remove("hidden");
+
+    // Render References first or mixed? Order doesn't matter much.
+    // Let's render references first
+    this.selectedImageReferences.forEach((ref, index) => {
+      const div = document.createElement("div");
+      div.className = "chat-preview-item reference-item";
+      // We can try to guess the URL: /data/projects/{pid}/assets/{cardSub}/filename
+      // But we don't strictly know the subfolder here easily without looking up the card.
+      // However, we can just show a generic icon or try to fetch it if we really want.
+      // For now, let's show a placeholder icon.
+      // Use the URL passed from gallery drag (or fallback to placeholder if missing)
+      if (ref.url) {
+        div.innerHTML = `
+          <div class="reference-badge"><span class="material-icons">link</span></div>
+          <img src="/${ref.url}" alt="${ref.filename}" class="reference-preview-img" />
+          <button class="chat-preview-remove" data-type="ref" data-index="${index}"></button>
+        `;
+      } else {
+        div.innerHTML = `
+          <div class="reference-placeholder">
+             <span class="material-icons">link</span>
+             <span class="ref-name">${ref.filename}</span>
+          </div>
+          <button class="chat-preview-remove" data-type="ref" data-index="${index}"></button>
+        `;
+      }
+      div.querySelector("button").addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.removeReference(index);
+      });
+      this.previewsContainer.appendChild(div);
+    });
 
     this.selectedImages.forEach((img, index) => {
       const div = document.createElement("div");
       div.className = "chat-preview-item";
       div.innerHTML = `
         <img src="${img.previewUrl}" alt="Preview" />
-        <button class="chat-preview-remove" data-index="${index}"></button>
+        <button class="chat-preview-remove" data-type="img" data-index="${index}"></button>
       `;
       div.querySelector("button").addEventListener("click", (e) => {
         e.stopPropagation(); // Prevent focusing input if we clicked remove
@@ -248,6 +308,11 @@ export class ChatManager {
 
   removeImage(index) {
     this.selectedImages.splice(index, 1);
+    this.updateImagePreviews();
+  }
+
+  removeReference(index) {
+    this.selectedImageReferences.splice(index, 1);
     this.updateImagePreviews();
   }
 
@@ -309,13 +374,25 @@ export class ChatManager {
     this.messageRenderer.appendMessage("user", text);
 
     // Capture images for sending
+    // Capture images for sending
     const imagesToSend = this.selectedImages.map((img) => ({
       mimeType: img.mimeType,
       data: img.data,
     }));
 
-    // Clear images
+    // Capture references
+    const referencesToSend = [...this.selectedImageReferences];
+
+    if (this.selectedImageReferences.length > 0) {
+      this.messageRenderer.appendReferences(
+        "user",
+        this.selectedImageReferences
+      );
+    }
+
+    // Clear images & references
     this.selectedImages = [];
+    this.selectedImageReferences = [];
     this.updateImagePreviews();
 
     // Generate conversation ID if needed
@@ -417,7 +494,9 @@ export class ChatManager {
               this.triggerDataRefresh();
             }
           },
-        }
+        },
+        [], // parts
+        referencesToSend
       );
     } catch (e) {
       this.messageRenderer.appendError(aiContentDiv, e.message);
@@ -766,7 +845,8 @@ export class ChatManager {
             }
           },
         },
-        parts // PASS THE PARTS HERE
+        parts, // PASS THE PARTS HERE
+        referencesToSend // PASS REFERENCES HERE
       );
     } catch (e) {
       this.messageRenderer.appendError(currentAiDiv, e.message);
