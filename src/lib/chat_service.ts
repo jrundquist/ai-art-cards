@@ -13,7 +13,7 @@ export interface ChatMessage {
 
 export interface Conversation {
   id: string;
-  projectId: string;
+  projectId?: string;
   title: string;
   history: ChatMessage[];
   lastUpdated: number;
@@ -42,14 +42,9 @@ export class ChatService {
     this.dataRoot = dir;
   }
 
-  private async ensureDir(projectId: string) {
-    // New Path: data/projects/{projectId}/conversations
-    const dir = path.join(
-      this.dataRoot,
-      "projects",
-      projectId,
-      "conversations"
-    );
+  private async ensureConversationsDir() {
+    // Global Path: data/conversations
+    const dir = path.join(this.dataRoot, "conversations");
     await fs.mkdir(dir, { recursive: true });
     return dir;
   }
@@ -63,7 +58,7 @@ export class ChatService {
   // --- streaming chat ---
 
   async sendMessageStream(
-    projectId: string,
+    projectId: string | undefined,
     conversationId: string,
     message: string,
     activeCardId: string | null,
@@ -74,11 +69,11 @@ export class ChatService {
   ) {
     // 1. Load History
     logger.info(
-      `[ChatService] Sending message stream for conv: ${conversationId} in project: ${projectId}`
+      `[ChatService] Sending message stream for conv: ${conversationId}`
     );
     logger.info(`[ChatService] Received ${images.length} images`);
 
-    const conversation = await this.loadConversation(projectId, conversationId);
+    const conversation = await this.loadConversation(conversationId);
     if (!conversation) {
       logger.warn(`[ChatService] Conversation not found: ${conversationId}`);
       throw new Error("Conversation not found");
@@ -89,7 +84,10 @@ export class ChatService {
     }
 
     // 2. Load Global & Card Context
-    const project = await this.dataService.getProject(projectId);
+    let project = null;
+    if (projectId) {
+      project = await this.dataService.getProject(projectId);
+    }
     let contextStr = `\n\n---
 CURRENT STATE:
 `;
@@ -99,9 +97,16 @@ CURRENT STATE:
         project.id
       })
 Project Description: ${project.description || "No description."}\n`;
+    } else {
+      // Global Context: List available projects
+      const projects = await this.dataService.getProjects();
+      contextStr += `No active project selected. You are in Global Chat Mode.
+Available Projects:
+${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
+\n`;
     }
 
-    if (project && activeCardId) {
+    if (project && activeCardId && projectId) {
       const cards = await this.dataService.getCards(projectId);
       const card = cards.find((c) => c.id === activeCardId);
       if (card) {
@@ -415,28 +420,35 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
 
   // --- Persistence ---
 
-  async listConversations(projectId: string): Promise<Conversation[]> {
+  async listConversations(): Promise<Conversation[]> {
     try {
-      const dir = await this.ensureDir(projectId);
+      const dir = await this.ensureConversationsDir();
       const files = await fs.readdir(dir);
       const convs: Conversation[] = [];
       for (const f of files) {
         if (!f.endsWith(".json")) continue;
-        const data = JSON.parse(await fs.readFile(path.join(dir, f), "utf-8"));
-        convs.push(data);
+        try {
+          const data = JSON.parse(
+            await fs.readFile(path.join(dir, f), "utf-8")
+          );
+          convs.push(data);
+        } catch (err) {
+          logger.error(`[ChatService] Failed to parse conversation ${f}:`, err);
+        }
       }
-      return convs.sort((a, b) => b.lastUpdated - a.lastUpdated);
-    } catch {
+
+      const sorted = convs.sort((a, b) => b.lastUpdated - a.lastUpdated);
+      logger.info(`[ChatService] Listing ${sorted.length} conversations`);
+      return sorted;
+    } catch (e) {
+      logger.error("[ChatService] Error listing conversations:", e);
       return [];
     }
   }
 
-  async loadConversation(
-    projectId: string,
-    conversationId: string
-  ): Promise<Conversation | null> {
+  async loadConversation(conversationId: string): Promise<Conversation | null> {
     try {
-      const dir = await this.ensureDir(projectId);
+      const dir = await this.ensureConversationsDir();
       const filepath = path.join(dir, `${conversationId}.json`);
       // If new conversation
       try {
@@ -445,7 +457,6 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
         // Create new
         return {
           id: conversationId,
-          projectId,
           title: "New Conversation",
           history: [],
           lastUpdated: Date.now(),
@@ -458,7 +469,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
   }
 
   async saveConversation(conversation: Conversation) {
-    const dir = await this.ensureDir(conversation.projectId);
+    const dir = await this.ensureConversationsDir();
     await fs.writeFile(
       path.join(dir, `${conversation.id}.json`),
       JSON.stringify(conversation, null, 2)
@@ -470,62 +481,53 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
       `[ChatService] Attempting to delete conversation: ${conversationId}`
     );
     try {
-      const projects = await this.dataService.getProjects();
-      for (const p of projects) {
-        const dir = await this.ensureDir(p.id);
-        const filepath = path.join(dir, `${conversationId}.json`);
-        try {
-          // Read first to find images
-          const data = await fs.readFile(filepath, "utf-8");
-          const conversation: Conversation = JSON.parse(data);
+      const dir = await this.ensureConversationsDir();
+      const filepath = path.join(dir, `${conversationId}.json`);
 
-          // Find Reference Image IDs
-          // Format: [System: Attached Image IDs: <id1>, <id2>]
-          const imageIdsToClean = new Set<string>();
-          conversation.history.forEach((msg) => {
-            msg.parts.forEach((part) => {
-              if (
-                part.text &&
-                part.text.includes("[System: Attached Image IDs:")
-              ) {
-                const match = part.text.match(
-                  /\[System: Attached Image IDs: ([^\]]+)\]/
-                );
-                if (match && match[1]) {
-                  match[1].split(",").forEach((id) => {
-                    const cleanId = id.trim();
-                    if (cleanId) imageIdsToClean.add(cleanId);
-                  });
-                }
+      try {
+        // Read first to find images
+        const data = await fs.readFile(filepath, "utf-8");
+        const conversation: Conversation = JSON.parse(data);
+
+        // Find Reference Image IDs
+        const imageIdsToClean = new Set<string>();
+        conversation.history.forEach((msg) => {
+          msg.parts.forEach((part) => {
+            if (
+              part.text &&
+              part.text.includes("[System: Attached Image IDs:")
+            ) {
+              const match = part.text.match(
+                /\[System: Attached Image IDs: ([^\]]+)\]/
+              );
+              if (match && match[1]) {
+                match[1].split(",").forEach((id) => {
+                  const cleanId = id.trim();
+                  if (cleanId) imageIdsToClean.add(cleanId);
+                });
               }
-            });
-          });
-
-          if (imageIdsToClean.size > 0) {
-            logger.info(
-              `[ChatService] Found ${imageIdsToClean.size} cached images to cleanup for conversation ${conversationId}`
-            );
-            for (const id of imageIdsToClean) {
-              await this.dataService.deleteTempImage(id, p.id);
             }
-          }
+          });
+        });
 
-          await fs.unlink(filepath);
+        if (imageIdsToClean.size > 0) {
           logger.info(
-            `[ChatService] Deleted conversation ${conversationId} from project ${p.id}`
+            `[ChatService] Found ${imageIdsToClean.size} cached images to cleanup for conversation ${conversationId}`
           );
-          return true;
-        } catch (e: any) {
-          // Only ignore ENOENT (file not found)
-          if (e.code !== "ENOENT") {
-            logger.error(`[ChatService] Error deleting file ${filepath}:`, e);
+          for (const id of imageIdsToClean) {
+            await this.dataService.deleteTempImage(id);
           }
         }
+
+        await fs.unlink(filepath);
+        logger.info(`[ChatService] Deleted conversation ${conversationId}`);
+        return true;
+      } catch (e: any) {
+        if (e.code !== "ENOENT") {
+          logger.error(`[ChatService] Error deleting file ${filepath}:`, e);
+        }
+        return false;
       }
-      logger.warn(
-        `[ChatService] Conversation ${conversationId} not found in any project`
-      );
-      return false;
     } catch (e) {
       logger.error("[ChatService] Error in deleteConversation:", e);
       return false;

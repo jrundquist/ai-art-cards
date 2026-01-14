@@ -340,9 +340,10 @@ export class ChatManager {
     this.toolCallManager.clearActiveToolCalls();
 
     // Refresh list to remove active state
-    if (state.currentProject) {
-      this.loadConversationList(state.currentProject.id);
-    }
+    // Always refresh list
+    this.loadConversationList(
+      state.currentProject ? state.currentProject.id : null
+    );
   }
 
   async sendMessage() {
@@ -351,10 +352,11 @@ export class ChatManager {
     const text = this.input.value.trim();
     if (!text) return;
 
-    if (!state.currentProject) {
-      showStatus("Please select a project first", "error");
-      return;
-    }
+    // Guard removed to allow global chat
+    // if (!state.currentProject) {
+    //   showStatus("Please select a project first", "error");
+    //   return;
+    // }
 
     this.input.value = "";
     this.adjustInputHeight();
@@ -413,7 +415,7 @@ export class ChatManager {
       let accumulatedMarkdown = "";
 
       await this.streamingService.streamResponse(
-        state.currentProject.id,
+        state.currentProject ? state.currentProject.id : null,
         this.conversationService.getCurrentConversationId(),
         text,
         state.currentCard?.id || null,
@@ -475,7 +477,10 @@ export class ChatManager {
           },
           onTitle: (title) => {
             // Refresh conversation list to show updated title
-            this.loadConversationList(state.currentProject.id);
+            // Pass current project ID if active, otherwise null
+            this.loadConversationList(
+              state.currentProject ? state.currentProject.id : null
+            );
           },
           onSpecialAction: async (action) => {
             if (action.clientAction === "generateImage") {
@@ -488,8 +493,8 @@ export class ChatManager {
                   cardId: action.cardId,
                 });
               }
-            } else if (action.clientAction === "showUserCard") {
-              this.handleShowUserCard(action);
+            } else if (action.clientAction === "navigateUI") {
+              this.handleNavigateUI(action);
             } else if (action.path || action.created || action.updated) {
               this.triggerDataRefresh();
             }
@@ -522,7 +527,6 @@ export class ChatManager {
     if (this.isGenerating) return;
 
     const data = await this.conversationService.loadConversation(
-      state.currentProject.id,
       conversationId
     );
 
@@ -534,7 +538,7 @@ export class ChatManager {
     this.toolCallManager.clearActiveToolCalls();
 
     // Re-render list to update active state
-    this.loadConversationList(state.currentProject.id);
+    this.loadConversationList();
 
     this.messagesContainer.innerHTML = "";
 
@@ -661,8 +665,8 @@ export class ChatManager {
     document.dispatchEvent(event);
   }
 
-  async handleShowUserCard(action) {
-    const { projectId, cardId } = action;
+  async handleNavigateUI(action) {
+    const { projectId, cardId, filename } = action;
 
     try {
       // 1. Switch project if needed
@@ -671,20 +675,37 @@ export class ChatManager {
         await onProjectSelect(true);
       }
 
-      // 2. Find the card
-      // state.allCards should be populated after onProjectSelect -> loadCards
-      const card = state.allCards.find((c) => c.id === cardId);
-      if (card) {
-        selectCard(card, true);
-      } else {
-        console.warn(
-          `[ChatManager] Card ${cardId} not found in project ${projectId}`
-        );
-        showStatus("Card not found", "error");
+      // 2. Select Card if provided
+      if (cardId) {
+        // state.allCards should be populated after onProjectSelect -> loadCards
+        // state.allCards should be populated after onProjectSelect -> loadCards
+        const card = state.allCards?.find((c) => c.id === cardId);
+        if (card) {
+          selectCard(card, true);
+
+          // 3. Open Image if provided
+          // 3. Open Image if provided
+          if (filename) {
+            console.log(
+              `[ChatManager] Dispatching view request for ${filename}`
+            );
+            setTimeout(() => {
+              const event = new CustomEvent("request-view-image", {
+                detail: { projectId, cardId, filename },
+              });
+              document.dispatchEvent(event);
+            }, 200);
+          }
+        } else {
+          console.warn(
+            `[ChatManager] Card ${cardId} not found in project ${projectId}`
+          );
+          showStatus("Card not found", "error");
+        }
       }
     } catch (e) {
-      console.error("[ChatManager] Error showing card:", e);
-      showStatus("Error switching card", "error");
+      console.error("[ChatManager] Error navigating UI:", e);
+      showStatus("Error navigating UI", "error");
     }
   }
 

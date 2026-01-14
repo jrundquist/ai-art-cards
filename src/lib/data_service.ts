@@ -45,6 +45,8 @@ export class DataService {
   private legacyCardsDir: string; // for migration
   private legacyKeysFile: string; // for migration
   private dataRoot: string;
+  private conversationsDir: string;
+  private cacheDir: string;
 
   constructor(dataRoot?: string) {
     if (dataRoot) {
@@ -52,11 +54,15 @@ export class DataService {
       this.projectsDir = path.join(dataRoot, "projects");
       this.legacyCardsDir = path.join(dataRoot, "cards");
       this.legacyKeysFile = path.join(dataRoot, "keys.json");
+      this.conversationsDir = path.join(dataRoot, "conversations");
+      this.cacheDir = path.join(dataRoot, "cache");
     } else {
       this.dataRoot = path.join(__dirname, "../../data");
       this.projectsDir = DEFAULT_PROJECTS_DIR;
       this.legacyCardsDir = DEFAULT_CARDS_DIR;
       this.legacyKeysFile = DEFAULT_KEYS_FILE;
+      this.conversationsDir = path.join(this.dataRoot, "conversations");
+      this.cacheDir = path.join(this.dataRoot, "cache");
     }
   }
 
@@ -64,6 +70,8 @@ export class DataService {
   private async ensureDirs() {
     // Only need to ensure the main projects directory exists
     await fs.mkdir(this.projectsDir, { recursive: true });
+    await fs.mkdir(this.conversationsDir, { recursive: true });
+    await fs.mkdir(this.cacheDir, { recursive: true });
   }
 
   // --- Migration ---
@@ -166,6 +174,37 @@ export class DataService {
             // Cleanup legacy output parent dir if empty
             // (Only if we moved the last one, hard to know, so skip for now)
           }
+
+          // 6. Move Conversations (from Project context to Global context)
+          // Old location could be data/projects/{projectId}/conversations (if migrated previously)
+          // or data/conversations/{projectId} (legacy legacy path)
+          // We want to move all files to this.conversationsDir
+
+          // Check standard project location first: data/projects/{projectId}/conversations
+          const projectConvDir = path.join(newProjectDir, "conversations");
+          try {
+            await this.migrateFilesToGlobal(
+              projectConvDir,
+              this.conversationsDir,
+              projectId
+            );
+            // Try to remove the now empty directory
+            await fs.rmdir(projectConvDir);
+            logger.info(
+              `[Migration] Moved conversations for ${projectId} to global storage`
+            );
+          } catch {}
+
+          // 7. Move Cache (from Project context to Global context)
+          // Check standard project location: data/projects/{projectId}/cache
+          const projectCacheDir = path.join(newProjectDir, "cache");
+          try {
+            await this.migrateFilesToGlobal(projectCacheDir, this.cacheDir);
+            await fs.rmdir(projectCacheDir);
+            logger.info(
+              `[Migration] Moved cache for ${projectId} to global storage`
+            );
+          } catch {}
 
           logger.info(`[Migration] Project ${projectId} migration complete.`);
         }
@@ -348,65 +387,34 @@ export class DataService {
   async saveTempImage(
     buffer: Buffer,
     mimeType: string,
-    projectId?: string
+    projectId?: string // Kept for interface compatibility but ignored for storage location
   ): Promise<{ id: string; path: string }> {
-    let cacheDir: string;
-
-    if (projectId) {
-      cacheDir = path.join(this.projectsDir, projectId, "cache");
-    } else {
-      // Fallback global cache
-      cacheDir = path.join(this.dataRoot, "cache");
-    }
-
-    await fs.mkdir(cacheDir, { recursive: true });
+    await this.ensureDirs();
 
     const id =
       Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
     const ext = mimeType.split("/")[1] || "bin";
     const filename = `${id}.${ext}`;
-    const filePath = path.join(cacheDir, filename);
+    const filePath = path.join(this.cacheDir, filename);
 
     await fs.writeFile(filePath, buffer);
     return { id, path: filePath };
   }
 
   async getTempImage(id: string, projectId?: string): Promise<Buffer | null> {
-    // Try project cache first if projectId provided
-    if (projectId) {
-      const pCache = path.join(this.projectsDir, projectId, "cache");
-      try {
-        const files = await fs.readdir(pCache);
-        const file = files.find((f) => f.startsWith(`${id}.`));
-        if (file) return fs.readFile(path.join(pCache, file));
-      } catch {}
-    }
-
-    // Try global cache
-    const cacheDir = path.join(this.dataRoot, "cache");
+    // Check global cache only
     try {
-      const files = await fs.readdir(cacheDir);
+      const files = await fs.readdir(this.cacheDir);
       const file = files.find((f) => f.startsWith(`${id}.`));
-      if (file) return fs.readFile(path.join(cacheDir, file));
+      if (file) return fs.readFile(path.join(this.cacheDir, file));
     } catch {
       return null;
     }
-
-    // Also try to find it in ANY project cache?
-    // Might be expensive. For now, assume if projectId not passed, check global.
-    // Ideally we always pass projectId.
-
     return null;
   }
 
   async deleteTempImage(id: string, projectId?: string): Promise<void> {
-    if (projectId) {
-      const pCache = path.join(this.projectsDir, projectId, "cache");
-      await this.deleteFromDir(pCache, id);
-    }
-    // Also try global
-    const cacheDir = path.join(this.dataRoot, "cache");
-    await this.deleteFromDir(cacheDir, id);
+    await this.deleteFromDir(this.cacheDir, id);
   }
 
   private async deleteFromDir(dir: string, id: string) {
@@ -492,6 +500,53 @@ export class DataService {
     } catch (e) {
       logger.error(`[DataService] Error listing images for card ${cardId}:`, e);
       return { images: [], count: 0 };
+    }
+  }
+
+  // --- Helper for Migration ---
+  private async migrateFilesToGlobal(
+    sourceDir: string,
+    targetDir: string,
+    injectProjectId?: string
+  ) {
+    try {
+      await fs.access(sourceDir);
+      const files = await fs.readdir(sourceDir);
+      for (const f of files) {
+        const srcPath = path.join(sourceDir, f);
+        const destPath = path.join(targetDir, f);
+        try {
+          // If we need to inject projectId (for conversations/cache items that miss it)
+          if (injectProjectId && f.endsWith(".json")) {
+            try {
+              const content = await fs.readFile(srcPath, "utf-8");
+              const data = JSON.parse(content);
+              if (!data.projectId) {
+                data.projectId = injectProjectId;
+                await fs.writeFile(srcPath, JSON.stringify(data, null, 2));
+                logger.info(
+                  `[Migration] Injected projectId: ${injectProjectId} into ${f}`
+                );
+              }
+            } catch (err) {
+              logger.warn(
+                `[Migration] Failed to inject projectId for ${f}:`,
+                err
+              );
+            }
+          }
+
+          // Move the file
+          await fs.rename(srcPath, destPath);
+        } catch (e) {
+          logger.warn(
+            `[Migration] Failed to move file ${f} from ${sourceDir} to ${targetDir}`,
+            e
+          );
+        }
+      }
+    } catch {
+      // source dir doesn't exist, nothing to do
     }
   }
 }

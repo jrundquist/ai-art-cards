@@ -908,40 +908,28 @@ export function createApp(dataRoot?: string) {
     }
   });
 
-  app.get("/api/projects/:projectId/conversations", async (req, res) => {
+  app.get("/api/conversations", async (req, res) => {
     if (!chatService) {
       if (API_KEY) initChatService();
-      // Attempt to init, but if failed just continue?
-      // List conversations only needs FS access which ChatService has if instantiated.
-      // If no API key, we cant instantiate ChatService easily because it expects one.
-      // But listConversations doesn't use it.
-      // For now, require API Key or fix ChatService to be optional-key.
       if (!chatService)
         return res.status(401).json({ error: "API Key not set" });
     }
-    const { projectId } = req.params;
-    const convs = await chatService?.listConversations(projectId);
+    const convs = await chatService?.listConversations();
     res.json(convs);
   });
 
-  app.get(
-    "/api/projects/:projectId/conversations/:conversationId",
-    async (req, res) => {
-      if (!chatService) {
-        if (API_KEY) initChatService();
-        if (!chatService)
-          return res.status(401).json({ error: "API Key not set" });
-      }
-      const { projectId, conversationId } = req.params;
-      const conv = await chatService?.loadConversation(
-        projectId,
-        conversationId
-      );
-      if (!conv)
-        return res.status(404).json({ error: "Conversation not found" });
-      res.json(conv);
+  app.get("/api/conversations/:conversationId", async (req, res) => {
+    if (!chatService) {
+      if (API_KEY) initChatService();
+      if (!chatService)
+        return res.status(401).json({ error: "API Key not set" });
     }
-  );
+    const { conversationId } = req.params;
+    // We pass undefined for projectId as we are loading by ID from global storage
+    const conv = await chatService?.loadConversation(conversationId);
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+    res.json(conv);
+  });
 
   app.delete("/api/conversations/:conversationId", async (req, res) => {
     if (!chatService) {

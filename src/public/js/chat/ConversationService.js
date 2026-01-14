@@ -14,11 +14,9 @@ export class ConversationService {
    * @param {string} projectId
    * @returns {Promise<Array>}
    */
-  async loadConversationList(projectId) {
-    if (!projectId) return [];
-
+  async loadConversationList() {
     try {
-      const res = await fetch(`/api/projects/${projectId}/conversations`);
+      const res = await fetch("/api/conversations");
       if (res.ok) {
         const conversations = await res.json();
         // Sort by lastModified desc
@@ -86,11 +84,9 @@ export class ConversationService {
    * @param {string} conversationId
    * @returns {Promise<object|null>}
    */
-  async loadConversation(projectId, conversationId) {
+  async loadConversation(conversationId) {
     try {
-      const res = await fetch(
-        `/api/projects/${projectId}/conversations/${conversationId}`
-      );
+      const res = await fetch(`/api/conversations/${conversationId}`);
       if (res.ok) {
         return await res.json();
       }

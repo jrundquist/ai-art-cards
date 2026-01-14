@@ -28,16 +28,17 @@ export const TOOL_DEFINITIONS = [
       {
         name: "listCards",
         description:
-          "List all cards in the current project. Returns only summary info (IDs and names). Use getCard for full details like prompts.",
+          "List cards. Returns summary info (IDs, names, and Project IDs). Useful for finding cards.",
         parameters: {
           type: "OBJECT",
           properties: {
             projectId: {
               type: "STRING",
-              description: "The ID of the project.",
+              description:
+                "Optional ID of the project. If omitted, lists cards from ALL projects.",
             },
           },
-          required: ["projectId"],
+          required: [],
         },
       },
       {
@@ -56,7 +57,7 @@ export const TOOL_DEFINITIONS = [
       {
         name: "findCard",
         description:
-          "Find a card by name (fuzzy match). Returns ID and Name. Use this to get the ID when you only have the name.",
+          "Find a card by name (fuzzy match). Returns ID, Name, and Project ID. Use this to find a card's location.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -203,26 +204,33 @@ export const TOOL_DEFINITIONS = [
         },
       },
       {
-        name: "showUserCard",
-        description: "Switch the UI to show the user a specific card.",
+        name: "navigateUI",
+        description:
+          "Control the user interface to show specific projects, cards, or derived assets (images). Use this to direct the user's attention.",
         parameters: {
           type: "OBJECT",
           properties: {
             projectId: {
               type: "STRING",
-              description: "The ID of the project.",
+              description: "The ID of the project to switch to.",
             },
             cardId: {
               type: "STRING",
-              description: "The ID of the card.",
+              description: "Optional ID of the card to select.",
+            },
+            filename: {
+              type: "STRING",
+              description:
+                "Optional filename of an image to view (requires cardId).",
             },
           },
-          required: ["projectId", "cardId"],
+          required: ["projectId"],
         },
       },
       {
-        name: "listCardImages", // Added this missing tool definition based on executeTool switch case
-        description: "List all generated images for a specific card.",
+        name: "listCardImages",
+        description:
+          "List all generated images for a specific card. Use this to discover existing art before generating new images or to find filenames for navigation.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -268,8 +276,27 @@ export async function handleToolCall(
         };
         break;
       case "listCards":
-        const cardsInProj = await dataService.getCards(args.projectId);
-        result = cardsInProj.map((c) => ({ id: c.id, name: c.name }));
+        let projectsToList = [];
+        if (args.projectId) {
+          projectsToList.push({ id: args.projectId });
+        } else {
+          projectsToList = await dataService.getProjects();
+        }
+
+        const allCardsList = [];
+        for (const p of projectsToList) {
+          try {
+            const cards = await dataService.getCards(p.id);
+            allCardsList.push(
+              ...cards.map((c) => ({
+                id: c.id,
+                name: c.name,
+                projectId: c.projectId,
+              }))
+            );
+          } catch {}
+        }
+        result = allCardsList;
         break;
       case "getCard": // Get cards
         const cards = await dataService.getCards(args.projectId);
@@ -421,15 +448,18 @@ export async function handleToolCall(
         }
         break;
       }
-      case "showUserCard": {
+      case "navigateUI": {
         const cards = await dataService.getCards(args.projectId);
-        const selectedCard = cards.find((c) => c.id === args.cardId);
+        const selectedCard = args.cardId
+          ? cards.find((c) => c.id === args.cardId)
+          : null;
         result = {
           success: true,
-          clientAction: "showUserCard",
+          clientAction: "navigateUI",
           projectId: args.projectId,
           cardId: args.cardId,
-          cardName: selectedCard?.name || "card",
+          cardName: selectedCard?.name,
+          filename: args.filename, // Pass through for frontend
         };
         break;
       }

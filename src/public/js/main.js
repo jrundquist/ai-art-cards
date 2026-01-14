@@ -66,6 +66,9 @@ async function init() {
   // Initial Context if project loaded
   if (state.currentProject) {
     chatManager.onProjectSelected(state.currentProject.id);
+  } else {
+    // Global mode: still load conversations
+    chatManager.loadConversationList();
   }
   dom.projectSelect.addEventListener("change", async () => {
     projectCtrl.onProjectSelect(true);
@@ -105,6 +108,47 @@ async function init() {
     }
 
     // Status bar is now handled by statusService based on active jobs
+  });
+
+  // Listen for Chat Image Navigation
+  document.addEventListener("request-view-image", async (e) => {
+    console.log("[Main] Received request-view-image event:", e.detail);
+    const { projectId, cardId, filename } = e.detail;
+
+    // Check state matching
+    const currentProjectId = state.currentProject
+      ? state.currentProject.id
+      : "null";
+    const currentCardId = state.currentCard ? state.currentCard.id : "null";
+
+    console.log(
+      `[Main] Validation: Project(${currentProjectId} vs ${projectId}), Card(${currentCardId} vs ${cardId})`
+    );
+
+    if (
+      state.currentProject &&
+      state.currentProject.id === projectId &&
+      state.currentCard &&
+      state.currentCard.id === cardId
+    ) {
+      // Construct the URL.
+      // Cards store images in a subfolder defined by card.outputSubfolder or card.name (sanitized).
+      // Ideally, we should use the card's data to get this.
+      const subfolder =
+        state.currentCard.outputSubfolder ||
+        state.currentCard.name.replace(/\s+/g, "_");
+      const imgUrl = `data/projects/${projectId}/assets/${subfolder}/${filename}`;
+
+      console.log("[Main] Opening image details for:", imgUrl);
+
+      try {
+        galleryCtrl.openImageDetails(imgUrl);
+      } catch (err) {
+        console.error("[Main] Error in galleryCtrl.openImageDetails:", err);
+      }
+    } else {
+      console.warn("[Main] Event logic skipped due to state mismatch.");
+    }
   });
 
   // Electron Navigation Integration
