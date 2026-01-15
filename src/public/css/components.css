@@ -574,13 +574,19 @@ button {
 .toast.error {
   border-color: #ef4444;
   color: var(--error-text);
-  background: rgba(239, 68, 68, 0.1);
+  background: linear-gradient(rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.15)),
+    var(--bg-panel-solid);
 }
 
 .toast.success {
   border-color: var(--primary);
   color: var(--success-text);
-  background: rgba(16, 185, 129, 0.1);
+  background: linear-gradient(
+      rgba(var(--primary-rgb), 0.15),
+      rgba(var(--primary-rgb), 0.15)
+    ),
+    rgba(var(--bg-panel-rgb), 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .toast.fade-out {

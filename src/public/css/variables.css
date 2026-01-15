@@ -2,6 +2,7 @@
   --bg-app: #030304;
   --bg-panel: rgba(20, 20, 23, 0.402);
   --bg-panel-solid: #141417;
+  --bg-panel-rgb: 20, 20, 23;
   --bg-header: linear-gradient(
     135deg,
     rgba(var(--secondary-rgb), 0.05),
@@ -56,6 +57,7 @@
   --bg-app: #f1f5f9;
   --bg-panel: rgba(255, 255, 255, 0.7);
   --bg-panel-solid: #ffffff;
+  --bg-panel-rgb: 255, 255, 255;
   --bg-section: linear-gradient(
     135deg,
     rgba(var(--primary-rgb), 0.03),
