@@ -101,9 +101,17 @@ async function init() {
     await projectCtrl.loadProjects();
 
     if (currentPid) {
-      // Re-select to update state.currentProject and UI
+      // Persist current card across project reload
+      const currentCardId = state.currentCard ? state.currentCard.id : null;
       dom.projectSelect.value = currentPid;
       await projectCtrl.onProjectSelect(false);
+
+      if (currentCardId) {
+        const card = state.allCards?.find((c) => c.id === currentCardId);
+        if (card) {
+          cardCtrl.selectCard(card, false);
+        }
+      }
     }
   });
 

@@ -216,7 +216,7 @@ export async function handleCardTool(
 
       Object.assign(card, args.updates);
       await dataService.saveCard(card);
-      return { updated: card };
+      return { updated: card, clientAction: "refreshCards" };
     }
 
     case "listCardImages": {
