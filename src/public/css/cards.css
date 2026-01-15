@@ -196,6 +196,7 @@
 .gallery-fav-icon.active {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.2);
+  opacity: 1; /* Always visible if favored */
 }
 
 .gallery-fav-icon:hover {

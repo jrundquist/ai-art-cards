@@ -155,7 +155,10 @@ export function addImageToGallery(
   // Favorite Icon
   const favIcon = document.createElement("div");
   favIcon.className = `gallery-fav-icon ${isFav ? "active" : ""}`;
-  favIcon.innerHTML = '<span class="material-icons">favorite_border</span>';
+  // Use filled heart if favorite, outline if not
+  favIcon.innerHTML = `<span class="material-icons">${
+    isFav ? "favorite" : "favorite_border"
+  }</span>`;
   favIcon.title = "Toggle Favorite";
   favIcon.onclick = (e) => {
     e.stopPropagation();
@@ -241,6 +244,13 @@ export async function toggleImageFavorite(imgUrl = null) {
         !dom.imgModal.self.classList.contains("hidden")
       ) {
         dom.imgModal.favBtn.classList.toggle("active", data.isFavorite);
+        // Also update modal icon if it uses text content
+        const modalIcon = dom.imgModal.favBtn.querySelector(".material-icons");
+        if (modalIcon) {
+          modalIcon.textContent = data.isFavorite
+            ? "favorite"
+            : "favorite_border";
+        }
       }
 
       if (isFavoritesOnly && !data.isFavorite) {
@@ -252,7 +262,16 @@ export async function toggleImageFavorite(imgUrl = null) {
         );
         if (item) {
           const icon = item.querySelector(".gallery-fav-icon");
-          if (icon) icon.classList.toggle("active", data.isFavorite);
+          if (icon) {
+            icon.classList.toggle("active", data.isFavorite);
+            // Update the icon text as well
+            const iconSpan = icon.querySelector(".material-icons");
+            if (iconSpan) {
+              iconSpan.textContent = data.isFavorite
+                ? "favorite"
+                : "favorite_border";
+            }
+          }
         }
       }
     }
