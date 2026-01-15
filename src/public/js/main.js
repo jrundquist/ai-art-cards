@@ -297,6 +297,12 @@ async function init() {
   dom.newCardBtn.addEventListener("click", cardCtrl.createNewCard);
   dom.btns.saveCard.addEventListener("click", () => cardCtrl.saveCurrentCard());
   dom.btns.generate.addEventListener("click", cardCtrl.generateArt);
+  dom.inputs.prompt.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      dom.btns.generate.click();
+    }
+  });
   dom.searchInput.addEventListener("input", cardCtrl.filterCards);
 
   // Project Modals
