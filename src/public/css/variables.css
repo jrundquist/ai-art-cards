@@ -34,6 +34,8 @@
   --secondary: rgb(var(--secondary-rgb));
   --secondary-dark: #7c3aed;
   --accent: #a3e635;
+  --danger-rgb: 239, 68, 68;
+  --danger: rgb(var(--danger-rgb));
   --backdrop-blur: 20px;
   --radius-sm: 6px;
   --radius-md: 12px;

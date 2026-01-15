@@ -52,16 +52,37 @@
 }
 
 /* Wide modal for 2-column layout */
-.modal-content-wide {
+.modal-content-wide,
+.modal-content-project {
   width: 900px;
   max-width: 95vw;
   height: 80vh;
   display: flex !important;
-
   flex-direction: row;
   gap: 20px;
   padding: 24px;
   position: relative;
+}
+
+.modal-content-project {
+  flex-direction: column; /* Main container is column */
+  height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  flex: 1;
+}
+
+.modal-col-left,
+.modal-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .modal-close-x {
@@ -129,9 +150,192 @@
   margin-top: auto;
 }
 
-.modal-actions-row {
+/* Modifier List */
+.modifier-list {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.modifier-section {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  border: 1px solid var(--border-light);
+}
+
+.sub-label {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modifier-list.drag-over-list {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.modifier-item {
+  display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--bg-panel);
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+}
+
+.modifier-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.modifier-name {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--text-main);
+}
+
+.modifier-text {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.modifier-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.modifier-type-badge {
+  font-size: 0.7em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.delete-modifier-btn {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.delete-modifier-btn:hover {
+  background: rgba(var(--danger-rgb), 0.15);
+}
+
+/* Modifier Add Container */
+.modifier-add-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.modifier-add-row-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.modifier-add-textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+/* Draggable Items */
+.modifier-item {
+  cursor: grab;
+  user-select: none;
+  background: var(--bg-panel); /* Ensure background is solid for dragging */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.modifier-item.dragging {
+  opacity: 0.5;
+  background: var(--bg-panel-solid);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  cursor: grabbing;
+}
+
+.modifier-item.drag-over {
+  border-top: 2px solid var(--primary);
+}
+
+.modifier-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+  opacity: 0.5;
+}
+.modifier-handle:hover {
+  opacity: 1;
+}
+.modifier-item:hover .modifier-handle {
+  opacity: 0.8;
+}
+
+/* Modifier Toggles in Form */
+.modifier-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.modifier-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  font-size: 0.85em;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.modifier-toggle-label:hover {
+  border-color: var(--primary);
+}
+
+.modifier-toggle-label input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+
+.modifier-toggle-label span {
+  color: var(--text-main);
 }

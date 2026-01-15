@@ -323,7 +323,27 @@ export function createApp(dataRoot?: string) {
     if (promptOverride !== undefined) {
       fullPrompt = promptOverride;
     } else {
-      fullPrompt = `${project.globalPrefix} ${card.prompt} ${project.globalSuffix}`;
+      // 1. Add Active Project Prefixes
+      const parts: string[] = [];
+      const modifiers = project.promptModifiers || [];
+      const disabled = new Set(card.inactiveModifiers || []);
+
+      const activePrefixes = modifiers
+        .filter((m) => m.type === "prefix" && !disabled.has(m.id))
+        .map((m) => m.text);
+      if (activePrefixes.length > 0) parts.push(...activePrefixes);
+
+      // 2. Card Prompt
+      if (card.prompt) parts.push(card.prompt);
+
+      // 3. Add Active Project Suffixes
+      const activeSuffixes = modifiers
+        .filter((m) => m.type === "suffix" && !disabled.has(m.id))
+        .map((m) => m.text);
+      if (activeSuffixes.length > 0) parts.push(...activeSuffixes);
+
+      // Join with newlines
+      fullPrompt = parts.join("\n\n");
     }
 
     logger.info("------------------------------------------------");

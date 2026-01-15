@@ -355,6 +355,10 @@
   align-items: flex-end;
 }
 
+.chat-image-previews:not(:empty) ~ .chat-input-area {
+  border-top: none;
+}
+
 .chat-input-area textarea {
   background: var(--bg-ai-input);
 
@@ -464,8 +468,8 @@
 
 /* Chat Image Upload */
 .chat-image-previews {
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid var(--border);
+  background: var(--bg-section);
+  border-top: var(--glass-border);
   padding: 8px 16px;
   display: flex;
   gap: 8px;
@@ -500,8 +504,8 @@
   top: 1px;
   right: 1px;
   background: rgba(0, 0, 0, 0.6);
+  border: 1px solid white;
   color: white;
-  border: none;
   border-radius: 50%;
   width: 14px;
   height: 14px;

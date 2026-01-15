@@ -2,6 +2,13 @@ import fs from "fs/promises";
 import path from "path";
 import { logger } from "./logger";
 
+export interface PromptModifier {
+  id: string;
+  name: string;
+  text: string;
+  type: "prefix" | "suffix";
+}
+
 export interface Card {
   id: string;
   projectId: string;
@@ -12,6 +19,7 @@ export interface Card {
   resolution?: string;
   archivedImages?: string[];
   favoriteImages?: string[];
+  inactiveModifiers?: string[];
 }
 
 export interface Project {
@@ -20,6 +28,7 @@ export interface Project {
   description: string;
   globalPrefix: string;
   globalSuffix: string;
+  promptModifiers?: PromptModifier[];
   outputRoot: string;
   /** Sequentially increasing counter for card IDs */
   nextCardIndex?: number;

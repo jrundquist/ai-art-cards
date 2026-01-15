@@ -224,6 +224,17 @@
                   ></textarea>
                 </div>
 
+                <div
+                  class="form-group full-width"
+                  id="modifierToggleRow"
+                  style="display: none"
+                >
+                  <label>Active Modifiers</label>
+                  <div id="modifierToggles" class="modifier-toggles">
+                    <!-- Checkboxes injected here -->
+                  </div>
+                </div>
+
                 <div class="combined-row full-width">
                   <div class="form-group">
                     <label>Output Subfolder</label>
@@ -249,7 +260,7 @@
                   <div class="form-group">
                     <label>Aspect Ratio</label>
                     <select id="cardAspectRatio">
-                      <option value="">Project Default</option>
+                      <option value="">Default</option>
                       <option value="Auto">Auto</option>
                       <option value="1:1">1:1</option>
                       <option value="16:9">16:9</option>
@@ -266,7 +277,7 @@
                   <div class="form-group">
                     <label>Resolution</label>
                     <select id="cardResolution">
-                      <option value="">Project Default</option>
+                      <option value="">Default</option>
                       <option value="1K">1K</option>
                       <option value="2K">2K</option>
                       <option value="4K">4K</option>
@@ -459,91 +470,184 @@
       aria-modal="true"
       aria-labelledby="projectModalTitle"
     >
-      <div class="modal-content">
-        <h3 id="projectModalTitle">Project Settings</h3>
-        <div class="form-group">
-          <label for="newProjectName">Project Name</label>
-          <input
-            type="text"
-            id="newProjectName"
-            placeholder="e.g. Tarot Deck"
-            aria-label="Project Name"
-          />
-        </div>
+      <div class="modal-content modal-content-project">
+        <h3>Project Settings</h3>
+        <div class="two-col-grid">
+          <!-- Left Column: Basic Info -->
+          <div class="modal-col-left">
+            <input type="hidden" id="newProjectId" />
+            <div
+              style="
+                display: none;
+                margin-bottom: 15px;
+                margin-top: -5px;
+                font-size: 0.5em;
+                color: var(--text-muted);
+              "
+            >
+              ID: <span id="newProjectIdDisplay"></span>
+            </div>
 
-        <div class="form-group">
-          <label for="newProjectDescription">Description</label>
-          <textarea
-            id="newProjectDescription"
-            placeholder="Describe the project intent for the AI..."
-            aria-label="Project Description"
-            rows="3"
-            style="font-family: inherit"
-          ></textarea>
-        </div>
+            <div class="form-group">
+              <label for="newProjectName">Project Name</label>
+              <input
+                type="text"
+                id="newProjectName"
+                placeholder="My Awesome Project"
+                style="font-size: 1.1em; font-weight: bold"
+              />
+            </div>
 
-        <input type="hidden" id="newProjectId" />
-        <div
-          class="info-text"
-          style="
-            display: none;
-            margin-bottom: 15px;
-            margin-top: -5px;
-            font-size: 0.5em;
-            color: var(--text-muted);
-          "
-        >
-          ID: <span id="newProjectIdDisplay"></span>
-        </div>
+            <div class="form-group">
+              <label for="newProjectDescription">Description</label>
+              <textarea
+                id="newProjectDescription"
+                placeholder="Optional description..."
+                style="height: 80px"
+              ></textarea>
+            </div>
 
-        <div class="form-group">
-          <label for="newProjectRoot">Output Folder Name</label>
-          <input
-            type="text"
-            id="newProjectRoot"
-            placeholder="e.g. tarot_deck"
-            aria-label="Output Directory"
-          />
-        </div>
+            <div class="form-group">
+              <label for="newProjectRoot">Output Folder Name</label>
+              <input
+                type="text"
+                id="newProjectRoot"
+                placeholder="e.g. tarot_deck"
+                aria-label="Output Directory"
+              />
+              <div
+                style="
+                  font-size: 0.75em;
+                  color: var(--text-muted);
+                  margin-top: 4px;
+                "
+              >
+                Folder where images will be saved.
+              </div>
+            </div>
 
-        <div class="form-group">
-          <label>Global Prompt Modifiers</label>
-          <textarea
-            id="globalPrefix"
-            placeholder="Global Prefix (added to start of every prompt)"
-            aria-label="Global Prompt Prefix"
-            style="margin-bottom: 5px"
-          ></textarea>
-          <textarea
-            id="globalSuffix"
-            placeholder="Global Suffix (added to end of every prompt)"
-            aria-label="Global Prompt Suffix"
-          ></textarea>
-        </div>
-
-        <div class="form-grid" style="margin-top: 10px">
-          <div class="form-group">
-            <label>Default Aspect Ratio</label>
-            <select id="newAspectRatio">
-              <option value="">Auto (Unspecified)</option>
-              <option value="16:9">16:9</option>
-              <option value="9:16">9:16</option>
-              <option value="3:4">3:4</option>
-              <option value="4:3">4:3</option>
-              <option value="3:2">3:2</option>
-              <option value="2:3" selected>2:3</option>
-              <option value="5:4">5:4</option>
-              <option value="4:5">4:5</option>
-              <option value="21:9">21:9</option>
-            </select>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Default Aspect Ratio</label>
+                <select id="newAspectRatio">
+                  <option value="">Auto (Unspecified)</option>
+                  <option value="16:9">16:9</option>
+                  <option value="9:16">9:16</option>
+                  <option value="3:4">3:4</option>
+                  <option value="4:3">4:3</option>
+                  <option value="3:2">3:2</option>
+                  <option value="2:3" selected>2:3</option>
+                  <option value="5:4">5:4</option>
+                  <option value="4:5">4:5</option>
+                  <option value="21:9">21:9</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Resolution</label>
+                <select id="newResolution">
+                  <option value="1K">1K</option>
+                  <option value="2K" selected>2K</option>
+                  <option value="4K">4K</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Resolution</label>
-            <select id="newResolution">
-              <option value="1K">1K</option>
-              <option value="2K" selected>2K</option>
-              <option value="4K">4K</option>
-            </select>
+
+          <!-- Right Column: Modifiers & Settings -->
+          <div class="modal-col-right">
+            <div
+              class="form-group"
+              style="flex: 1; display: flex; flex-direction: column"
+            >
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 5px;
+                "
+              >
+                <label style="margin-bottom: 0">Prompt Modifiers</label>
+                <span
+                  class="material-icons help-icon"
+                  style="
+                    font-size: 16px;
+                    color: var(--text-muted);
+                    cursor: help;
+                  "
+                  title="Prefixes are added to the start of the prompt. Suffixes are added to the end. You can toggle specific modifiers off for individual cards."
+                  >help_outline</span
+                >
+              </div>
+
+              <div
+                class="modifier-lists-container"
+                style="
+                  flex: 1;
+                  overflow-y: auto;
+                  max-height: 250px;
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-sm);
+                  padding: 8px;
+                  background: rgba(0, 0, 0, 0.2);
+                "
+              >
+                <div class="modifier-section">
+                  <label class="sub-label">Prefixes</label>
+                  <div id="prefixList" class="modifier-list prompt-list">
+                    <!-- Prefixes injected here -->
+                  </div>
+                </div>
+                <div class="modifier-section" style="margin-top: 10px">
+                  <label class="sub-label">Suffixes</label>
+                  <div id="suffixList" class="modifier-list prompt-list">
+                    <!-- Suffixes injected here -->
+                  </div>
+                </div>
+              </div>
+
+              <div class="modifier-add-container">
+                <div class="modifier-add-row-top">
+                  <input
+                    type="text"
+                    id="newModName"
+                    placeholder="Name (e.g. Style)"
+                    style="flex: 1"
+                  />
+                </div>
+                <textarea
+                  id="newModText"
+                  class="modifier-add-textarea"
+                  placeholder="Modifier Text..."
+                  rows="2"
+                ></textarea>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 8px;
+                    margin-top: 5px;
+                  "
+                >
+                  <button
+                    id="addPrefixBtn"
+                    class="secondary-btn"
+                    style="padding: 6px 12px; font-size: 0.85em"
+                    title="Add as Prefix"
+                  >
+                    + Prefix
+                  </button>
+                  <button
+                    id="addSuffixBtn"
+                    class="secondary-btn"
+                    style="padding: 6px 12px; font-size: 0.85em"
+                    title="Add as Suffix"
+                  >
+                    + Suffix
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -551,17 +655,104 @@
           <button
             id="deleteProjectBtn"
             class="secondary-btn"
-            style="
-              color: #ef4444;
-              border-color: #ef4444;
-              margin-right: auto;
-              display: none;
-            "
+            style="color: #ef4444; border-color: #ef4444; margin-right: auto"
           >
             Delete Project
           </button>
           <button id="cancelProjectBtn" class="secondary-btn">Cancel</button>
           <button id="saveProjectBtn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modifier Help Modal -->
+    <div
+      id="modifierHelpModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modHelpModalTitle"
+    >
+      <div class="modal-content" style="width: 400px; max-width: 90vw">
+        <h3 id="modHelpModalTitle">About Prompt Modifiers</h3>
+        <div
+          style="font-size: 0.9em; line-height: 1.5; color: var(--text-main)"
+        >
+          <p style="margin-bottom: 10px">
+            <strong>Modifiers</strong> serve as templates for your prompt
+            construction.
+          </p>
+          <ul style="padding-left: 20px; margin-bottom: 15px">
+            <li style="margin-bottom: 5px">
+              <strong>Prefixes:</strong> Added to the <em>beginning</em> of your
+              prompt (e.g., "High quality," "Masterpiece,").
+            </li>
+            <li>
+              <strong>Suffixes:</strong> Added to the <em>end</em> of your
+              prompt (e.g., ", trending on artstation", ", 8k resolution").
+            </li>
+          </ul>
+          <p style="margin-bottom: 10px">
+            <strong>Toggling:</strong> You can turn specific modifiers ON or OFF
+            for individual cards without deleting them from the project.
+          </p>
+          <p>
+            <strong>Order:</strong> Drag and drop modifiers in the list to
+            change the order they appear in the final prompt.
+          </p>
+        </div>
+        <div class="modal-actions">
+          <button
+            class="primary-btn"
+            onclick="document.getElementById('modifierHelpModal').classList.add('hidden')"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modifier Edit Modal -->
+    <div
+      id="editModifierModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editModModalTitle"
+      style="z-index: 1100"
+    >
+      <div class="modal-content" style="width: 500px; max-width: 90vw">
+        <h3 id="editModModalTitle">Edit Modifier</h3>
+        <input type="hidden" id="editModIndex" />
+
+        <div class="form-group">
+          <label for="editModName">Name</label>
+          <input
+            type="text"
+            id="editModName"
+            disabled
+            style="opacity: 0.7; cursor: not-allowed"
+          />
+          <div
+            style="font-size: 0.75em; color: var(--text-muted); margin-top: 4px"
+          >
+            Name cannot be changed. Delete and re-create to rename.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="editModContent">Modifier Text (Prompt Segment)</label>
+          <textarea
+            id="editModContent"
+            rows="4"
+            placeholder="Enter modifier text..."
+            style="font-family: monospace; font-size: 0.9em"
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancelEditModBtn" class="secondary-btn">Cancel</button>
+          <button id="saveEditModBtn" class="primary-btn">Save Changes</button>
         </div>
       </div>
     </div>

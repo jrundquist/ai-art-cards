@@ -101,6 +101,43 @@ export function selectCard(card, updateHistory = true) {
   dom.inputs.cardResolution.value = card.resolution || "";
   dom.inputs.prompt.value = card.prompt || "";
 
+  // Render Modifier Toggles
+  const modifierRow = document.getElementById("modifierToggleRow");
+  const modifierContainer = document.getElementById("modifierToggles");
+
+  if (modifierRow && modifierContainer) {
+    if (
+      state.currentProject &&
+      state.currentProject.promptModifiers &&
+      state.currentProject.promptModifiers.length > 0
+    ) {
+      modifierRow.style.display = "flex";
+      modifierContainer.innerHTML = "";
+
+      const disabled = new Set(card.inactiveModifiers || []);
+
+      state.currentProject.promptModifiers.forEach((mod) => {
+        const label = document.createElement("label");
+        label.className = "modifier-toggle-label";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.id = mod.id;
+        checkbox.checked = !disabled.has(mod.id); // Checked if NOT disabled
+
+        const span = document.createElement("span");
+        span.textContent = `${mod.name}`;
+
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        modifierContainer.appendChild(label);
+      });
+    } else {
+      modifierRow.style.display = "none";
+      modifierContainer.innerHTML = "";
+    }
+  }
+
   updateStatusCenter(card.name);
 
   if (updateHistory) updateUrl();
@@ -132,6 +169,7 @@ export async function createNewCard() {
     projectId: state.currentProject.id,
     name: "New Card",
     prompt: "",
+    inactiveModifiers: [],
     // outputSubfolder will be set/defaulted if needed, or we can leave it empty
     // and let user or server set it?
     // Server logic doesn't default subfolder unless we added that?
@@ -183,6 +221,20 @@ export async function saveCurrentCard(silent = false) {
   state.currentCard.aspectRatio = dom.inputs.cardAspectRatio.value;
   state.currentCard.resolution = dom.inputs.cardResolution.value;
   state.currentCard.prompt = dom.inputs.prompt.value;
+
+  // Save active/inactive state
+  const modifierContainer = document.getElementById("modifierToggles");
+  if (modifierContainer) {
+    const inactive = [];
+    modifierContainer
+      .querySelectorAll("input[type='checkbox']")
+      .forEach((cb) => {
+        if (!cb.checked) {
+          inactive.push(cb.dataset.id);
+        }
+      });
+    state.currentCard.inactiveModifiers = inactive;
+  }
 
   await api.saveCard(state.currentCard);
 
