@@ -610,13 +610,29 @@ export class ChatManager {
       if (msg.parts && msg.parts.length > 0) {
         let accumulatedText = "";
 
-        // Pre-scan to count references so we can suppress redundant inline images
+        // Pre-scan to count references AND total inline images
         let totalReferences = 0;
+        let totalInlineImages = 0;
+
         msg.parts.forEach((p) => {
           const t = p.text || (typeof p === "string" ? p : "");
           totalReferences += countReferences(t);
+          if (p.inlineData) {
+            totalInlineImages++;
+          }
         });
-        let processedRespectedImages = 0;
+
+        // We want to skip the LAST 'totalReferences' inline images, as ChatService appends them after uploads.
+        // The indices to skip are: [totalInlineImages - totalReferences, ..., totalInlineImages - 1]
+        // Example: 1 Upload, 1 Ref. Total=2. Ref=1. Skip index 1 (2-1). Keep index 0.
+        // Example: 2 Uploads, 1 Ref. Total=3. Ref=1. Skip index 2 (3-1). Keep 0, 1.
+        // Example: 0 Uploads, 1 Ref. Total=1. Ref=1. Skip index 0.
+
+        const skipThresholdIndex = Math.max(
+          0,
+          totalInlineImages - totalReferences
+        );
+        let currentInlineIndex = 0;
 
         msg.parts.forEach((part) => {
           // Extract text content if present
@@ -680,15 +696,17 @@ export class ChatManager {
                 accumulatedText = "";
               }
 
-              // Check if we should skip this inline image because it's already shown as a reference
-              if (processedRespectedImages < totalReferences) {
-                processedRespectedImages++;
-                // Skip rendering
+              // Check if we should skip this inline image
+              if (currentInlineIndex >= skipThresholdIndex) {
+                // This falls into the tail end of images, which are References
+                // We skip it because appendMessageWithMarkdown handles the reference display
+                currentInlineIndex++;
                 return;
               }
 
               // Render image
               this.messageRenderer.appendImages(role, [part.inlineData]);
+              currentInlineIndex++;
             }
           }
         });
