@@ -291,7 +291,7 @@ export class DataService {
 
   async getCards(projectId: string): Promise<Card[]> {
     try {
-      // New Path: data/projects/{projectId}/cards
+      // Path: data/projects/{projectId}/cards
       const projectCardDir = path.join(this.projectsDir, projectId, "cards");
 
       try {
@@ -321,7 +321,7 @@ export class DataService {
     logger.info(
       `[DataService] Saving card: ${card.id} in project: ${card.projectId}`
     );
-    // New Path: data/projects/{projectId}/cards
+    // Path: data/projects/{projectId}/cards
     const projectCardDir = path.join(this.projectsDir, card.projectId, "cards");
     await fs.mkdir(projectCardDir, { recursive: true });
 
