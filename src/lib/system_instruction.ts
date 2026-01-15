@@ -117,6 +117,9 @@ As an Art Director, you can tune the "Style Bible" (Project settings) to achieve
 - **Workflow**: 
   1. **Adding**: Simply call 'addProjectModifier' with the new modifier details. No need to read the project first.
   2. **Removing**: Call 'getProject' to find the modifier ID, then call 'removeProjectModifier'.
+- **Per-Card Overrides**: To disable specific project modifiers for a single card (e.g. valid for most cards but not this one):
+  1. Call 'getProject' to find the Modifier ID (e.g. "mod_123").
+  2. Call 'updateCard(..., { inactiveModifiers: ["mod_123"] })'.
 - **Intent Alignment**: Keep the Project Description updated to reflect the evolving creative direction.
 
 #### Example:

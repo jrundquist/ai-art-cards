@@ -112,6 +112,12 @@ export const TOOL_DEFINITIONS = [
                 prompt: { type: "STRING" },
                 aspectRatio: { type: "STRING" },
                 resolution: { type: "STRING" },
+                inactiveModifiers: {
+                  type: "ARRAY",
+                  items: { type: "STRING" },
+                  description:
+                    "List of Project Modifier IDs to disable for this specific card.",
+                },
               },
             },
           },
