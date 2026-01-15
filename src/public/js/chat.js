@@ -559,6 +559,32 @@ export class ChatManager {
 
     this.messagesContainer.innerHTML = "";
 
+    // Helper to count references in text to avoid duplication
+    const countReferences = (text) => {
+      const refTagMarker =
+        "Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):";
+
+      if (!text || !text.includes(refTagMarker)) return 0;
+
+      try {
+        const markerIndex = text.indexOf(refTagMarker);
+        const jsonStartIndex = markerIndex + refTagMarker.length;
+        const endIndex = text.lastIndexOf("]]");
+
+        if (endIndex > jsonStartIndex) {
+          // We extract strictly the JSON part.
+          // Note: In MessageRenderer we did a more robust lastIndexOf("]]") relative to the end.
+          // Here, for counting, simply parsing the array is enough.
+          const jsonStr = text.substring(jsonStartIndex, endIndex + 1);
+          const refs = JSON.parse(jsonStr);
+          return Array.isArray(refs) ? refs.length : 0;
+        }
+      } catch (e) {
+        // ignore
+      }
+      return 0;
+    };
+
     // Render history
     data.history.forEach((msg) => {
       const role = msg.role;
@@ -583,6 +609,14 @@ export class ChatManager {
 
       if (msg.parts && msg.parts.length > 0) {
         let accumulatedText = "";
+
+        // Pre-scan to count references so we can suppress redundant inline images
+        let totalReferences = 0;
+        msg.parts.forEach((p) => {
+          const t = p.text || (typeof p === "string" ? p : "");
+          totalReferences += countReferences(t);
+        });
+        let processedRespectedImages = 0;
 
         msg.parts.forEach((part) => {
           // Extract text content if present
@@ -645,6 +679,14 @@ export class ChatManager {
                 );
                 accumulatedText = "";
               }
+
+              // Check if we should skip this inline image because it's already shown as a reference
+              if (processedRespectedImages < totalReferences) {
+                processedRespectedImages++;
+                // Skip rendering
+                return;
+              }
+
               // Render image
               this.messageRenderer.appendImages(role, [part.inlineData]);
             }
