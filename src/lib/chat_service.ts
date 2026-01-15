@@ -4,7 +4,7 @@ import { logger } from "./logger";
 import { SYSTEM_INSTRUCTION } from "./system_instruction";
 import path from "path";
 import fs from "fs/promises";
-import { TOOL_DEFINITIONS, handleToolCall } from "./tools";
+import { TOOL_DEFINITIONS, handleToolCall } from "../tools";
 
 export interface ChatMessage {
   role: "user" | "model";
