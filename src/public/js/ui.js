@@ -38,6 +38,7 @@ export const dom = {
     projectSelectionCreate: document.getElementById(
       "projectSelectionCreateBtn"
     ),
+    newCardHeader: document.getElementById("newCardHeaderBtn"),
   },
   forms: {
     // newKey: document.getElementById("newKeyForm"), // Removed

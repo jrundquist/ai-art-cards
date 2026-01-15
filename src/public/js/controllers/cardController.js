@@ -8,8 +8,10 @@ import {
   updateStatusCenter,
 } from "../ui.js";
 import * as api from "../api.js";
-import { nanoid } from "../utils.js";
 import { loadImagesForCard, addImageToGallery } from "./galleryController.js";
+
+// Sort State
+let currentSortMode = localStorage.getItem("cardSortMode") || "default";
 
 function updateUrl() {
   const params = new URLSearchParams();
@@ -23,14 +25,103 @@ function updateUrl() {
 export async function loadCards(projectId) {
   const cards = await api.fetchCards(projectId);
   state.allCards = cards;
-  renderCardList(cards);
+
+  // Apply initial sort
+  const sorted = getSortedCards(cards, currentSortMode);
+  renderCardList(sorted);
+  updateSortUI();
 
   if (cards.length === 0) {
     dom.newCardBtn.classList.add("pulse-highlight", "glow");
   } else {
     dom.newCardBtn.classList.remove("pulse-highlight", "glow");
   }
+
+  setupSortUI();
+
   return cards;
+}
+
+function getSortedCards(cards, mode) {
+  const sorted = [...cards];
+  switch (mode) {
+    case "name":
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case "count":
+      return sorted.sort((a, b) => {
+        const countA = a.imageCount !== undefined ? a.imageCount : 0;
+        const countB = b.imageCount !== undefined ? b.imageCount : 0;
+        return countB - countA;
+      });
+    default: // 'default' is chronological (ID based)
+      return sorted; // Already sorted by ID from backend usually, or rely on array order
+  }
+}
+
+function setupSortUI() {
+  const sortBtn = document.getElementById("sortBtn");
+  const sortMenu = document.getElementById("sortMenu");
+
+  if (!sortBtn || !sortMenu) return;
+
+  // Cleanup old listeners to avoid dupes (simple hack pattern)
+  const newBtn = sortBtn.cloneNode(true);
+  sortBtn.parentNode.replaceChild(newBtn, sortBtn);
+
+  const newMenu = sortMenu.cloneNode(true);
+  sortMenu.parentNode.replaceChild(newMenu, sortMenu);
+
+  // Re-select
+  const btn = document.getElementById("sortBtn");
+  const menu = document.getElementById("sortMenu");
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.classList.toggle("hidden");
+    btn.classList.toggle("active");
+  });
+
+  // Close on click outside
+  document.addEventListener("click", (e) => {
+    if (!btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.add("hidden");
+      btn.classList.remove("active");
+    }
+  });
+
+  // Sort Options
+  menu.querySelectorAll(".dropdown-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const mode = item.dataset.sort;
+      setSortMode(mode);
+      menu.classList.add("hidden");
+      btn.classList.remove("active");
+    });
+  });
+
+  updateSortUI();
+}
+
+function setSortMode(mode) {
+  currentSortMode = mode;
+  localStorage.setItem("cardSortMode", mode);
+
+  // Re-render
+  filterCards(); // This calls renderCardList with filtered+sorted cards
+  updateSortUI();
+}
+
+function updateSortUI() {
+  const menu = document.getElementById("sortMenu");
+  if (!menu) return;
+
+  menu.querySelectorAll(".dropdown-item").forEach((item) => {
+    if (item.dataset.sort === currentSortMode) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
 }
 
 export function renderCardList(cards) {
@@ -84,9 +175,13 @@ export function renderCardList(cards) {
 
 export function filterCards() {
   const term = dom.searchInput.value.toLowerCase();
-  const filtered = state.allCards.filter((c) =>
+  let filtered = state.allCards.filter((c) =>
     c.name.toLowerCase().includes(term)
   );
+
+  // Apply Sort
+  filtered = getSortedCards(filtered, currentSortMode);
+
   renderCardList(filtered);
 }
 

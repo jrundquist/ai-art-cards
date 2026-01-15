@@ -169,11 +169,9 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
 }
 
 .modifier-section {
-  background: rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-sm);
   padding: 8px;
   border: 1px solid var(--border-light);
@@ -261,7 +259,6 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
-  background: rgba(0, 0, 0, 0.2);
   padding: 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);

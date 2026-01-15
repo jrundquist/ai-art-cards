@@ -725,7 +725,6 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   min-height: 120px;
-  background: rgba(0, 0, 0, 0.2);
   border-radius: var(--radius-sm);
   padding: 8px;
 }
@@ -925,4 +924,20 @@ kbd {
   text-align: center;
   box-shadow: 0 2px 0 rgba(255, 255, 255, 0.05);
   user-select: none;
+}
+.primary-icon-btn {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.primary-icon-btn:hover {
+  background: var(--primary-gradient-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.primary-icon-btn .material-icons {
+  font-size: 20px;
 }

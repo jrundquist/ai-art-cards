@@ -115,6 +115,48 @@
             </div>
           </div>
 
+          <div class="sidebar-search-wrapper">
+            <div style="position: relative; flex: 1">
+              <input
+                type="text"
+                id="cardSearchInput"
+                placeholder="Search cards..."
+                aria-label="Search cards"
+              />
+            </div>
+            <div class="sort-dropdown-wrapper">
+              <button
+                id="sortBtn"
+                class="icon-btn"
+                title="Sort Cards"
+                aria-label="Sort Cards"
+              >
+                <span class="material-icons">sort</span>
+              </button>
+              <div id="sortMenu" class="dropdown-menu hidden">
+                <button class="dropdown-item active" data-sort="default">
+                  <span class="material-icons">calendar_today</span> Creation
+                  (Default)
+                </button>
+                <button class="dropdown-item" data-sort="name">
+                  <span class="material-icons">sort_by_alpha</span> Name (A-Z)
+                </button>
+                <button class="dropdown-item" data-sort="count">
+                  <span class="material-icons">filter_9_plus</span> Image Count
+                </button>
+              </div>
+            </div>
+            <button
+              id="newCardBtn"
+              class="primary-btn full-width"
+              title="New Card"
+              style="margin-left: 8px; padding: 4px"
+              aria-label="New Card"
+            >
+              <span class="material-icons">add</span>
+            </button>
+          </div>
+
           <div id="cardList" class="card-list">
             <!-- Cards injected here -->
           </div>
@@ -126,14 +168,6 @@
               >add</span
             >New Card
           </button>
-          <div class="sidebar-search-wrapper">
-            <input
-              type="text"
-              id="cardSearchInput"
-              placeholder="Search cards..."
-              aria-label="Search cards"
-            />
-          </div>
         </aside>
 
         <!-- Chat Sidebar moved to right -->
@@ -582,15 +616,7 @@
 
               <div
                 class="modifier-lists-container"
-                style="
-                  flex: 1;
-                  overflow-y: auto;
-                  max-height: 250px;
-                  border: 1px solid var(--border-light);
-                  border-radius: var(--radius-sm);
-                  padding: 8px;
-                  background: rgba(0, 0, 0, 0.2);
-                "
+                style="flex: 1; overflow-y: auto; max-height: 250px"
               >
                 <div class="modifier-section">
                   <label class="sub-label">Prefixes</label>
@@ -607,6 +633,7 @@
               </div>
 
               <div class="modifier-add-container">
+                <label class="sub-label">New Modifier</label>
                 <div class="modifier-add-row-top">
                   <input
                     type="text"
@@ -618,7 +645,7 @@
                 <textarea
                   id="newModText"
                   class="modifier-add-textarea"
-                  placeholder="Modifier Text..."
+                  placeholder="Prompt Modifier Text..."
                   rows="2"
                 ></textarea>
                 <div

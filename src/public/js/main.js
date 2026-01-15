@@ -295,6 +295,9 @@ async function init() {
   }
 
   dom.newCardBtn.addEventListener("click", cardCtrl.createNewCard);
+  if (dom.btns.newCardHeader) {
+    dom.btns.newCardHeader.addEventListener("click", cardCtrl.createNewCard);
+  }
   dom.btns.saveCard.addEventListener("click", () => cardCtrl.saveCurrentCard());
   dom.btns.generate.addEventListener("click", cardCtrl.generateArt);
   dom.inputs.prompt.addEventListener("keydown", (e) => {

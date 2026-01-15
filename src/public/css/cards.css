@@ -225,3 +225,117 @@
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-glow);
 }
+/* Sidebar Header Refinements */
+.sidebar-header {
+  padding-bottom: 8px; /* Reduce padding to bring search closer */
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* Sidebar Search Wrapper - Now at top */
+.sidebar-search-wrapper {
+  padding: 0 16px 12px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-bottom: var(--glass-border);
+  margin-bottom: 0;
+}
+
+#cardSearchInput {
+  background: rgba(var(--bg-panel-rgb), 0.8);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.9em;
+  color: var(--text-main);
+  width: 100%;
+  transition: all 0.2s;
+}
+
+#cardSearchInput:focus {
+  background: rgba(var(--bg-panel-rgb), 1);
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* Sort Dropdown */
+.sort-dropdown-wrapper {
+  position: relative;
+}
+
+#sortBtn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#sortBtn:hover,
+#sortBtn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-panel-solid);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  min-width: 180px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.dropdown-menu.hidden {
+  display: none;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9em;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+  transition: all 0.1s;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.dropdown-item.active {
+  background: rgba(var(--primary-rgb), 0.15);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.dropdown-item .material-icons {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+/* Adjust Card List container to fill remaining space */
+.card-list {
+  border-top: none; /* Remove border since search has bottom border */
+}
