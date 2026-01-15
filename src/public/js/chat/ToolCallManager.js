@@ -46,6 +46,16 @@ export class ToolCallManager {
         label: "Updating Project",
         color: "#f59e0b",
       },
+      addProjectModifier: {
+        icon: "playlist_add",
+        label: "Adding Modifier",
+        color: "#10b981",
+      },
+      removeProjectModifier: {
+        icon: "playlist_remove",
+        label: "Removing Modifier",
+        color: "#ef4444",
+      },
       generateImage: {
         icon: "auto_awesome",
         label: "Generating Image",
@@ -101,7 +111,15 @@ export class ToolCallManager {
         case "updateCard":
           return `Updated ${result?.name || "card"}`;
         case "updateProject":
-          return "Updated project settings";
+          if (args.updates?.promptModifiers) {
+            return `Updated project modifiers (Unsafe Overwrite!)`;
+          } else {
+            return "Updated project settings";
+          }
+        case "addProjectModifier":
+          return `Added '${args.modifier.type}': ${args.modifier.name}`;
+        case "removeProjectModifier":
+          return "Removed modifier";
         case "generateImage":
           return "Started image generation";
         case "navigateUI":

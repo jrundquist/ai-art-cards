@@ -119,9 +119,42 @@ export const TOOL_DEFINITIONS = [
         },
       },
       {
+        name: "addProjectModifier",
+        description:
+          "Safely add a new modifier (prefix or suffix) to the project without overwriting existing ones.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            projectId: { type: "STRING" },
+            modifier: {
+              type: "OBJECT",
+              properties: {
+                name: { type: "STRING" },
+                text: { type: "STRING" },
+                type: { type: "STRING", enum: ["prefix", "suffix"] },
+              },
+              required: ["name", "text", "type"],
+            },
+          },
+          required: ["projectId", "modifier"],
+        },
+      },
+      {
+        name: "removeProjectModifier",
+        description: "Safely remove a modifier from the project by its ID.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            projectId: { type: "STRING" },
+            modifierId: { type: "STRING" },
+          },
+          required: ["projectId", "modifierId"],
+        },
+      },
+      {
         name: "updateProject",
         description:
-          "Update project-level settings like global prefix, suffix, and description.",
+          "Update project-level settings like description. WARNING: Do NOT use this to manage modifiers. Use addProjectModifier/removeProjectModifier if you need to change modifiers.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -131,8 +164,6 @@ export const TOOL_DEFINITIONS = [
               properties: {
                 name: { type: "STRING" },
                 description: { type: "STRING" },
-                globalPrefix: { type: "STRING" },
-                globalSuffix: { type: "STRING" },
                 defaultAspectRatio: { type: "STRING" },
                 defaultResolution: { type: "STRING" },
               },
@@ -372,9 +403,51 @@ export async function handleToolCall(
         } else {
           Object.assign(projectToUpdate, args.updates);
           await dataService.saveProject(projectToUpdate);
-          result = { updated: projectToUpdate };
+          result = { updated: projectToUpdate, clientAction: "refreshProject" };
         }
         break;
+      case "addProjectModifier": {
+        const p = await dataService.getProject(args.projectId);
+        if (!p) {
+          result = { error: "Project not found" };
+        } else {
+          const newMod = {
+            id:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            ...args.modifier,
+          };
+          p.promptModifiers = [...(p.promptModifiers || []), newMod];
+          await dataService.saveProject(p);
+          result = {
+            success: true,
+            addedModifier: newMod,
+            clientAction: "refreshProject",
+          };
+        }
+        break;
+      }
+      case "removeProjectModifier": {
+        const p = await dataService.getProject(args.projectId);
+        if (!p) {
+          result = { error: "Project not found" };
+        } else {
+          const initialLen = (p.promptModifiers || []).length;
+          p.promptModifiers = (p.promptModifiers || []).filter(
+            (m) => m.id !== args.modifierId
+          );
+          if (p.promptModifiers.length === initialLen) {
+            result = { error: "Modifier ID not found" };
+          } else {
+            await dataService.saveProject(p);
+            result = {
+              success: true,
+              removedId: args.modifierId,
+              clientAction: "refreshProject",
+            };
+          }
+        }
+        break;
+      }
       case "generateImage":
         const pId = args.projectId;
         const cId = args.cardId;

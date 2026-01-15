@@ -121,7 +121,7 @@ export class StreamingService {
    */
   handleTextEvent(data, callbacks) {
     if (callbacks.onText) {
-      callbacks.onText(data.content);
+      // callbacks.onText(data.content); // SIMULATION: Silence text events
     }
   }
 

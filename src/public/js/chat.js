@@ -410,10 +410,9 @@ export class ChatManager {
       this.messageRenderer.createStreamingMessageDiv("model");
     let currentAiDiv = aiContentDiv;
     let hasHiddenTag = false;
+    let accumulatedMarkdown = "";
 
     try {
-      let accumulatedMarkdown = "";
-
       await this.streamingService.streamResponse(
         state.currentProject ? state.currentProject.id : null,
         this.conversationService.getCurrentConversationId(),
@@ -495,6 +494,8 @@ export class ChatManager {
               }
             } else if (action.clientAction === "navigateUI") {
               this.handleNavigateUI(action);
+            } else if (action.clientAction === "refreshProject") {
+              document.dispatchEvent(new CustomEvent("projects-updated"));
             } else if (action.path || action.created || action.updated) {
               this.triggerDataRefresh();
             }
@@ -508,6 +509,22 @@ export class ChatManager {
     } finally {
       this.isGenerating = false;
       this.sendBtn.disabled = false;
+
+      // If no markdown was accumulated and we have a placeholder, remove it
+      if (
+        !accumulatedMarkdown ||
+        (accumulatedMarkdown.trim() === "" &&
+          currentAiDiv &&
+          currentAiDiv.parentNode)
+      ) {
+        // Double check it's still just the loading indicator or empty
+        if (
+          currentAiDiv.innerHTML.includes('class="text-loading"') ||
+          currentAiDiv.textContent.trim() === ""
+        ) {
+          currentAiDiv.parentNode.remove();
+        }
+      }
     }
   }
 
@@ -872,6 +889,10 @@ export class ChatManager {
               // Deep clone to prevent reference issues or accidental mutation
               const actionClone = JSON.parse(JSON.stringify(action));
               generateArt(actionClone);
+            } else if (action.clientAction === "navigateUI") {
+              this.handleNavigateUI(action); // Reuse handler
+            } else if (action.clientAction === "refreshProject") {
+              document.dispatchEvent(new CustomEvent("projects-updated"));
             } else if (action.path || action.created || action.updated) {
               this.triggerDataRefresh();
             }

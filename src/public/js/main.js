@@ -95,6 +95,18 @@ async function init() {
     }
   });
 
+  document.addEventListener("projects-updated", async () => {
+    console.log("Main: projects-updated event received");
+    const currentPid = state.currentProject ? state.currentProject.id : null;
+    await projectCtrl.loadProjects();
+
+    if (currentPid) {
+      // Re-select to update state.currentProject and UI
+      dom.projectSelect.value = currentPid;
+      await projectCtrl.onProjectSelect(false);
+    }
+  });
+
   // Initialize Status Service for SSE notifications
   statusService.connect();
 
