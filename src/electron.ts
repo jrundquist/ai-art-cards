@@ -163,7 +163,11 @@ function createMenu() {
         { role: "toggleDevTools" },
         { type: "separator" },
         { role: "resetZoom" },
-        { role: "zoomIn" },
+        {
+          label: "Zoom In",
+          accelerator: "CommandOrControl+=",
+          role: "zoomIn",
+        },
         { role: "zoomOut" },
         { type: "separator" },
         { role: "togglefullscreen" },
@@ -247,6 +251,10 @@ function createWindow() {
     setTimeout(() => {
       autoUpdater.checkForUpdatesAndNotify();
     }, 3000);
+
+    mainWindow?.webContents.setVisualZoomLevelLimits(1, 5).catch((err) => {
+      logger.error("Failed to set zoom level limits:", err);
+    });
   });
 
   mainWindow.on("closed", () => {
