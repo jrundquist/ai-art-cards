@@ -1,14 +1,7 @@
 import { state } from "../state.js";
-import {
-  dom,
-  showStatus,
-  createToast,
-  confirmAction,
-  updateStatusBar,
-  updateStatusCenter,
-} from "../ui.js";
+import { dom, showStatus, confirmAction, updateStatusCenter } from "../ui.js";
 import * as api from "../api.js";
-import { loadImagesForCard, addImageToGallery } from "./galleryController.js";
+import { loadImagesForCard } from "./galleryController.js";
 
 // Sort State
 let currentSortMode = localStorage.getItem("cardSortMode") || "default";
@@ -265,29 +258,6 @@ export async function createNewCard() {
     name: "New Card",
     prompt: "",
     inactiveModifiers: [],
-    // outputSubfolder will be set/defaulted if needed, or we can leave it empty
-    // and let user or server set it?
-    // Server logic doesn't default subfolder unless we added that?
-    // Wait, I didn't add default subfolder logic in server for new cards.
-    // I should probably set a temporary one or update server to handle it.
-    // The previous code used ID for subfolder.
-    // Since I don't have ID yet, I can't check it here.
-    // Let's defer outputSubfolder or use a placeholder that gets updated?
-    // Actually, best to let server handle it or update it after creation?
-    // BUT, server `saveCard` implementation just saves what acts.
-    // If I send no outputSubfolder, it might rely on default behavior.
-
-    // DECISION: I'll let the server generate the ID, return the card, and THEN
-    // if outputSubfolder is missing, I might want to update it to match ID?
-    // Or just set it to "pending" and update it when I get ID?
-    // Actually, `DataService` creates ID.
-    // I can modify server.ts to also default outputSubfolder if missing to the ID?
-    // FOR NOW: I will just send empty subfolder and rely on the fact that
-    // subsequent edits will fix it, OR I'll handle it in the response.
-    // Actually, looking at `DataService.saveCard`, it just writes JSON.
-    // If `outputSubfolder` is undefined, it stays undefined.
-    // `generate` uses `card.outputSubfolder || "default"`.
-    // So it's safe to be empty initially.
   };
 
   // Auto-save the new card immediately
