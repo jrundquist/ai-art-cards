@@ -1,4 +1,5 @@
 import { confirmAction, showStatus } from "../ui.js";
+import { timeAgo } from "../utils/dateUtils.js";
 
 /**
  * ConversationService - Handles conversation CRUD operations and history
@@ -19,9 +20,9 @@ export class ConversationService {
       const res = await fetch("/api/conversations");
       if (res.ok) {
         const conversations = await res.json();
-        // Sort by lastModified desc
+        // Sort by lastUpdated desc
         conversations.sort(
-          (a, b) => new Date(b.lastModified) - new Date(a.lastModified)
+          (a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated)
         );
         return conversations;
       }
@@ -40,10 +41,10 @@ export class ConversationService {
   renderConversationList(conversations, onLoadCallback, onDeleteCallback) {
     this.historyList.innerHTML = "";
     if (conversations.length === 0) {
-      this.historyList.style.display = "none";
+      this.historyList.innerHTML =
+        '<div class="text-muted" style="padding:20px; text-align:center; color: var(--text-muted);">No history found</div>';
       return;
     }
-    this.historyList.style.display = "block";
 
     conversations.forEach((conv) => {
       const div = document.createElement("div");
@@ -53,12 +54,17 @@ export class ConversationService {
       }
 
       // Format date
-      const date = new Date(conv.lastModified).toLocaleDateString();
-      const title = conv.title || `Chat ${date}`;
+      const timeString = timeAgo(conv.lastUpdated);
+      const title = conv.title || `Chat ${timeString}`;
 
       div.innerHTML = `
-        <span class="chat-item-title" title="${title}">${title}</span>
-        <button class="chat-item-delete" title="Delete Chat"><span class="material-icons">delete_outline</span></button>
+        <div class="chat-item-info">
+          <span class="chat-item-title" title="${title}">${title}</span>
+          <span class="chat-item-time" style="font-size: 0.75em; color: var(--text-muted);">${timeString}</span>
+        </div>
+        <button class="chat-item-delete" title="Delete Chat">
+          <span class="material-icons">delete_outline</span>
+        </button>
       `;
 
       // Load click
@@ -69,10 +75,12 @@ export class ConversationService {
 
       // Delete click
       const deleteBtn = div.querySelector(".chat-item-delete");
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onDeleteCallback(conv.id);
-      });
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          onDeleteCallback(conv.id);
+        });
+      }
 
       this.historyList.appendChild(div);
     });

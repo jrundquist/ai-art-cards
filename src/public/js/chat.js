@@ -23,6 +23,11 @@ export class ChatManager {
     this.historyList = document.getElementById("chatHistoryList");
     this.resizeHandle = document.getElementById("chatResizeHandle");
 
+    // History Modal
+    this.historyBtn = document.getElementById("chatHistoryBtn");
+    this.historyModal = document.getElementById("chatHistoryModal");
+    this.historyCloseBtn = document.getElementById("chatHistoryCloseX");
+
     // Thinking Mode Toggle
     this.thinkingToggleBtn = document.getElementById("thinkingToggleBtn");
     console.log("[ChatManager] Found Thinking Btn:", this.thinkingToggleBtn);
@@ -91,6 +96,24 @@ export class ChatManager {
     this.newChatBtn.addEventListener("click", () => this.startNewChat());
     this.sendBtn.addEventListener("click", () => this.sendMessage());
 
+    // History Modal Listeners
+    if (this.historyBtn) {
+      this.historyBtn.addEventListener("click", () => this.openHistoryModal());
+    }
+    if (this.historyCloseBtn) {
+      this.historyCloseBtn.addEventListener("click", () =>
+        this.closeHistoryModal()
+      );
+    }
+    // Close on click outside
+    if (this.historyModal) {
+      this.historyModal.addEventListener("click", (e) => {
+        if (e.target === this.historyModal) {
+          this.closeHistoryModal();
+        }
+      });
+    }
+
     this.input.addEventListener("input", () => this.adjustInputHeight());
 
     this.input.addEventListener("keydown", (e) => {
@@ -145,6 +168,18 @@ export class ChatManager {
     localStorage.setItem("useThinking", this.useThinking);
     this.updateThinkingButtonUI();
     console.log("[ChatManager] Thinking Mode:", this.useThinking);
+  }
+
+  openHistoryModal() {
+    this.historyModal.classList.remove("hidden");
+    // Refresh list when opening
+    this.loadConversationList(
+      state.currentProject ? state.currentProject.id : null
+    );
+  }
+
+  closeHistoryModal() {
+    this.historyModal.classList.add("hidden");
   }
 
   updateThinkingButtonUI() {
@@ -486,7 +521,9 @@ export class ChatManager {
     this.toolCallManager.clearActiveToolCalls();
 
     // Re-render list to update active state
+    // Re-render list to update active state
     this.loadConversationList();
+    this.closeHistoryModal(); // Close modal on selection
 
     this.messagesContainer.innerHTML = "";
 

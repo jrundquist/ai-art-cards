@@ -405,17 +405,23 @@
           <div class="chat-resize-handle" id="chatResizeHandle"></div>
           <div class="chat-header">
             <h3>AI Assistant</h3>
-            <div class="chat-actions">
-              <button id="newChatBtn" class="icon-btn-sm" title="New Chat">
-                <span class="material-icons">add_comment</span>
-              </button>
-              <button id="closeChatBtn" class="icon-btn-sm" title="Close Chat">
-                <span class="material-icons">close</span>
-              </button>
-            </div>
-          </div>
-          <div id="chatHistoryList" class="chat-history-list">
-            <!-- Previous conversations list -->
+            <button
+              id="chatHistoryBtn"
+              class="icon-btn-sm"
+              title="Chat History"
+            >
+              <span class="material-icons">history</span>
+            </button>
+            <button id="newChatBtn" class="icon-btn-sm" title="New Chat">
+              <span class="material-icons">add_comment</span>
+            </button>
+            <button
+              id="closeChatBtn"
+              class="icon-btn-sm close-chat-btn"
+              title="Close Chat"
+            >
+              <span class="material-icons">close</span>
+            </button>
           </div>
           <div id="chatMessages" class="chat-messages">
             <!-- Messages go here -->
@@ -789,6 +795,30 @@
         <div class="modal-actions">
           <button id="cancelEditModBtn" class="secondary-btn">Cancel</button>
           <button id="saveEditModBtn" class="primary-btn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat History Modal -->
+    <div
+      id="chatHistoryModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="chatHistoryTitle"
+    >
+      <div class="modal-content" style="width: 400px; max-height: 80vh">
+        <h3 id="chatHistoryTitle">Chat History</h3>
+        <button
+          id="chatHistoryCloseX"
+          class="modal-close-x"
+          title="Close"
+          aria-label="Close"
+        >
+          <span class="material-icons">close</span>
+        </button>
+        <div id="chatHistoryList" class="chat-history-list-modal">
+          <!-- History items injected here -->
         </div>
       </div>
     </div>
