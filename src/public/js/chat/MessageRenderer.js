@@ -40,81 +40,57 @@ export class MessageRenderer {
   appendMessageWithMarkdown(role, markdown) {
     // Check for Reference Images system tag or combined Attached/Review tags
     // Pattern: [System: Referenced Images ... [...]] OR [System: Attached Image IDs: ...; Referenced Images ... [...]]
-    const refTagMarker =
-      "Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):";
-    // We look for [System: ... marker ... ]
-    // Since the content spans to the end, we can look for the start of the system tag that contains our marker.
+    // Pattern: [User Message]\n<Actual Content>
+    // We want to hide everything before [User Message]
+    // But we still need to extract Reference Images if they exist in the [System] block or [Context] block.
 
+    const userMsgDelimiter = "[User Message]\n";
     let cleanMarkdown = markdown;
     let references = [];
 
-    // Simple robust approach: find the System tag block that contains the marker
-    // We assume the system tag starts with [System: and ends with ]]
-    // AND contains the specific marker text.
-
-    if (markdown.includes(refTagMarker)) {
+    // 1. Extract References (JSON)
+    // We look for the marker: "Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):"
+    // The previous parsing logic was a bit fragile.
+    // Let's try to just find the JSON array associated with the marker.
+    const refMarker =
+      "Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):";
+    if (markdown.includes(refMarker)) {
       try {
-        // 1. Find the ] containing the JSON array.
-        // The JSON array closes with ]].
-        // We can try to extract the JSON directly first.
-        const jsonStartMarker = refTagMarker;
-        const markerIndex = markdown.indexOf(jsonStartMarker);
-
-        if (markerIndex !== -1) {
-          const jsonStartIndex = markerIndex + jsonStartMarker.length;
-          const jsonEndIndex = markdown.lastIndexOf("]]"); // Assuming it ends with ]] of the array, then ] of the tag? Or just ]]
-          // The format is usually: [System: ... : [ { ... } ] ]
-          // So lastIndexOf("]]") finds the ]] at the very end.
-          // One ] matches the array end, the other matches the System tag end.
-
-          if (jsonEndIndex > jsonStartIndex) {
-            const jsonStr = markdown.substring(
-              jsonStartIndex,
-              jsonEndIndex + 1
-            ); // +1 to include the closing ] of the array
-            // The structure ends with: ... }] ]
-            // jsonEndIndex points to the first of the ]] pair? No, lastIndexOf points to the start of the match.
-            // If text is "... }]]", lastIndexOf("]]") is index of the first ].
-            // So substring(start, index+1) covers "... }]" which is valid JSON array.
-
-            references = JSON.parse(jsonStr);
-
-            // Now remove the entire System tag.
-            // We search backwards from markerIndex for "[System:"
-            const systemTagStart = markdown.lastIndexOf(
-              "[System:",
-              markerIndex
-            );
-            if (systemTagStart !== -1) {
-              // Remove from systemTagStart to the end of the string (or at least past the JSON)
-              // We assume the system tag goes to the very end or close to it.
-              // Actually, let's just cut explicitly from systemTagStart to jsonEndIndex + 2 (the final ])
-              // OR just assume it consumes the rest of the line/message if it's at the end.
-              // Safest: Remove from systemTagStart to jsonEndIndex + 2.
-
-              // Check if there is a closing ] for the system tag after the JSON array
-              // The text is "... }]]".
-              // jsonEndIndex is the index of the first ] in "]]".
-              // We extracted up to jsonEndIndex + 1 (the first ]).
-              // The second ] is at jsonEndIndex + 1 ?? No.
-              // If string is "abc]]", lastIndexOf("]]") is 3.
-              // 01234
-              // a b c ] ]
-              // ind: 3
-              // jsonStr take (start, 4) -> "abc]" (assuming start was 0) - wait, array needs to be balanced.
-              // Let's assume the JSON parser worked on `jsonStr`.
-
-              const systemTagEndIndex = jsonEndIndex + 2;
-              // Remove it
-              const before = markdown.substring(0, systemTagStart).trim();
-              const after = markdown.substring(systemTagEndIndex).trim();
-              cleanMarkdown = before + (after ? "\n" + after : "");
-            }
+        const markerIndex = markdown.indexOf(refMarker);
+        // The JSON should start after the marker.
+        // It generally looks like: ... marker ... [ { ... } ] ...
+        const openBracket = markdown.indexOf(
+          "[",
+          markerIndex + refMarker.length
+        );
+        if (openBracket !== -1) {
+          // Let's just Regex it: `\[ {.*} \]`
+          // Or stricter: `marker\s*(\[\s*\{.*?\}\s*\])`
+          const jsonRegex = new RegExp(
+            refMarker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+              "\\s*(\\[\\s*\\{.*?\\}\\s*\\])",
+            "s"
+          );
+          const match = markdown.match(jsonRegex);
+          if (match && match[1]) {
+            references = JSON.parse(match[1]);
           }
         }
       } catch (e) {
-        console.error("Failed to parse reference images from history:", e);
+        console.error("Failed to parse references:", e);
       }
+    }
+
+    // 2. Hide Context/System
+    const delimiterIndex = markdown.indexOf(userMsgDelimiter);
+    if (delimiterIndex !== -1) {
+      // Show everything AFTER the delimiter
+      cleanMarkdown = markdown.substring(
+        delimiterIndex + userMsgDelimiter.length
+      );
+    } else {
+      // Check for old [System: ...] tags and hide them if possible
+      cleanMarkdown = markdown.replace(/\[System:.*?\]/g, "").trim();
     }
 
     const msgDiv = this.createMessageDiv(role);

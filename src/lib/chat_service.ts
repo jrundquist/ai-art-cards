@@ -95,13 +95,11 @@ CURRENT STATE:
     if (project) {
       contextStr += `Active Project: "${project.name}" (Internal ID: ${
         project.id
-      })
-Project Description: ${project.description || "No description."}\n`;
+      })\nProject Description: ${project.description || "No description."}\n`;
     } else {
       // Global Context: List available projects
       const projects = await this.dataService.getProjects();
-      contextStr += `No active project selected. You are in Global Chat Mode.
-Available Projects:
+      contextStr += `No active project selected. You are in Global Chat Mode.\nAvailable Projects:
 ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 \n`;
     }
@@ -110,8 +108,9 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       const cards = await this.dataService.getCards(projectId);
       const card = cards.find((c) => c.id === activeCardId);
       if (card) {
-        contextStr += `Active Card: "${card.name}" (Internal ID: ${card.id})
-Card Prompt: ${card.prompt || "Empty"}\n`;
+        contextStr += `Active Card: "${card.name}" (Internal ID: ${
+          card.id
+        })\nCard Prompt: ${card.prompt || "Empty"}\n`;
       }
     }
 
@@ -138,7 +137,7 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
     // 3. Initialize Model with Tools
     const model = this.genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp",
-      systemInstruction: SYSTEM_INSTRUCTION + contextStr,
+      systemInstruction: SYSTEM_INSTRUCTION,
       tools: this.getTools() as any,
     });
 
@@ -244,9 +243,20 @@ Card Prompt: ${card.prompt || "Empty"}\n`;
       }
 
       let finalMessageText = message;
-      if (systemParts.length > 0) {
-        finalMessageText += `\n\n[System: ${systemParts.join("; ")}]`;
+      // Prepend Context for the current turn
+      if (contextStr) {
+        finalMessageText = `[Context]\n${contextStr}`;
       }
+
+      // Prepend System for the current turn
+      if (systemParts.length > 0) {
+        finalMessageText += `\n\n[System]\n${systemParts.join("\n")}`;
+      }
+
+      // Prepend User Message for the current turn
+      finalMessageText += `\n\n[User Message]\n${message}`;
+
+      finalMessageText = finalMessageText.trim();
 
       let currentMessage: string | Part[] = message;
 
