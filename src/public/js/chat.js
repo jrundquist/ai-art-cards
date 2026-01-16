@@ -26,7 +26,11 @@ export class ChatManager {
     // Thinking Mode Toggle
     this.thinkingToggleBtn = document.getElementById("thinkingToggleBtn");
     console.log("[ChatManager] Found Thinking Btn:", this.thinkingToggleBtn);
-    this.useThinking = false;
+
+    // Default to true if not set, otherwise load from storage
+    const storedThinking = localStorage.getItem("useThinking");
+    this.useThinking =
+      storedThinking === null ? true : storedThinking === "true";
 
     // Image Upload Elements
     this.fileInput = document.getElementById("chatFileInput");
@@ -64,6 +68,9 @@ export class ChatManager {
     this.trackedJobs = new Map(); // jobId -> { projectId, cardId }
 
     this.init();
+
+    // Set initial UI state for Thinking Mode
+    this.updateThinkingButtonUI();
   }
 
   init() {
@@ -130,7 +137,12 @@ export class ChatManager {
       this.useThinking
     );
     this.useThinking = !this.useThinking;
+    localStorage.setItem("useThinking", this.useThinking);
+    this.updateThinkingButtonUI();
+    console.log("[ChatManager] Thinking Mode:", this.useThinking);
+  }
 
+  updateThinkingButtonUI() {
     // Always re-fetch the button in case the DOM was updated/replaced
     const btn = document.getElementById("thinkingToggleBtn");
 
@@ -145,7 +157,6 @@ export class ChatManager {
         btn.title = "Thinking Mode (Off) - Fast speed";
       }
     }
-    console.log("[ChatManager] Thinking Mode:", this.useThinking);
   }
 
   collapseThoughts() {
