@@ -303,6 +303,27 @@ export class ChatManager {
           onToolCall: (calls) => {
             this.collapseThoughts();
 
+            // 1. Finalize or Remove pending bubble
+            const wrapper = currentAiDiv.parentNode;
+            const hasThoughts = wrapper.querySelector(".thought-process");
+            // Check if text is just specific loading indicators or empty
+            const textContent = currentAiDiv.innerText.trim();
+            const hasText =
+              textContent !== "..." &&
+              textContent !== "" &&
+              !textContent.includes("...");
+
+            if (!hasThoughts && !hasText) {
+              // Empty pending bubble? Remove it to avoid gaps
+              wrapper.remove();
+            } else {
+              // Finalize it: clear loading text if it's just dots
+              if (currentAiDiv.innerHTML.includes('class="text-loading"')) {
+                currentAiDiv.innerHTML = "";
+              }
+            }
+
+            // 2. Append Tools (as root siblings)
             for (const call of calls) {
               const toolId = this.toolCallManager.generateToolCallId();
               const toolElement = this.toolCallManager.createToolCallElement(
@@ -310,13 +331,13 @@ export class ChatManager {
                 toolId,
                 call.args
               );
-              // Insert before the text response
-              this.messagesContainer.insertBefore(
-                toolElement,
-                aiContentDiv.parentNode
-              );
-              this.messageRenderer.scrollToBottom();
+              this.messagesContainer.appendChild(toolElement);
             }
+            this.messageRenderer.scrollToBottom();
+
+            // 3. Create fresh bubble for subsequent streaming
+            currentAiDiv =
+              this.messageRenderer.createStreamingMessageDiv("model");
           },
           onToolResult: (toolName, result) => {
             const toolCallEntry =

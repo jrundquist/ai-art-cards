@@ -333,11 +333,41 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       let finished = false;
 
       while (!finished) {
+        // Use generateContentStream directly with our manually managed history
+        // This avoids SDK stripping thoughtSignature from its internal history
+        let partsToSend: any = currentMessage;
+        if (typeof currentMessage === "string") {
+          partsToSend = [{ text: currentMessage }];
+        } else if (
+          Array.isArray(currentMessage) &&
+          typeof currentMessage[0] === "string"
+        ) {
+          // Handle array of strings if that occurs
+          partsToSend = currentMessage.map((m: any) => ({ text: m }));
+        }
+
+        // Avoid duplicating initial message which is already in newHistoryItems
+        if (currentMessage !== initialUserParts) {
+          newHistoryItems.push({ role: "user", parts: partsToSend });
+        }
+
+        const fullHistory = newHistoryItems;
+
+        logger.info(
+          `[ChatService] Sending stateless request with history length: ${fullHistory.length}`
+        );
+
+        // We need to map our history format to the API format if needed,
+        // but newHistoryItems should already be compliant.
+        const result = await model.generateContentStream({
+          contents: fullHistory as any[],
+        });
+
         // Collect model response parts for this turn
         const currentModelParts: Part[] = [];
 
-        const result = await chat.sendMessageStream(currentMessage);
         const toolCalls: any[] = [];
+        let accumulatedThoughtSignature: string | undefined;
 
         for await (const chunk of result.stream) {
           // Inspect raw parts to detect "thoughts"
@@ -383,9 +413,34 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           const calls = chunk.functionCalls();
           if (calls && calls.length > 0) {
             toolCalls.push(...calls);
-            // Add function calls to history parts
-            calls.forEach((call) => {
-              currentModelParts.push({ functionCall: call });
+
+            // CRITICAL: Add raw parts (not extracted calls) to history
+            // The raw parts contain thoughtSignature which is required for Gemini 3
+            // Filter to only include parts with functionCall
+            parts.forEach((part: any) => {
+              if (part.functionCall) {
+                currentModelParts.push(part); // Preserve the whole part including thoughtSignature
+
+                // Capture thoughtSignature for the response turn
+                // DEBUG: Log Keys
+                logger.info(
+                  `[ChatService] Debug Part Keys: ${Object.keys(part).join(
+                    ", "
+                  )}`
+                );
+                logger.info(
+                  `[ChatService] Checking thoughtSignature val: ${part.thoughtSignature}`
+                );
+
+                if (part.thoughtSignature && !accumulatedThoughtSignature) {
+                  accumulatedThoughtSignature = part.thoughtSignature;
+                  logger.info(
+                    `[ChatService] Captured thoughtSignature: ${(
+                      accumulatedThoughtSignature || ""
+                    ).substring(0, 20)}...`
+                  );
+                }
+              }
             });
 
             res.write(
@@ -406,28 +461,45 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           const toolResponses = [];
           const followUpParts = [];
 
+          // CRITICAL: Use captured thoughtSignature
+          const thoughtSignature = accumulatedThoughtSignature;
+
           for (const call of toolCalls) {
             logger.info(`[ChatService] Tool Call: ${call.name}`);
+            logger.info(
+              `[ChatService] Full call object:`,
+              JSON.stringify(call, null, 2)
+            );
             const toolResult = await this.executeTool(call.name, call.args);
 
             // If the tool result contains an image, we must send it as a follow-up turn
             // because mixing FunctionResponse with inlineData in one turn is prohibited.
             if (toolResult && toolResult.inlineData) {
               const { inlineData, ...otherInfo } = toolResult;
-              toolResponses.push({
+              const responseObj: any = {
                 functionResponse: {
                   name: call.name,
                   response: { result: otherInfo || "Success" },
                 },
-              });
+              };
+              // CRITICAL: Preserve thought_signature for Gemini 3 models
+              if ((call as any).thought_signature) {
+                responseObj.thought_signature = (call as any).thought_signature;
+              }
+              toolResponses.push(responseObj);
               followUpParts.push({ inlineData });
             } else {
-              toolResponses.push({
+              const responseObj: any = {
                 functionResponse: {
                   name: call.name,
                   response: { result: toolResult },
                 },
-              });
+              };
+              // CRITICAL: Preserve thought_signature for Gemini 3 models
+              if ((call as any).thought_signature) {
+                responseObj.thought_signature = (call as any).thought_signature;
+              }
+              toolResponses.push(responseObj);
             }
 
             logger.info(
@@ -446,7 +518,46 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           currentMessage = toolResponses;
 
           // Add Tool Responses (User Role) to history
-          newHistoryItems.push({ role: "user", parts: toolResponses });
+          // CRITICAL: Include thoughtSignature in the response turn if it was in the call
+          // It must be part of the first function response part, mirroring how it was received
+          const responseParts: any[] = [...toolResponses];
+
+          if (thoughtSignature && responseParts.length > 0) {
+            logger.info(
+              `[ChatService] Attaching thoughtSignature INSIDE first functionResponse.response payload`
+            );
+
+            // Try putting it inside functionResponse.response
+            if (
+              responseParts[0].functionResponse &&
+              responseParts[0].functionResponse.response
+            ) {
+              // The response is a Struct (object). We can add properties to it.
+              responseParts[0].functionResponse.response.thoughtSignature =
+                thoughtSignature;
+              // And because strict snake_case is often safer for these hidden fields:
+              responseParts[0].functionResponse.response.thought_signature =
+                thoughtSignature;
+            }
+          }
+          newHistoryItems.push({ role: "user", parts: responseParts });
+
+          // DEBUG: Inspect SDK History
+          const history = await chat.getHistory();
+          logger.info(
+            `[ChatService] SDK History Last Item: ${JSON.stringify(
+              history[history.length - 1],
+              null,
+              2
+            )}`
+          );
+
+          // DEBUG: Log what we're sending
+          logger.info(
+            `[ChatService] Sending ${
+              toolResponses.length
+            } function responses with signature: ${!!thoughtSignature}`
+          );
 
           // If we have images for follow-up, we don't finish yet.
           if (followUpParts.length > 0) {
@@ -475,11 +586,13 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         }
       }
 
-      // Update history in conversation object manually
-      conversation.history.push(...newHistoryItems);
-
-      // Fallback: Check if SDK *did* return something useful, but rely on manual for now
-      // const newHistory = await chat.getHistory();
+      // Use SDK's built-in history tracking instead of manual tracking
+      // This ensures function calls and responses are properly paired
+      const updatedHistory = await chat.getHistory();
+      conversation.history = updatedHistory.map((item) => ({
+        role: item.role as "user" | "model",
+        parts: item.parts,
+      }));
 
       conversation.lastUpdated = Date.now();
 
