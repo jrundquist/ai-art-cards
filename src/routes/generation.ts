@@ -224,14 +224,12 @@ export function createGenerationRouter(
         logger.info(`Config: AR=${aspectRatio}, Res=${resolution}`);
 
         for (let i = 0; i < num; i++) {
-          const { buffer, mimeType } = await generator.generateImageBuffer(
-            fullPrompt,
-            {
+          const { buffer, mimeType, modelName } =
+            await generator.generateImageBuffer(fullPrompt, {
               aspectRatio,
               resolution,
               referenceImages,
-            }
-          );
+            });
 
           const savedPath = await generator.saveImage(
             buffer,
@@ -243,6 +241,14 @@ export function createGenerationRouter(
               title: card.name,
               project: project.name,
               cardId: card.id,
+              generationArgs: {
+                prompt: fullPrompt,
+                aspectRatio,
+                resolution,
+                referenceImageIds,
+                referenceImageFiles,
+                model: modelName,
+              },
             }
           );
 

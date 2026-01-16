@@ -11,6 +11,7 @@
   "main": "dist/electron.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
+    "metadata": "ts-node src/scripts/read_metadata.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "electron:dev": "tsc && electron .",

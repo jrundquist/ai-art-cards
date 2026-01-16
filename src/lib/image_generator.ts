@@ -21,7 +21,7 @@ export class ImageGenerator {
       resolution?: string;
       referenceImages?: { buffer: Buffer; mimeType: string }[];
     } = {}
-  ): Promise<{ buffer: Buffer; mimeType: string }> {
+  ): Promise<{ buffer: Buffer; mimeType: string; modelName: string }> {
     const modelName = "gemini-3-pro-image-preview";
     const aspectRatio = options.aspectRatio || "auto";
     const imageSize = options.resolution || "1K"; // Default 1K
@@ -128,7 +128,7 @@ export class ImageGenerator {
             logger.info(
               `[ImageGenerator] Image received (mime: ${mimeType}, size: ${buffer.length} bytes)`
             );
-            return { buffer, mimeType };
+            return { buffer, mimeType, modelName };
           }
         }
       }
@@ -152,6 +152,7 @@ export class ImageGenerator {
       title?: string;
       project?: string;
       cardId?: string;
+      generationArgs?: any;
     } = {}
   ): Promise<string> {
     logger.info(`[ImageGenerator] Saving image to: ${outputFolder}`);
@@ -210,11 +211,16 @@ export class ImageGenerator {
       await exiftool.write(
         finalOutputPath,
         {
-          Title: metadata.title || filename,
-          Description: prompt,
-          UserComment: `Project: ${metadata.project} | CardID: ${metadata.cardId}`,
+          "XMP-dc:Title": metadata.title || "Generated Image",
+          "XMP-dc:Description": prompt,
+          "XMP-dc:Creator": "AI Art Cards (Gemini 3 Pro)",
+          "XMP-exif:Model": metadata.generationArgs?.model || "Gemini 3 Pro",
+          // Store generation args in XMP UserComment for structured retrieval
+          "XMP:UserComment": metadata.generationArgs
+            ? JSON.stringify(metadata.generationArgs)
+            : `Project: ${metadata.project} | CardID: ${metadata.cardId}`,
           Software: "ai-art-cards",
-        },
+        } as any,
         { writeArgs: ["-overwrite_original"] }
       );
       logger.info(
