@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI, Content, Part } from "@google/generative-ai";
-import { DataService, Card } from "./data_service";
+import { GoogleGenerativeAI, Part } from "@google/generative-ai";
+import { DataService } from "./data_service";
 import { logger } from "./logger";
 import { SYSTEM_INSTRUCTION } from "./system_instruction";
 import path from "path";
@@ -66,11 +66,12 @@ export class ChatService {
     res: any, // Express Response
     parts: any[] = [],
     referenceImageFiles: any[] = [],
-    generatedImageFiles: string[] = [] // New parameter
+    generatedImageFiles: string[] = [],
+    useThinking: boolean = false
   ) {
     // 1. Load History
     logger.info(
-      `[ChatService] Sending message stream for conv: ${conversationId}`
+      `[ChatService] Sending message stream for conv: ${conversationId} (Thinking: ${useThinking})`
     );
     logger.info(`[ChatService] Received ${images.length} images`);
 
@@ -136,10 +137,20 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
     }
 
     // 3. Initialize Model with Tools
+    // Use Gemini 3 Flash for everything as requested.
+    // 'minimal' for standard chat (fast), 'high' for Thinking Mode (deep).
+    const modelName = "gemini-3-flash-preview";
+
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp",
+      model: modelName,
       systemInstruction: SYSTEM_INSTRUCTION,
       tools: this.getTools() as any,
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: useThinking ? "high" : "minimal",
+          includeThoughts: useThinking, // Only enable summaries for high thinking mode
+        },
+      } as any,
     });
 
     const chat = model.startChat({
@@ -314,12 +325,37 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         const toolCalls: any[] = [];
 
         for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            res.write(
-              `data: ${JSON.stringify({ type: "text", content: text })}\n\n`
-            );
+          // Inspect raw parts to detect "thoughts"
+          const parts = chunk.candidates?.[0]?.content?.parts || [];
+
+          for (const part of parts) {
+            // Check for thought (SDK 0.21.0+ might expose this)
+            // Use 'any' cast if TS complains about 'thought' property
+            const isThought = (part as any).thought;
+
+            if (isThought && part.text) {
+              res.write(
+                `data: ${JSON.stringify({
+                  type: "thought",
+                  content: part.text,
+                })}\n\n`
+              );
+            } else if (part.text) {
+              res.write(
+                `data: ${JSON.stringify({
+                  type: "text",
+                  content: part.text,
+                })}\n\n`
+              );
+            }
           }
+
+          // Fallback: If parts didn't yield text (or old SDK behavior), try chunk.text()
+          // But be careful not to double-send. If parts loop ran, we might be good.
+          // However, chunk.text() aggregates across parts.
+          // Let's rely on the parts loop for now as it allows distinction.
+          // If the SDK version is old, 'thought' might be undefined, so it just comes as text.
+          // That's acceptable for now.
 
           // Check for function calls
           const calls = chunk.functionCalls();

@@ -29,7 +29,8 @@ export class StreamingService {
     callbacks,
     parts = [],
     referenceImageFiles = [],
-    generatedImageFiles = []
+    generatedImageFiles = [],
+    useThinking = false
   ) {
     const response = await fetch("/api/chat/message", {
       method: "POST",
@@ -45,6 +46,7 @@ export class StreamingService {
         parts,
         referenceImageFiles: referenceImageFiles || [],
         generatedImageFiles: generatedImageFiles || [],
+        useThinking,
       }),
     });
 
@@ -113,6 +115,9 @@ export class StreamingService {
       case "title":
         this.handleTitleEvent(data, callbacks);
         break;
+      case "thought":
+        this.handleThoughtEvent(data, callbacks);
+        break;
     }
   }
 
@@ -180,6 +185,17 @@ export class StreamingService {
   handleTitleEvent(data, callbacks) {
     if (callbacks.onTitle) {
       callbacks.onTitle(data.content);
+    }
+  }
+
+  /**
+   * Handle thought event
+   * @param {object} data
+   * @param {object} callbacks
+   */
+  handleThoughtEvent(data, callbacks) {
+    if (callbacks.onThought) {
+      callbacks.onThought(data.content);
     }
   }
 }

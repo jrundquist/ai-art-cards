@@ -23,6 +23,11 @@ export class ChatManager {
     this.historyList = document.getElementById("chatHistoryList");
     this.resizeHandle = document.getElementById("chatResizeHandle");
 
+    // Thinking Mode Toggle
+    this.thinkingToggleBtn = document.getElementById("thinkingToggleBtn");
+    console.log("[ChatManager] Found Thinking Btn:", this.thinkingToggleBtn);
+    this.useThinking = false;
+
     // Image Upload Elements
     this.fileInput = document.getElementById("chatFileInput");
     this.uploadBtn = document.getElementById("chatUploadBtn");
@@ -63,6 +68,17 @@ export class ChatManager {
 
   init() {
     // Event Listeners
+    // Use delegation for robustness
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("#thinkingToggleBtn");
+      if (btn) {
+        console.log("Thinking Btn Clicked (Delegated)!");
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleThinkingMode();
+      }
+    });
+
     this.toggleBtn.addEventListener("click", () => this.toggleSidebar());
     this.closeBtn.addEventListener("click", () => this.toggleSidebar());
     this.newChatBtn.addEventListener("click", () => this.startNewChat());
@@ -106,6 +122,30 @@ export class ChatManager {
 
   toggleSidebar() {
     this.uiController.toggleSidebar();
+  }
+
+  toggleThinkingMode() {
+    console.log(
+      "[ChatManager] toggleThinkingMode called. Current:",
+      this.useThinking
+    );
+    this.useThinking = !this.useThinking;
+
+    // Always re-fetch the button in case the DOM was updated/replaced
+    const btn = document.getElementById("thinkingToggleBtn");
+
+    if (btn) {
+      if (this.useThinking) {
+        btn.classList.add("active");
+        btn.setAttribute("aria-pressed", "true");
+        btn.title = "Thinking Mode (On) - High reasoning";
+      } else {
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+        btn.title = "Thinking Mode (Off) - Fast speed";
+      }
+    }
+    console.log("[ChatManager] Thinking Mode:", this.useThinking);
   }
 
   adjustInputHeight() {
@@ -240,6 +280,10 @@ export class ChatManager {
               accumulatedMarkdown
             );
           },
+          onThought: (content) => {
+            console.log("[ChatManager] onThought called");
+            this.messageRenderer.appendThought(currentAiDiv, content);
+          },
           onToolCall: (calls) => {
             for (const call of calls) {
               const toolId = this.toolCallManager.generateToolCallId();
@@ -300,7 +344,9 @@ export class ChatManager {
           },
         },
         [], // parts
-        referencesToSend
+        referencesToSend,
+        [], // generatedImageFiles
+        this.useThinking
       );
     } catch (e) {
       this.messageRenderer.appendError(aiContentDiv, e.message);
@@ -737,7 +783,8 @@ export class ChatManager {
         },
         parts, // PASS THE PARTS HERE
         referencesToSend, // PASS REFERENCES HERE
-        generatedImageFiles // PASS GENERATED FILES HERE
+        generatedImageFiles, // PASS GENERATED FILES HERE
+        false // useThinking (System turns usually don't need thinking)
       );
     } catch (e) {
       this.messageRenderer.appendError(currentAiDiv, e.message);

@@ -58,6 +58,29 @@
 /* Chat Header */
 .chat-header {
   padding: 16px;
+
+  /* Thinking Process Styles */
+  .thought-process {
+    margin: 8px 16px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    background: rgba(var(--text-muted-rgb), 0.05);
+    font-size: 0.9em;
+  }
+  .thought-process summary {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 500;
+    user-select: none;
+  }
+  .thought-content {
+    padding: 0 12px 12px 12px;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    font-family: monospace;
+    line-height: 1.4;
+  }
   border-bottom: var(--glass-border);
   display: flex;
   justify-content: space-between;
@@ -556,6 +579,20 @@
 }
 
 /* Chat History Images */
+.icon-btn-sm.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.5);
+  border-color: var(--primary);
+}
+
+/* Ensure secondary buttons also get the active style */
+.icon-btn-sm.secondary.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
 .chat-message-image {
   max-width: 200px;
   max-height: 200px;

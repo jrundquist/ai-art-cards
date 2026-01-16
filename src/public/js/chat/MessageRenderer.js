@@ -273,6 +273,32 @@ export class MessageRenderer {
   }
 
   /**
+   * Append or update a thought process block
+   * @param {HTMLElement} aiContentDiv - The main AI message content div (text)
+   * @param {string} text - The thought text to append
+   * @returns {HTMLElement} The thought content element
+   */
+  appendThought(aiContentDiv, text) {
+    const wrapper = aiContentDiv.parentNode;
+    let details = wrapper.querySelector(".thought-process");
+
+    if (!details) {
+      details = document.createElement("details");
+      details.className = "thought-process";
+      details.open = true;
+      details.innerHTML =
+        '<summary>Thinking Process</summary><div class="thought-content"></div>';
+      // Insert before the text content
+      wrapper.insertBefore(details, aiContentDiv);
+    }
+
+    const contentDiv = details.querySelector(".thought-content");
+    contentDiv.innerHTML += this.renderMarkdown(text);
+    this.scrollToBottom();
+    return contentDiv;
+  }
+
+  /**
    * Update streaming content with accumulated markdown
    * @param {HTMLElement} targetElement - Content div to update
    * @param {string} accumulatedMarkdown - Current markdown content
