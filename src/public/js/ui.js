@@ -8,6 +8,7 @@ export const dom = {
   cardList: document.getElementById("cardList"),
   searchInput: document.getElementById("cardSearchInput"),
   newCardBtn: document.getElementById("newCardBtn"),
+  newCardBtnSmall: document.getElementById("newCardBtnSmall"),
   currentCardTitle: document.getElementById("currentCardTitle"),
   editorArea: document.getElementById("editorArea"),
   inputs: {
@@ -100,7 +101,36 @@ export const dom = {
   projectSelectionView: document.getElementById("projectSelectionView"),
   projectGridContainer: document.getElementById("projectGridContainer"),
   toastContainer: document.getElementById("toast-container"),
+  sidebarSearchWrapper: document.querySelector(".sidebar-search-wrapper"),
 };
+
+export function toggleSidebar(enabled) {
+  if (dom.sidebarSearchWrapper) {
+    if (enabled) {
+      dom.sidebarSearchWrapper.classList.remove("disabled-area");
+    } else {
+      dom.sidebarSearchWrapper.classList.add("disabled-area");
+    }
+  }
+
+  if (dom.newCardBtn) {
+    dom.newCardBtn.disabled = !enabled;
+    if (enabled) {
+      dom.newCardBtn.classList.remove("disabled-btn");
+    } else {
+      dom.newCardBtn.classList.add("disabled-btn");
+    }
+  }
+
+  if (dom.newCardBtnSmall) {
+    dom.newCardBtnSmall.disabled = !enabled;
+    if (enabled) {
+      dom.newCardBtnSmall.classList.remove("disabled-btn");
+    } else {
+      dom.newCardBtnSmall.classList.add("disabled-btn");
+    }
+  }
+}
 
 export function createToast(msg, type = "info", duration = 5000, icon = null) {
   const div = document.createElement("div");

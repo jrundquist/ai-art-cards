@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { dom, showStatus, updateStatusBar } from "./ui.js";
+import { dom, showStatus, toggleSidebar } from "./ui.js";
 import * as api from "./api.js";
 import * as projectCtrl from "./controllers/projectController.js";
 import * as cardCtrl from "./controllers/cardController.js";
@@ -69,6 +69,7 @@ async function init() {
   } else {
     // Global mode: still load conversations
     chatManager.loadConversationList();
+    toggleSidebar(false);
   }
   dom.projectSelect.addEventListener("change", async () => {
     projectCtrl.onProjectSelect(true);
@@ -295,6 +296,9 @@ async function init() {
   }
 
   dom.newCardBtn.addEventListener("click", cardCtrl.createNewCard);
+  if (dom.newCardBtnSmall) {
+    dom.newCardBtnSmall.addEventListener("click", cardCtrl.createNewCard);
+  }
   if (dom.btns.newCardHeader) {
     dom.btns.newCardHeader.addEventListener("click", cardCtrl.createNewCard);
   }

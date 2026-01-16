@@ -1,5 +1,11 @@
 import { state } from "../state.js";
-import { dom, showStatus, confirmAction, updateStatusCenter } from "../ui.js";
+import {
+  dom,
+  showStatus,
+  confirmAction,
+  updateStatusCenter,
+  toggleSidebar,
+} from "../ui.js";
 import * as api from "../api.js";
 import { loadCards } from "./cardController.js";
 
@@ -322,10 +328,12 @@ export async function onProjectSelect(updateHistory = true) {
     if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Data Folder";
     const projectNameSpan = document.getElementById("projectName");
     if (projectNameSpan) projectNameSpan.textContent = "";
+    toggleSidebar(false);
     return;
   }
 
   dom.projectSelectionView.classList.add("hidden");
+  toggleSidebar(true);
   state.currentProject = state.projects.find((p) => p.id === pid);
   if (dom.openFolderBtn) dom.openFolderBtn.title = "Open Project Folder";
 

@@ -57,3 +57,18 @@ body {
 .hidden {
   display: none !important;
 }
+
+.disabled-area {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.5);
+}
+
+.disabled-btn {
+  opacity: 0.5;
+  pointer-events: none;
+  background-color: var(--surface-2) !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
