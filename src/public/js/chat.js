@@ -596,15 +596,9 @@ export class ChatManager {
 
     try {
       // Prepare multi-modal feedback turn
-      const parts = [
-        {
-          text: `[System: Generation Job ${jobId} completed successfully. ${
-            results?.length || 0
-          } images generated. Filenames: ${results
-            ?.map((r) => r.split("/").pop())
-            .join(", ")}]`,
-        },
-      ];
+      // Prepare multi-modal feedback turn
+      // [MODIFIED] Images First
+      const parts = [];
 
       // Fetch and attach images as inlineData
       if (results && results.length > 0) {
@@ -629,6 +623,15 @@ export class ChatManager {
           }
         }
       }
+
+      // Add Text Part Last
+      parts.push({
+        text: `[System: Generation Job ${jobId} completed successfully. ${
+          results?.length || 0
+        } images generated. Filenames: ${results
+          ?.map((r) => r.split("/").pop())
+          .join(", ")}]`,
+      });
 
       // Send the feedback turn
       await this.sendSystemTurn(parts);

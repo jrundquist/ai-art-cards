@@ -263,7 +263,8 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       if (parts && parts.length > 0) {
         currentMessage = parts as Part[];
       } else if (imageParts.length > 0) {
-        currentMessage = [{ text: finalMessageText }, ...imageParts];
+        // [MODIFIED] Images First per Best Practices
+        currentMessage = [...imageParts, { text: finalMessageText }];
       } else {
         currentMessage = finalMessageText;
       }
