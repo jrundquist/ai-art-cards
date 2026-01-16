@@ -14,18 +14,23 @@ This document outlines potential future enhancements and features that could be 
 - Useful for iterating on existing artwork or matching specific styles
 
 ### Enhanced Generation Controls
-- **Negative prompts**: Specify what you don't want in the image
-- **Safety settings configuration**: Adjust content filtering levels
-- **Model selection**: Choose between different Imagen versions (2, 3, etc.)
-- **Temperature/creativity controls**: Fine-tune randomness and creativity
-- **Seed control**: Reproduce specific generations exactly
 - **Batch processing**: Regenerate all cards in a project with one click
 
 ### Smart Generation
 - **Auto-suggest prompts**: AI suggests improvements to your prompts
-- **Style transfer**: Apply the style of one card to another
-- **Prompt templates**: Pre-built templates for common card types
 - **Random variations**: "Generate 5 random variations" with automatic prompt tweaking
+
+---
+
+## ✅ Completed / In Progress
+
+### Recent Additions (v1.3)
+- **Favorites System**: Mark images as favorites
+- **Sort Options**: Sort cards by Date, Name, or Image Count
+- **Gallery Download**: Export visible images as ZIP
+- **Dark/Light Theme**: User preference toggle
+- **AI Art Director**: Enhanced chat assistant with tool calling
+- **AI Art Director**: Thinking mode.
 
 ---
 
@@ -41,12 +46,10 @@ This document outlines potential future enhancements and features that could be 
 ### Search & Discovery
 - **Full-text search**: Search within prompt content, not just names
 - **Filter by metadata**: Date range, aspect ratio, resolution
-- **Sort options**: By date created, name, number of images, favorites
 - **Advanced search**: Combine multiple filters
 - **Visual similarity search**: "Find cards with similar images to this one"
 
 ### Comparison Tools
-- **Side-by-side comparison**: Compare 2-4 images simultaneously
 - **A/B testing mode**: Vote on preferred versions
 - **Version tracking**: Track iterations (v1, v2, v3) of the same card
 - **Prompt history**: See all previous prompts used for a card
@@ -57,7 +60,8 @@ This document outlines potential future enhancements and features that could be 
 ## 📤 Export & Sharing
 
 ### Export Capabilities
-- **Complete project export**: Package all prompts + images for sharing
+- **Complete project export**: Package all prompts + images for sharing (Partial: Gallery Download added)
+- **Print-ready formats**: Export at specific DPI with bleed and crop marks
 - **Print-ready formats**: Export at specific DPI with bleed and crop marks
 - **Contact sheets**: Generate proof sheets showing all cards
 - **Metadata export**: Export prompts and settings as CSV/JSON
@@ -110,7 +114,7 @@ This document outlines potential future enhancements and features that could be 
 ### Image Review Flow
 - **Approval workflow**: Mark images as "draft" → "review" → "approved"
 - **Rejection reasons**: Tag why an image was archived
-- **Rating system**: 5-star rating instead of just favorites
+- **Rating system**: (Completed: Favorites)
 - **Quick review mode**: Swipe through all images rapidly
 - **Batch approve/reject**: Process multiple images at once
 
@@ -127,7 +131,7 @@ This document outlines potential future enhancements and features that could be 
 ### Interface Enhancements
 - **Grid/List view toggle**: Switch gallery between grid and list
 - **Customizable layouts**: Drag and drop to rearrange panels
-- **Dark/Light theme toggle**: User preference for theme
+- **Dark/Light theme toggle**: (Completed)
 - **Zoom controls**: Better image zoom and pan
 - **Fullscreen gallery**: Immersive slideshow mode
 - **Keyboard-first navigation**: More shortcuts for power users
@@ -224,7 +228,7 @@ This document outlines potential future enhancements and features that could be 
 - [ ] CSV/JSON metadata export
 - [ ] Batch rename on export
 - [ ] Custom tags for cards
-- [ ] Sort options (by date, name, etc.)
+- [x] Sort options (by date, name, etc.)
 - [ ] Version tracking for cards
 - [ ] Generation history view
 

@@ -24,17 +24,15 @@ A powerful, local web and desktop application for generating and managing consis
     -   **Gallery Download**: Download all currently visible images as a ZIP file (respects filters).
     -   **Search**: Quickly find cards by name using the search bar.
 
-### 🤖 AI Assistant (NEW!)
--   **Intelligent Chat Interface**: A powerful AI assistant integrated directly into the app.
--   **Natural Language Commands**: Control the app through conversation:
-    -   "Create a card for The Hermit with mystical vibes"
-    -   "Generate 5 variations of the Dragon card"
-    -   "List all my cards in this project"
-    -   "Show me cards with the word 'forest' in the prompt"
--   **Tool Calling**: The AI can directly interact with your projects, cards, and generation settings.
--   **Context-Aware**: Automatically knows your current project and selected card.
--   **Multi-Turn Conversations**: Chat history is saved per project for ongoing workflows.
--   **Visual Tool Feedback**: See exactly what the AI is doing (searching, creating cards, generating images).
+### 🤖 AI Art Director Assistant
+-   **Intelligent Chat Interface**: Your personal **Art Director** and creative partner.
+-   **Capabilities**:
+    -   Brainstorm concepts and card ideas.
+    -   Manage your projects (create cards, change settings).
+    -   Generate art with cost-awareness (defaults to single images).
+    -   Answer questions about how to use the app.
+-   **Natural Language**: Just talk naturally (e.g., "Make a card for a Cyberpunk city and generate a concept").
+-   **[📖 Read the Full User Guide](docs/USER_GUIDE.md)** for detailed workflows.
 
 ![AI Chat Assistant](docs/screenshots/ai-chat.png)
 *AI Assistant helping you manage cards and generate art through natural conversation*
