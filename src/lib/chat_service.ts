@@ -166,6 +166,15 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       const imageParts: Part[] = [];
       const imageIds: string[] = [];
 
+      let isClientDisconnected = false;
+      res.on("close", () => {
+        logger.info("[ChatService] Client disconnected, aborting stream.");
+        // We set a flag. We can't easily abort the `model.generateContentStream`
+        // unless we use an AbortSignal if the SDK supports it (Gemini Node SDK might not yet fully).
+        // But we can stop processing the *stream iterator* and stop saving.
+        isClientDisconnected = true;
+      });
+
       for (const img of images) {
         const buffer = Buffer.from(img.data, "base64");
         // Pass projectId to save in project cache
@@ -339,23 +348,11 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       let finished = false;
 
       while (!finished) {
-        // Use generateContentStream directly with our manually managed history
-        // This avoids SDK stripping thoughtSignature from its internal history
-        let partsToSend: any = currentMessage;
-        if (typeof currentMessage === "string") {
-          partsToSend = [{ text: currentMessage }];
-        } else if (
-          Array.isArray(currentMessage) &&
-          typeof currentMessage[0] === "string"
-        ) {
-          // Handle array of strings if that occurs
-          partsToSend = currentMessage.map((m: any) => ({ text: m }));
-        }
+        if (isClientDisconnected) break;
 
-        // Avoid duplicating initial message which is already in accumulatedHistory
-        if (currentMessage !== initialUserParts) {
-          accumulatedHistory.push({ role: "user", parts: partsToSend });
-        }
+        // REMOVED: Redundant block that caused duplication of text messages.
+        // The initial message is already added to accumulatedHistory before the loop.
+        // Subsequent messages (tool outputs, etc.) are added to accumulatedHistory explicitly.
 
         const fullHistory = accumulatedHistory;
 
@@ -376,6 +373,8 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         let accumulatedThoughtSignature: string | undefined;
 
         for await (const chunk of result.stream) {
+          if (isClientDisconnected) break;
+
           // Inspect raw parts to detect "thoughts"
           const parts = chunk.candidates?.[0]?.content?.parts || [];
 

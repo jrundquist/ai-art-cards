@@ -32,37 +32,63 @@ export class StreamingService {
     generatedImageFiles = [],
     useThinking = false
   ) {
-    const response = await fetch("/api/chat/message", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        projectId,
-        conversationId,
-        message,
-        activeCardId,
-        images,
-        parts,
-        referenceImageFiles: referenceImageFiles || [],
-        generatedImageFiles: generatedImageFiles || [],
-        useThinking,
-      }),
-    });
+    this.abortController = new AbortController();
 
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.statusText}`);
+    try {
+      const response = await fetch("/api/chat/message", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId,
+          conversationId,
+          message,
+          activeCardId,
+          images,
+          parts,
+          referenceImageFiles: referenceImageFiles || [],
+          generatedImageFiles: generatedImageFiles || [],
+          useThinking,
+        }),
+        signal: this.abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        await this.parseSSEChunk(chunk, callbacks);
+      }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        console.log("Stream aborted by user");
+        if (callbacks.onError) {
+          // We might want to treating abort as a special case or just log it
+          // For now, let's not call onError so we don't show a red error box for a purposeful action
+          // unless we want a "Stopped" message.
+          // Actually, let's allow the caller to handle the UI state update for abort.
+        }
+      } else {
+        throw error;
+      }
+    } finally {
+      this.abortController = null;
     }
+  }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      await this.parseSSEChunk(chunk, callbacks);
+  abort() {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
     }
   }
 

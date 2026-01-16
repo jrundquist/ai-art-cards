@@ -473,6 +473,13 @@
   transform: scale(1.05);
 }
 
+.primary-btn-sm.btn-stop {
+  background: var(--text-dim) !important;
+}
+.primary-btn-sm.btn-stop:hover {
+  background: var(--text-muted) !important;
+}
+
 /* Chat Toggle Button */
 .glow-effect {
   position: relative;

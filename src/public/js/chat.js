@@ -96,7 +96,12 @@ export class ChatManager {
     this.input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        this.sendMessage();
+        // If generating, Enter could potentially stop? Or just do nothing?
+        // Standard chat UX: Enter sends. If generating, maybe ignore or queue.
+        // Let's keep it simple: only send if not generating.
+        if (!this.isGenerating) {
+          this.sendMessage();
+        }
       }
     });
 
@@ -169,6 +174,21 @@ export class ChatManager {
     }
   }
 
+  updateSendButtonState() {
+    const icon = this.sendBtn.querySelector(".material-icons");
+    if (this.isGenerating) {
+      icon.textContent = "stop_circle"; // or 'stop'
+      this.sendBtn.title = "Stop Generation";
+      this.sendBtn.classList.add("btn-stop"); // Optional styling hook
+      this.sendBtn.disabled = false; // Make sure it's clickable
+    } else {
+      icon.textContent = "send";
+      this.sendBtn.title = "Send Message";
+      this.sendBtn.classList.remove("btn-stop");
+      this.sendBtn.disabled = false;
+    }
+  }
+
   adjustInputHeight() {
     this.input.style.height = "auto";
     this.input.style.height = this.input.scrollHeight + "px";
@@ -209,7 +229,18 @@ export class ChatManager {
   }
 
   async sendMessage() {
-    if (this.isGenerating) return;
+    if (this.isGenerating) {
+      // Stop Button Logic
+      this.streamingService.abort();
+      // UI reset will happen in finally block or manual reset here if needed
+      // but 'abort' throws AbortError which is caught in streamingService
+      // We need to manually update UI here because streamingService swallows the AbortError (mostly)
+      // or re-throws.
+      this.messageRenderer.appendMessage("system", "Response stopped by user.");
+      this.isGenerating = false;
+      this.updateSendButtonState();
+      return;
+    }
 
     const text = this.input.value.trim();
     if (!text) return;
@@ -222,8 +253,9 @@ export class ChatManager {
 
     this.input.value = "";
     this.adjustInputHeight();
+    this.adjustInputHeight();
     this.isGenerating = true;
-    this.sendBtn.disabled = true;
+    this.updateSendButtonState();
 
     const selectedImages = this.inputManager.getSelectedImages();
     const selectedReferences = this.inputManager.getSelectedReferences();
@@ -401,8 +433,13 @@ export class ChatManager {
     } catch (e) {
       this.messageRenderer.appendError(aiContentDiv, e.message);
     } finally {
-      this.isGenerating = false;
-      this.sendBtn.disabled = false;
+      // Check if we were aborted (isGenerating might have been set to false by stop click)
+      // If we are still "generating" here, it means we finished naturally (or error).
+      if (this.isGenerating) {
+        this.isGenerating = false;
+        this.updateSendButtonState();
+      }
+      this.sendBtn.disabled = false; // Ensure enabled in any case
 
       // If no markdown was accumulated and we have a placeholder, remove it
       if (
