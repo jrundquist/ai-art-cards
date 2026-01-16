@@ -42,7 +42,8 @@ export function createChatRouter(
         images || [], // Pass images if present
         res,
         parts || [],
-        req.body.referenceImageFiles || []
+        req.body.referenceImageFiles || [],
+        req.body.generatedImageFiles || [] // New: generated results to attach
       );
     } catch (e: any) {
       logger.error("[Chat API] Error processing message:", e);

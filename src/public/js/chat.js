@@ -596,45 +596,21 @@ export class ChatManager {
 
     try {
       // Prepare multi-modal feedback turn
-      // Prepare multi-modal feedback turn
-      // [MODIFIED] Images First
-      const parts = [];
+      // Pass filenames to server to handle file reading and attachment.
+      // The server ensures images are inserted before the text part.
 
-      // Fetch and attach images as inlineData
-      if (results && results.length > 0) {
-        for (const relPath of results) {
-          try {
-            const base64Data = await this.urlToBase64(relPath);
-            const ext = relPath.split(".").pop().toLowerCase();
-            const mimeType =
-              ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+      const parts = [
+        {
+          text: `[System: Generation Job ${jobId} completed successfully. ${
+            results?.length || 0
+          } images generated. Filenames: ${results
+            ?.map((r) => r.split("/").pop())
+            .join(", ")}]`,
+        },
+      ];
 
-            parts.push({
-              inlineData: {
-                mimeType,
-                data: base64Data,
-              },
-            });
-          } catch (err) {
-            console.warn(
-              `[ChatManager] Failed to fetch image for LLM feedback: ${relPath}`,
-              err
-            );
-          }
-        }
-      }
-
-      // Add Text Part Last
-      parts.push({
-        text: `[System: Generation Job ${jobId} completed successfully. ${
-          results?.length || 0
-        } images generated. Filenames: ${results
-          ?.map((r) => r.split("/").pop())
-          .join(", ")}]`,
-      });
-
-      // Send the feedback turn
-      await this.sendSystemTurn(parts);
+      // Send the feedback turn with generated files reference
+      await this.sendSystemTurn(parts, results);
     } catch (e) {
       console.error("[ChatManager] Error sending generation feedback:", e);
     }
@@ -656,7 +632,7 @@ export class ChatManager {
     });
   }
 
-  async sendSystemTurn(parts) {
+  async sendSystemTurn(parts, generatedImageFiles = []) {
     if (this.isGenerating) {
       // If already generating, we might want to queue or wait?
       // For now, let's just proceed as it's a priority "turn"
@@ -760,7 +736,8 @@ export class ChatManager {
           },
         },
         parts, // PASS THE PARTS HERE
-        referencesToSend // PASS REFERENCES HERE
+        referencesToSend, // PASS REFERENCES HERE
+        generatedImageFiles // PASS GENERATED FILES HERE
       );
     } catch (e) {
       this.messageRenderer.appendError(currentAiDiv, e.message);

@@ -28,7 +28,8 @@ export class StreamingService {
     images = [],
     callbacks,
     parts = [],
-    referenceImageFiles = []
+    referenceImageFiles = [],
+    generatedImageFiles = []
   ) {
     const response = await fetch("/api/chat/message", {
       method: "POST",
@@ -43,6 +44,7 @@ export class StreamingService {
         images,
         parts,
         referenceImageFiles: referenceImageFiles || [],
+        generatedImageFiles: generatedImageFiles || [],
       }),
     });
 

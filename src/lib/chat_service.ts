@@ -65,7 +65,8 @@ export class ChatService {
     images: { mimeType: string; data: string }[] = [],
     res: any, // Express Response
     parts: any[] = [],
-    referenceImageFiles: any[] = []
+    referenceImageFiles: any[] = [],
+    generatedImageFiles: string[] = [] // New parameter
   ) {
     // 1. Load History
     logger.info(
@@ -170,6 +171,42 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             data: img.data,
           },
         });
+      }
+
+      // Process Generated Images (System Feedback)
+      if (generatedImageFiles && generatedImageFiles.length > 0) {
+        logger.info(
+          `[ChatService] Processing ${generatedImageFiles.length} generated images for feedback`
+        );
+        for (const relPath of generatedImageFiles) {
+          try {
+            // relPath is relative to the root, e.g., "data/projects/..." or just relative path?
+            // The paths in job results seem to be relative to CWD usually, need to check how they are stored.
+            // Assuming they are relative to CWD for now as per previous usages.
+            // IMPORTANT: If they start with /, remove it.
+            const cleanPath = relPath.startsWith("/")
+              ? relPath.substring(1)
+              : relPath;
+            const fullPath = path.resolve(process.cwd(), cleanPath);
+
+            const buffer = await fs.readFile(fullPath);
+            const ext = path.extname(fullPath).toLowerCase();
+            const mimeType =
+              ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+
+            imageParts.push({
+              inlineData: {
+                mimeType,
+                data: buffer.toString("base64"),
+              },
+            });
+            logger.info(`[ChatService] Attached generated result: ${relPath}`);
+          } catch (e: any) {
+            logger.error(
+              `[ChatService] Failed to load generated image ${relPath}: ${e.message}`
+            );
+          }
+        }
       }
 
       // Inject system context about image IDs if present
