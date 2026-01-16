@@ -60,13 +60,24 @@ export class StreamingService {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        await this.parseSSEChunk(chunk, callbacks);
+        buffer += chunk;
+
+        // Split by SSE delimiter
+        const parts = buffer.split("\n\n");
+        // The last part is either an incomplete line or an empty string (if buffer ended with \n\n)
+        buffer = parts.pop();
+
+        for (const part of parts) {
+          if (part.trim() === "") continue;
+          await this.parseSSEChunk(part, callbacks);
+        }
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -93,28 +104,23 @@ export class StreamingService {
   }
 
   /**
-   * Parse SSE chunk and dispatch to appropriate handlers
-   * @param {string} chunk - Raw SSE chunk
+   * Parse a complete SSE chunk (one event) and dispatch
+   * @param {string} line - Raw SSE line (without trailing \n\n)
    * @param {object} callbacks - Event handlers
    * @returns {Promise<void>}
    */
-  async parseSSEChunk(chunk, callbacks) {
-    // Parse SSE format: "data: {json}\n\n"
-    const lines = chunk.split("\n\n");
+  async parseSSEChunk(line, callbacks) {
+    if (!line.startsWith("data: ")) return;
+    const payload = line.substring(6);
+    if (payload === "[DONE]") return;
 
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const payload = line.substring(6);
-      if (payload === "[DONE]") break;
-
-      try {
-        const rawData = JSON.parse(payload);
-        // Deep clone to prevent any listener from mutating shared state
-        const data = JSON.parse(JSON.stringify(rawData));
-        await this.handleEvent(data, callbacks);
-      } catch (e) {
-        console.error("Failed to parse SSE line", line, e);
-      }
+    try {
+      const rawData = JSON.parse(payload);
+      // Deep clone to prevent any listener from mutating shared state
+      const data = JSON.parse(JSON.stringify(rawData));
+      await this.handleEvent(data, callbacks);
+    } catch (e) {
+      console.error("Failed to parse SSE line", line, e);
     }
   }
 

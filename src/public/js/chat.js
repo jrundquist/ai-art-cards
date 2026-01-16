@@ -153,6 +153,11 @@ export class ChatManager {
     document.addEventListener("generation-completed", (e) =>
       this.handleGenerationCompleted(e.detail)
     );
+
+    // Listen for generation retry (Generate Again)
+    document.addEventListener("retry-generation", (e) => {
+      this.handleRetryGeneration(e.detail.args);
+    });
   }
 
   toggleSidebar() {
@@ -280,12 +285,6 @@ export class ChatManager {
     const text = this.input.value.trim();
     if (!text) return;
 
-    // Guard removed to allow global chat
-    // if (!state.currentProject) {
-    //   showStatus("Please select a project first", "error");
-    //   return;
-    // }
-
     this.input.value = "";
     this.adjustInputHeight();
     this.adjustInputHeight();
@@ -372,7 +371,6 @@ export class ChatManager {
             );
           },
           onThought: (content) => {
-            console.log("[ChatManager] onThought called");
             this.currentThoughtContent = this.messageRenderer.appendThought(
               currentAiDiv,
               content
@@ -403,6 +401,22 @@ export class ChatManager {
 
             // 2. Append Tools (as root siblings)
             for (const call of calls) {
+              // FIX: Inject references if model forgot them (Live Robustness)
+              if (
+                call.name === "generateImage" &&
+                referencesToSend.length > 0
+              ) {
+                if (
+                  !call.args.referenceImageFiles ||
+                  call.args.referenceImageFiles.length === 0
+                ) {
+                  call.args = {
+                    ...call.args,
+                    referenceImageFiles: [...referencesToSend],
+                  };
+                }
+              }
+
               const toolId = this.toolCallManager.generateToolCallId();
               const toolElement = this.toolCallManager.createToolCallElement(
                 call.name,
@@ -443,6 +457,17 @@ export class ChatManager {
           onSpecialAction: async (action) => {
             if (action.clientAction === "generateImage") {
               const actionClone = JSON.parse(JSON.stringify(action));
+
+              // Inject references if model forgot them (Execution Robustness)
+              if (referencesToSend.length > 0) {
+                if (
+                  !actionClone.referenceImageFiles ||
+                  actionClone.referenceImageFiles.length === 0
+                ) {
+                  actionClone.referenceImageFiles = [...referencesToSend];
+                }
+              }
+
               const jobId = await generateArt(actionClone);
 
               if (jobId && action.notifyOnCompletion) {
@@ -527,35 +552,40 @@ export class ChatManager {
 
     this.messagesContainer.innerHTML = "";
 
-    // Helper to count references in text to avoid duplication
-    const countReferences = (text) => {
+    // Helper to extract references from text
+    const extractReferences = (text) => {
       const refTagMarker =
         "Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):";
 
-      if (!text || !text.includes(refTagMarker)) return 0;
+      if (!text || !text.includes(refTagMarker)) return [];
 
       try {
         const markerIndex = text.indexOf(refTagMarker);
         const jsonStartIndex = markerIndex + refTagMarker.length;
+        // Search for the closing bracket of the array
+        const openBracketIndex = text.indexOf("[", jsonStartIndex);
+        if (openBracketIndex === -1) return [];
+
+        // Simple brace counting or just look for the last ]] as per heuristic?
+        // Let's use the JSON.parse approach on the substring if we can guess the end.
+        // The previous logic used lastIndexOf("]]").
         const endIndex = text.lastIndexOf("]]");
 
-        if (endIndex > jsonStartIndex) {
-          // We extract strictly the JSON part.
-          // Note: In MessageRenderer we did a more robust lastIndexOf("]]") relative to the end.
-          // Here, for counting, simply parsing the array is enough.
-          const jsonStr = text.substring(jsonStartIndex, endIndex + 1);
+        if (endIndex > openBracketIndex) {
+          const jsonStr = text.substring(openBracketIndex, endIndex + 1);
           const refs = JSON.parse(jsonStr);
-          return Array.isArray(refs) ? refs.length : 0;
+          return Array.isArray(refs) ? refs : [];
         }
       } catch (e) {
         // ignore
       }
-      return 0;
+      return [];
     };
 
     // Render history
     data.history.forEach((msg) => {
       const role = msg.role;
+      let currentReferences = []; // References found in this message turn
 
       // Skip rendering system-only turns, BUT start showing messages with Reference Metadata
       const shouldHide = msg.parts.some((part) => {
@@ -567,7 +597,8 @@ export class ChatManager {
         // We assume valid user messages might contain [System: Referenced Images...] at the end.
         if (
           text.trim().startsWith("[System:") &&
-          !text.includes("Referenced Images")
+          !text.includes("Referenced Images") &&
+          !text.includes("Generation Job") // Show generation feedback
         ) {
           return true;
         }
@@ -584,13 +615,18 @@ export class ChatManager {
 
         msg.parts.forEach((p) => {
           const t = p.text || (typeof p === "string" ? p : "");
-          totalReferences += countReferences(t);
+          const refs = extractReferences(t);
+          if (refs.length > 0)
+            currentReferences = [...currentReferences, ...refs];
+
+          totalReferences += refs.length;
           if (p.inlineData) {
             totalInlineImages++;
           }
         });
 
         // We want to skip the LAST 'totalReferences' inline images, as ChatService appends them after uploads.
+
         // The indices to skip are: [totalInlineImages - totalReferences, ..., totalInlineImages - 1]
         // Example: 1 Upload, 1 Ref. Total=2. Ref=1. Skip index 1 (2-1). Keep index 0.
         // Example: 2 Uploads, 1 Ref. Total=3. Ref=1. Skip index 2 (3-1). Keep 0, 1.
@@ -623,6 +659,24 @@ export class ChatManager {
             // Render non-text part (tool call/response/image)
             if (part.functionCall) {
               const call = part.functionCall;
+
+              // FIX: Inject references from context if missing in args (History Restoration)
+              if (
+                call.name === "generateImage" &&
+                currentReferences.length > 0
+              ) {
+                if (
+                  !call.args.referenceImageFiles ||
+                  call.args.referenceImageFiles.length === 0
+                ) {
+                  // Clone args to avoid mutating the original history object in memory if that matters (though reloading refreshes it)
+                  call.args = {
+                    ...call.args,
+                    referenceImageFiles: [...currentReferences],
+                  };
+                }
+              }
+
               const toolElement =
                 this.toolCallManager.createCompletedToolElement(
                   call.name,
@@ -650,8 +704,13 @@ export class ChatManager {
                 this.toolCallManager.updateToolResult(
                   pendingDiv,
                   toolName,
-                  {},
+                  {}, // ToolCallManager will recover args from data-args
                   result
+                );
+              } else {
+                console.warn(
+                  "[ChatManager] history loop: Pending tool div NOT found for response:",
+                  toolName
                 );
               }
             } else if (part.inlineData) {
@@ -754,6 +813,67 @@ export class ChatManager {
     }
   }
 
+  async handleRetryGeneration(args) {
+    if (this.isGenerating) {
+      showStatus("Already generating...", "warning");
+      return;
+    }
+
+    try {
+      console.log("[ChatManager] Handle Retry Generation. Args:", args);
+      if (args && args.referenceImageFiles) {
+        console.log(
+          "[ChatManager] Reference Files in args:",
+          args.referenceImageFiles
+        );
+      } else {
+        console.warn("[ChatManager] No referenceImageFiles in args!");
+      }
+
+      this.isGenerating = true;
+      this.updateSendButtonState();
+
+      // We use the exact args from the previous tool call
+      // Ensure we have 'notifyOnCompletion' if needed by backend, though args usually has it
+      if (args.notifyOnCompletion === undefined) {
+        args.notifyOnCompletion = true;
+      }
+
+      // Feedback in chat
+      this.messageRenderer.appendMessage(
+        "system",
+        `🔄 Retrying generation with same parameters...`
+      );
+
+      const jobId = await generateArt(args);
+
+      if (jobId) {
+        this.trackedJobs.set(jobId, {
+          projectId: args.projectId,
+          cardId: args.cardId,
+        });
+      }
+    } catch (e) {
+      console.error("[ChatManager] Retry failed:", e);
+      this.messageRenderer.appendMessage(
+        "system",
+        `Error retrying generation: ${e.message}`
+      );
+      this.isGenerating = false;
+      this.updateSendButtonState();
+    }
+    // Note: isGenerating stays true until 'generation-completed' or error,
+    // but generateArt is async and returns quickly with jobId.
+    // We should probably rely on the completion event to clear isGenerating
+    // OR just treat this start as the "generating" phase.
+    // Actually, since generateArt is fire-and-forget (job started), we can reset isGenerating
+    // unless we want to block chat during generation.
+    // The current flow blocks chat during 'streaming'; here we are job-based.
+    // Let's reset isGenerating so user can chat while job runs.
+    this.isGenerating = false;
+    this.updateSendButtonState();
+  }
+
   async handleGenerationCompleted(detail) {
     const { jobId, results } = detail;
     const tracked = this.trackedJobs.get(jobId);
@@ -803,6 +923,9 @@ export class ChatManager {
   }
 
   async sendSystemTurn(parts, generatedImageFiles = []) {
+    // FIX: Define referencesToSend for compatibility with streamResponse
+    const referencesToSend = [];
+
     if (this.isGenerating) {
       // If already generating, we might want to queue or wait?
       // For now, let's just proceed as it's a priority "turn"

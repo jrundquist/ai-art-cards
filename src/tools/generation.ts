@@ -83,15 +83,8 @@ export async function handleGenerationTool(
 
       if (!proj || !c) return { error: "Project or Card not found" };
 
-      // Return a signal to the client/server to trigger generation logic
-      // Note: The actual generation logic is now in `src/routes/generation.ts`.
-      // The frontend receives this clientAction and calls the API if needed?
-      // Wait, `chat_service` receives this. The chat service is server-side.
-      // Ah, "clientAction" tells the FRONTEND to do something.
-      // The PREVIOUS implementation returned this object. We must maintain that contract.
-      // The Frontend UI likely sees 'generateImage' action and calls the API?
-      // Or does the `chat.js` handle it?
-      // Let's assume preserving the return object is correct.
+      // Return 'clientAction' to trigger frontend logic (e.g. calling generation API)
+      // This maintains the contract expected by chat.js onSpecialAction handler
 
       logger.info("[Tools] Delegating generation to client");
       return {
@@ -107,7 +100,7 @@ export async function handleGenerationTool(
         message: `Image generation started for: ${
           args.promptOverride || "default prompt"
         }. ${
-          args.referenceImageFiles
+          args.referenceImageFiles && args.referenceImageFiles.length > 0
             ? "Using " + args.referenceImageFiles.length + " reference images."
             : ""
         } This may take a bit of time.`,

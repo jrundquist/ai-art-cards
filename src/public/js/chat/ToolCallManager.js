@@ -193,33 +193,20 @@ export class ToolCallManager {
    * @param {object} result
    */
   updateToolResult(toolElement, toolName, args, result) {
-    const metadata = this.getToolMetadata(toolName);
-    const summary = this.summarizeToolResult(toolName, args, result);
-
-    toolElement.innerHTML = `
-      <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
-      <span class="tool-label">${summary}</span>
-    `;
-
-    // Render image if present in result (for getGeneratedImage)
-    if (result && result.inlineData) {
-      const img = document.createElement("img");
-      img.src = `data:${result.inlineData.mimeType};base64,${result.inlineData.data}`;
-      img.className = "tool-result-image";
-      toolElement.appendChild(img);
-
-      // Add click handler for modal
-      img.onclick = () => {
-        const modal = document.getElementById("imageModal");
-        const modalImg = document.getElementById("imgModalPreview");
-        if (modal && modalImg) {
-          modalImg.src = img.src;
-          document.getElementById("imgModalTitle").textContent = "Image Detail";
-          document.getElementById("imgModalPrompt").textContent = "";
-          modal.classList.remove("hidden");
+    // If args is empty (often the case during history updates), try to recover from attribute
+    let effectiveArgs = args;
+    if (!args || Object.keys(args).length === 0) {
+      const storedArgs = toolElement.getAttribute("data-args");
+      if (storedArgs) {
+        try {
+          effectiveArgs = JSON.parse(storedArgs);
+        } catch (e) {
+          console.error("Failed to parse stored args:", storedArgs, e.message);
         }
-      };
+      }
     }
+
+    this.renderToolCompletion(toolElement, toolName, effectiveArgs, result);
   }
 
   /**
@@ -230,26 +217,97 @@ export class ToolCallManager {
    * @returns {HTMLElement}
    */
   createCompletedToolElement(toolName, args, result) {
-    const metadata = this.getToolMetadata(toolName);
-    const summary = this.summarizeToolResult(toolName, args, result);
-
     const div = document.createElement("div");
     div.className = "tool-completed";
     div.setAttribute("data-tool-name", toolName);
-    div.style.borderLeftColor = metadata.color;
-    div.innerHTML = `
+    // Store args for later recovery during updates
+    div.setAttribute("data-args", JSON.stringify(args || {}));
+
+    this.renderToolCompletion(div, toolName, args, result);
+
+    return div;
+  }
+
+  /**
+   * Shared logic to render a completed tool state (Header + Actions + Image)
+   * @param {HTMLElement} element
+   * @param {string} toolName
+   * @param {object} args
+   * @param {object} result
+   */
+  renderToolCompletion(element, toolName, args, result) {
+    const metadata = this.getToolMetadata(toolName);
+    const summary = this.summarizeToolResult(toolName, args, result);
+
+    element.style.borderLeftColor = metadata.color;
+    element.innerHTML = `
       <span class="material-icons" style="color: ${metadata.color}">${metadata.icon}</span>
       <span class="tool-label">${summary}</span>
     `;
 
+    this._appendRetryAction(element, toolName, args);
+    this._appendResultImage(element, result);
+  }
+
+  /**
+   * Append Retry/Regenerate action if applicable
+   * @param {HTMLElement} container
+   * @param {string} toolName
+   * @param {object} args
+   */
+  _appendRetryAction(container, toolName, args) {
+    if (toolName === "generateImage") {
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "tool-call-actions";
+      actionsDiv.style.marginLeft = "auto";
+      actionsDiv.style.display = "flex";
+      actionsDiv.style.alignItems = "center";
+
+      const retryBtn = document.createElement("button");
+      retryBtn.className = "icon-btn-sm secondary-btn-sm";
+      retryBtn.title = "Generate Again (Exact Parameters)";
+      retryBtn.innerHTML =
+        '<span class="material-icons" style="font-size: 16px;">autorenew</span>';
+
+      retryBtn.onclick = (e) => {
+        e.stopPropagation();
+        const event = new CustomEvent("retry-generation", {
+          detail: { args: args },
+        });
+        document.dispatchEvent(event);
+      };
+
+      actionsDiv.appendChild(retryBtn);
+      container.appendChild(actionsDiv);
+    }
+  }
+
+  /**
+   * Append Result Image if applicable
+   * @param {HTMLElement} container
+   * @param {object} result
+   */
+  _appendResultImage(container, result) {
     if (result && result.inlineData) {
       const img = document.createElement("img");
       img.src = `data:${result.inlineData.mimeType};base64,${result.inlineData.data}`;
       img.className = "tool-result-image";
-      div.appendChild(img);
-    }
+      container.appendChild(img);
 
-    return div;
+      // Add click handler for modal
+      img.onclick = () => {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("imgModalPreview");
+        if (modal && modalImg) {
+          modalImg.src = img.src;
+          const titleEl = document.getElementById("imgModalTitle");
+          if (titleEl) titleEl.textContent = "Image Detail";
+          const promptEl = document.getElementById("imgModalPrompt");
+          if (promptEl) promptEl.textContent = "";
+          modal.classList.remove("hidden");
+        }
+      };
+    }
   }
 
   /**

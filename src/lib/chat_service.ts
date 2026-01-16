@@ -417,6 +417,23 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           // Check for function calls
           const calls = chunk.functionCalls();
           if (calls && calls.length > 0) {
+            // [Fix Persistence] Inject references if Model forgot them
+            // This ensures they are saved in history and sent to client correctly
+            for (const call of calls) {
+              if (call.name === "generateImage") {
+                if (referenceImageFiles && referenceImageFiles.length > 0) {
+                  // Check if args is missing references or empty
+                  if (
+                    !(call.args as any).referenceImageFiles ||
+                    (call.args as any).referenceImageFiles.length === 0
+                  ) {
+                    (call.args as any).referenceImageFiles =
+                      referenceImageFiles;
+                  }
+                }
+              }
+            }
+
             toolCalls.push(...calls);
 
             // CRITICAL: Add raw parts (not extracted calls) to history
@@ -424,17 +441,26 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             // Filter to only include parts with functionCall
             parts.forEach((part: any) => {
               if (part.functionCall) {
+                const fc = part.functionCall;
+                if (
+                  fc.name === "generateImage" &&
+                  referenceImageFiles &&
+                  referenceImageFiles.length > 0
+                ) {
+                  if (
+                    !(fc.args as any).referenceImageFiles ||
+                    (fc.args as any).referenceImageFiles.length === 0
+                  ) {
+                    (fc.args as any).referenceImageFiles = referenceImageFiles;
+                  }
+                }
+
                 currentModelParts.push(part); // Preserve the whole part including thoughtSignature
 
                 // Capture thoughtSignature for the response turn
 
                 if (part.thoughtSignature && !accumulatedThoughtSignature) {
                   accumulatedThoughtSignature = part.thoughtSignature;
-                  logger.info(
-                    `[ChatService] Captured thoughtSignature: ${(
-                      accumulatedThoughtSignature || ""
-                    ).substring(0, 20)}...`
-                  );
                 }
               }
             });
@@ -605,6 +631,13 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
   }
 
   private async executeTool(name: string, args: any): Promise<any> {
+    logger.info(
+      `[ChatService] DEBUG: executeTool called for ${name} with args: ${JSON.stringify(
+        args,
+        null,
+        2
+      )}`
+    );
     return handleToolCall(name, args, this.dataService, this.dataRoot);
   }
 
