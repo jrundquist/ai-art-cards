@@ -79,11 +79,46 @@
       ></div>
     </div>
     <div class="app-container">
+      <!-- Global App Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <h1 id="appTitle">AI Card Arts <span id="projectName"></span></h1>
+        </div>
+        <div class="header-right actions key-manager">
+          <div id="keySelectWrapper" class="key-select-wrapper">
+            <select id="keySelect" aria-label="Select API Key">
+              <option value="">Select API Key...</option>
+            </select>
+          </div>
+          <button
+            id="addKeyToggleBtn"
+            class="icon-btn"
+            title="Add New Key"
+            aria-label="Add New API Key"
+            aria-haspopup="dialog"
+          >
+            <span class="material-icons">add</span>
+          </button>
+
+          <div class="divider-vertical"></div>
+
+          <button
+            id="chatToggleBtn"
+            class="chat-toggle-btn glow-effect"
+            title="Open AI Chat"
+          >
+            <span class="material-icons">chat_bubble_outline</span>
+          </button>
+
+          <!-- Hidden old input compatibility if needed, or just removed -->
+          <input type="hidden" id="apiKeyInput" />
+        </div>
+      </header>
+
       <div class="main-layout">
         <!-- Sidebar -->
-        <aside class="sidebar">
-          <div class="sidebar-header">
-            <h2 id="appTitle">AI Card Arts <span id="projectName"></span></h2>
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-header-projects">
             <div class="project-select-wrapper">
               <select id="projectSelect">
                 <option value="">Select Project...</option>
@@ -168,6 +203,9 @@
               >add</span
             >New Card
           </button>
+
+          <!-- Resize Handle -->
+          <div class="resize-handle" id="sidebarResizeHandle"></div>
         </aside>
 
         <!-- Chat Sidebar moved to right -->
@@ -177,9 +215,9 @@
           <div class="content-scroll-wrapper">
             <header class="top-bar">
               <div class="title-wrapper">
-                <h1 id="currentCardTitle" title="Click to edit">
+                <h2 id="currentCardTitle" title="Click to edit">
                   Select a Card
-                </h1>
+                </h2>
                 <input
                   type="text"
                   id="cardTitleInput"
@@ -195,33 +233,7 @@
                   <span class="material-icons">edit</span>
                 </button>
               </div>
-              <div class="actions key-manager">
-                <div id="keySelectWrapper" class="key-select-wrapper">
-                  <select id="keySelect" aria-label="Select API Key">
-                    <option value="">Select API Key...</option>
-                  </select>
-                </div>
-                <button
-                  id="addKeyToggleBtn"
-                  class="icon-btn"
-                  title="Add New Key"
-                  aria-label="Add New API Key"
-                  aria-haspopup="dialog"
-                >
-                  <span class="material-icons">add</span>
-                </button>
-
-                <button
-                  id="chatToggleBtn"
-                  class="chat-toggle-btn glow-effect"
-                  title="Open AI Chat"
-                >
-                  <span class="material-icons">chat_bubble_outline</span>
-                </button>
-
-                <!-- Hidden old input compatibility if needed, or just removed -->
-                <input type="hidden" id="apiKeyInput" />
-              </div>
+              <!-- Actions moved to global header -->
             </header>
 
             <!-- Project Selection View -->

@@ -61,6 +61,52 @@ function updateKeyHighlight() {
 const chatManager = new ChatManager();
 
 async function init() {
+  // --- Sidebar Resizing Logic ---
+  const sidebar = document.getElementById("sidebar");
+  const resizeHandle = document.getElementById("sidebarResizeHandle");
+  const storedSidebarWidth = localStorage.getItem("sidebarWidth");
+
+  if (storedSidebarWidth) {
+    sidebar.style.width = storedSidebarWidth;
+    sidebar.style.flex = "none"; // Ensure flex doesn't override
+  }
+
+  if (resizeHandle) {
+    let isResizing = false;
+
+    resizeHandle.addEventListener("mousedown", (e) => {
+      isResizing = true;
+      resizeHandle.classList.add("active");
+      document.body.style.cursor = "col-resize";
+      e.preventDefault(); // Prevent text selection
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!isResizing) return;
+
+      // Calculate new width
+      let newWidth = e.clientX;
+
+      // Constraints
+      if (newWidth < 200) newWidth = 200;
+      if (newWidth > 500) newWidth = 500;
+
+      sidebar.style.width = `${newWidth}px`;
+      sidebar.style.flex = "none";
+    });
+
+    document.addEventListener("mouseup", () => {
+      if (isResizing) {
+        isResizing = false;
+        resizeHandle.classList.remove("active");
+        document.body.style.cursor = "";
+        localStorage.setItem("sidebarWidth", sidebar.style.width);
+      }
+    });
+  }
+  // ------------------------------
+
+  // Load initial data
   await loadKeys();
   await projectCtrl.loadProjects();
   // Initial Context if project loaded
