@@ -223,11 +223,11 @@ export class MessageRenderer {
     const welcome = document.createElement("div");
     welcome.className = "chat-welcome";
     welcome.innerHTML = `
-      <p>Hello! I can help you manage your cards and generate art. Try asking:</p>
+      <p>Hello! I am your AI Art Director Assistant. I'm here to help you brainstorm ideas, construct prompts, and manage your art cards. Try asking:</p>
       <ul>
-        <li>"Create a card for a Cyberpunk City"</li>
-        <li>"List my cards"</li>
-        <li>"Generate images for the Dragon card"</li>
+        <li>"Brainstorm 3 concepts for a space exploration deck"</li>
+        <li>"Create a card for a 'Cyberpunk City' and suggest a prompt"</li>
+        <li>"How can I improve the lighting in my Dragon card?"</li>
       </ul>
     `;
     this.messagesContainer.appendChild(welcome);
