@@ -309,6 +309,10 @@
   width: 100%;
 }
 
+.message-content:empty {
+  display: none;
+}
+
 .message-content p {
   margin: 0;
 }

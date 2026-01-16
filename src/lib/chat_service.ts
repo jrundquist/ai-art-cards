@@ -7,7 +7,7 @@ import fs from "fs/promises";
 import { TOOL_DEFINITIONS, handleToolCall } from "../tools";
 
 export interface ChatMessage {
-  role: "user" | "model";
+  role: "user" | "model" | "function";
   parts: Part[];
 }
 
@@ -317,17 +317,23 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         currentMessage = finalMessageText;
       }
 
-      // Track new history items manually
-      const newHistoryItems: ChatMessage[] = [];
+      // [Stateless Loop Implementation]
+      // Use local history accumulator to correct SDK state loss
+      // Initialize with existing history so we preserve past turns
+      const existingHistory = await chat.getHistory();
+      const accumulatedHistory: ChatMessage[] = existingHistory.map((h) => ({
+        role: h.role as "user" | "model",
+        parts: h.parts,
+      }));
 
-      // 1. Add Initial User Message
+      // 1. Add Initial User Message to accumulated history
       let initialUserParts: Part[] = [];
       if (Array.isArray(currentMessage)) {
         initialUserParts = currentMessage;
       } else {
         initialUserParts = [{ text: String(currentMessage) }];
       }
-      newHistoryItems.push({ role: "user", parts: initialUserParts });
+      accumulatedHistory.push({ role: "user", parts: initialUserParts });
 
       let pendingImages: any[] = [];
       let finished = false;
@@ -346,19 +352,19 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           partsToSend = currentMessage.map((m: any) => ({ text: m }));
         }
 
-        // Avoid duplicating initial message which is already in newHistoryItems
+        // Avoid duplicating initial message which is already in accumulatedHistory
         if (currentMessage !== initialUserParts) {
-          newHistoryItems.push({ role: "user", parts: partsToSend });
+          accumulatedHistory.push({ role: "user", parts: partsToSend });
         }
 
-        const fullHistory = newHistoryItems;
+        const fullHistory = accumulatedHistory;
 
         logger.info(
           `[ChatService] Sending stateless request with history length: ${fullHistory.length}`
         );
 
         // We need to map our history format to the API format if needed,
-        // but newHistoryItems should already be compliant.
+        // but accumulatedHistory should already be compliant.
         const result = await model.generateContentStream({
           contents: fullHistory as any[],
         });
@@ -422,15 +428,6 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 currentModelParts.push(part); // Preserve the whole part including thoughtSignature
 
                 // Capture thoughtSignature for the response turn
-                // DEBUG: Log Keys
-                logger.info(
-                  `[ChatService] Debug Part Keys: ${Object.keys(part).join(
-                    ", "
-                  )}`
-                );
-                logger.info(
-                  `[ChatService] Checking thoughtSignature val: ${part.thoughtSignature}`
-                );
 
                 if (part.thoughtSignature && !accumulatedThoughtSignature) {
                   accumulatedThoughtSignature = part.thoughtSignature;
@@ -453,8 +450,9 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         }
 
         // Add this model turn to history
+        // Add this model turn to history
         if (currentModelParts.length > 0) {
-          newHistoryItems.push({ role: "model", parts: currentModelParts });
+          accumulatedHistory.push({ role: "model", parts: currentModelParts });
         }
 
         if (toolCalls.length > 0) {
@@ -540,24 +538,8 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 thoughtSignature;
             }
           }
-          newHistoryItems.push({ role: "user", parts: responseParts });
-
-          // DEBUG: Inspect SDK History
-          const history = await chat.getHistory();
-          logger.info(
-            `[ChatService] SDK History Last Item: ${JSON.stringify(
-              history[history.length - 1],
-              null,
-              2
-            )}`
-          );
-
-          // DEBUG: Log what we're sending
-          logger.info(
-            `[ChatService] Sending ${
-              toolResponses.length
-            } function responses with signature: ${!!thoughtSignature}`
-          );
+          // Use 'function' role here
+          accumulatedHistory.push({ role: "function", parts: responseParts });
 
           // If we have images for follow-up, we don't finish yet.
           if (followUpParts.length > 0) {
@@ -573,7 +555,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             ];
 
             // Add this extra user turn to history
-            newHistoryItems.push({
+            accumulatedHistory.push({
               role: "user",
               parts: currentMessage as Part[],
             });
@@ -586,11 +568,10 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         }
       }
 
-      // Use SDK's built-in history tracking instead of manual tracking
-      // This ensures function calls and responses are properly paired
-      const updatedHistory = await chat.getHistory();
-      conversation.history = updatedHistory.map((item) => ({
-        role: item.role as "user" | "model",
+      // Use our manually managed history since we bypassed the SDK state
+      // This ensures we save the version with thoughtSignatures
+      conversation.history = accumulatedHistory.map((item) => ({
+        role: item.role as "user" | "model" | "function", // Allow function role
         parts: item.parts,
       }));
 
@@ -700,7 +681,29 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           lastUpdated: Date.now(),
         };
       }
-      return JSON.parse(await fs.readFile(filepath, "utf-8"));
+      const conversation: Conversation = JSON.parse(
+        await fs.readFile(filepath, "utf-8")
+      );
+
+      // Sanitize history: Fix 'class' of function responses
+      // Older versions or bugs might have saved functionResponse with role 'user'
+      if (conversation.history) {
+        conversation.history = conversation.history.map((msg) => {
+          // check if any part is a functionResponse
+          const hasFunctionResponse = msg.parts.some(
+            (p: any) => p.functionResponse
+          );
+          if (hasFunctionResponse && msg.role === "user") {
+            logger.info(
+              `[ChatService] Sanitizing message role from 'user' to 'function' for conversation ${conversationId}`
+            );
+            return { ...msg, role: "function" };
+          }
+          return msg;
+        });
+      }
+
+      return conversation;
     } catch {
       return null;
     }
@@ -708,10 +711,28 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 
   async saveConversation(conversation: Conversation) {
     const dir = await this.ensureConversationsDir();
-    await fs.writeFile(
-      path.join(dir, `${conversation.id}.json`),
-      JSON.stringify(conversation, null, 2)
-    );
+    const filepath = path.join(dir, `${conversation.id}.json`);
+    const tempFilepath = `${filepath}.tmp`;
+
+    try {
+      const json = JSON.stringify(conversation, null, 2);
+      logger.info(
+        `[ChatService] Saving conversation ${conversation.id}, size: ${json.length} bytes`
+      );
+      await fs.writeFile(tempFilepath, json);
+      await fs.rename(tempFilepath, filepath);
+      logger.info(`[ChatService] Saved conversation ${conversation.id}`);
+    } catch (e: any) {
+      logger.error(
+        `[ChatService] Failed to save conversation ${conversation.id}:`,
+        e
+      );
+      // Try to clean up temp file
+      try {
+        await fs.unlink(tempFilepath);
+      } catch {}
+      throw e;
+    }
   }
 
   async deleteConversation(conversationId: string): Promise<boolean> {
