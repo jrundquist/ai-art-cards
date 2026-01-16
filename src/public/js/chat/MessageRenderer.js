@@ -287,7 +287,7 @@ export class MessageRenderer {
       details.className = "thought-process";
       details.open = true;
       details.innerHTML =
-        '<summary>Thinking Process</summary><div class="thought-content"></div>';
+        '<summary><span class="material-icons">chevron_right</span> Thinking Process</summary><div class="thought-content"></div>';
       // Insert before the text content
       wrapper.insertBefore(details, aiContentDiv);
     }

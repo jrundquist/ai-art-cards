@@ -317,10 +317,25 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         currentMessage = finalMessageText;
       }
 
+      // Track new history items manually
+      const newHistoryItems: ChatMessage[] = [];
+
+      // 1. Add Initial User Message
+      let initialUserParts: Part[] = [];
+      if (Array.isArray(currentMessage)) {
+        initialUserParts = currentMessage;
+      } else {
+        initialUserParts = [{ text: String(currentMessage) }];
+      }
+      newHistoryItems.push({ role: "user", parts: initialUserParts });
+
       let pendingImages: any[] = [];
       let finished = false;
 
       while (!finished) {
+        // Collect model response parts for this turn
+        const currentModelParts: Part[] = [];
+
         const result = await chat.sendMessageStream(currentMessage);
         const toolCalls: any[] = [];
 
@@ -334,6 +349,8 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             const isThought = (part as any).thought;
 
             if (isThought && part.text) {
+              // Thoughts are not typically saved in standard history, but we could if we wanted.
+              // For now, only send to frontend.
               res.write(
                 `data: ${JSON.stringify({
                   type: "thought",
@@ -341,6 +358,18 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 })}\n\n`
               );
             } else if (part.text) {
+              // Accumulate text for history
+              // potentially merge adjacent text parts
+              if (
+                currentModelParts.length > 0 &&
+                currentModelParts[currentModelParts.length - 1].text
+              ) {
+                currentModelParts[currentModelParts.length - 1].text +=
+                  part.text;
+              } else {
+                currentModelParts.push({ text: part.text });
+              }
+
               res.write(
                 `data: ${JSON.stringify({
                   type: "text",
@@ -350,17 +379,15 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             }
           }
 
-          // Fallback: If parts didn't yield text (or old SDK behavior), try chunk.text()
-          // But be careful not to double-send. If parts loop ran, we might be good.
-          // However, chunk.text() aggregates across parts.
-          // Let's rely on the parts loop for now as it allows distinction.
-          // If the SDK version is old, 'thought' might be undefined, so it just comes as text.
-          // That's acceptable for now.
-
           // Check for function calls
           const calls = chunk.functionCalls();
           if (calls && calls.length > 0) {
             toolCalls.push(...calls);
+            // Add function calls to history parts
+            calls.forEach((call) => {
+              currentModelParts.push({ functionCall: call });
+            });
+
             res.write(
               `data: ${JSON.stringify({
                 type: "tool_call",
@@ -368,6 +395,11 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
               })}\n\n`
             );
           }
+        }
+
+        // Add this model turn to history
+        if (currentModelParts.length > 0) {
+          newHistoryItems.push({ role: "model", parts: currentModelParts });
         }
 
         if (toolCalls.length > 0) {
@@ -413,6 +445,9 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           // Feed tool responses back to model
           currentMessage = toolResponses;
 
+          // Add Tool Responses (User Role) to history
+          newHistoryItems.push({ role: "user", parts: toolResponses });
+
           // If we have images for follow-up, we don't finish yet.
           if (followUpParts.length > 0) {
             pendingImages = followUpParts;
@@ -425,6 +460,13 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
               { text: "[System: getGeneratedImage Result]" },
               ...pendingImages,
             ];
+
+            // Add this extra user turn to history
+            newHistoryItems.push({
+              role: "user",
+              parts: currentMessage as Part[],
+            });
+
             pendingImages = [];
             // Loop once more with the images as a USER turn
           } else {
@@ -433,13 +475,12 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         }
       }
 
-      // Update history in conversation object
-      const newHistory = await chat.getHistory();
-      // Map SDK history to our interface if needed, or just save parts
-      conversation.history = newHistory.map((h) => ({
-        role: h.role as "user" | "model",
-        parts: h.parts as Part[],
-      }));
+      // Update history in conversation object manually
+      conversation.history.push(...newHistoryItems);
+
+      // Fallback: Check if SDK *did* return something useful, but rely on manual for now
+      // const newHistory = await chat.getHistory();
+
       conversation.lastUpdated = Date.now();
 
       // Auto-title if new and has content

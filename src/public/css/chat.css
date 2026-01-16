@@ -58,34 +58,84 @@
 /* Chat Header */
 .chat-header {
   padding: 16px;
-
-  /* Thinking Process Styles */
-  .thought-process {
-    margin: 8px 16px;
-    border: 1px dashed var(--border);
-    border-radius: 8px;
-    background: rgba(var(--text-muted-rgb), 0.05);
-    font-size: 0.9em;
-  }
-  .thought-process summary {
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--text-muted);
-    font-weight: 500;
-    user-select: none;
-  }
-  .thought-content {
-    padding: 0 12px 12px 12px;
-    color: var(--text-muted);
-    white-space: pre-wrap;
-    font-family: monospace;
-    line-height: 1.4;
-  }
   border-bottom: var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: var(--bg-header);
+}
+
+/* Thinking Process Styles */
+.thought-process {
+  margin: 8px 0px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: rgba(var(--text-muted-rgb), 0.05);
+  font-size: 0.9em;
+  padding: 10px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.thought-process:hover {
+  opacity: 1;
+}
+
+.thought-process summary {
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 500;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none; /* Hide default marker standard */
+}
+
+.thought-process summary::-webkit-details-marker {
+  display: none; /* Hide default marker WebKit */
+}
+
+/* Custom Icon Styling */
+.thought-process summary .material-icons {
+  font-size: 1.2em;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+
+/* Rotate icon when open */
+.thought-process[open] summary .material-icons {
+  transform: rotate(90deg);
+}
+
+.thought-content {
+  padding: 8px;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  font-family: monospace;
+  line-height: 1.4;
+
+  /* Scroll & Max Height */
+  max-height: 250px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+
+  /* Top/Bottom Fade Mask */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 16px,
+    black calc(100% - 16px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 16px,
+    black calc(100% - 16px),
+    transparent 100%
+  );
 }
 
 .chat-header h3 {

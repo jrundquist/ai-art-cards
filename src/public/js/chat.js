@@ -148,6 +148,16 @@ export class ChatManager {
     console.log("[ChatManager] Thinking Mode:", this.useThinking);
   }
 
+  collapseThoughts() {
+    if (this.currentThoughtContent) {
+      const details = this.currentThoughtContent.closest("details");
+      if (details) {
+        details.open = false;
+      }
+      this.currentThoughtContent = null;
+    }
+  }
+
   adjustInputHeight() {
     this.input.style.height = "auto";
     this.input.style.height = this.input.scrollHeight + "px";
@@ -259,6 +269,9 @@ export class ChatManager {
         imagesToSend,
         {
           onText: (content) => {
+            // Auto-collapse thoughts if we start receiving text
+            this.collapseThoughts();
+
             const tag = "[System: OK]";
             accumulatedMarkdown += content;
             const trimmed = accumulatedMarkdown.trim();
@@ -282,9 +295,14 @@ export class ChatManager {
           },
           onThought: (content) => {
             console.log("[ChatManager] onThought called");
-            this.messageRenderer.appendThought(currentAiDiv, content);
+            this.currentThoughtContent = this.messageRenderer.appendThought(
+              currentAiDiv,
+              content
+            );
           },
           onToolCall: (calls) => {
+            this.collapseThoughts();
+
             for (const call of calls) {
               const toolId = this.toolCallManager.generateToolCallId();
               const toolElement = this.toolCallManager.createToolCallElement(
