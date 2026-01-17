@@ -233,10 +233,10 @@ This document outlines potential future enhancements and features that could be 
 - [ ] Generation history view
 
 ### High Impact, Higher Effort
-- [ ] Image-to-image generation
-- [ ] Print-ready export with templates
-- [ ] Side-by-side comparison mode
-- [ ] Complete project import/export
+- [x] Image-to-image generation
+- [x] Print-ready export with templates
+- [x] Side-by-side comparison mode (Bracket Mode)
+- [x] Complete project import/export
 - [ ] Batch operations (update multiple cards)
 - [ ] Advanced search & filters
 

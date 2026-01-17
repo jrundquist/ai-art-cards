@@ -37,6 +37,7 @@ export const dom = {
     favFilter: document.getElementById("galleryFilterFavorites"),
     archiveFilter: document.getElementById("galleryFilterArchive"),
     downloadGallery: document.getElementById("galleryDownloadBtn"),
+    startBracket: document.getElementById("startBracketBtn"),
     projectSelectionCreate: document.getElementById(
       "projectSelectionCreateBtn",
     ),
@@ -75,6 +76,17 @@ export const dom = {
     message: document.getElementById("confirmModalMessage"),
     confirm: document.getElementById("confirmBtn"),
     cancel: document.getElementById("cancelConfirmBtn"),
+  },
+  bracketModal: {
+    self: document.getElementById("bracketModal"),
+    title: document.getElementById("bracketModalTitle"),
+    roundIndicator: document.getElementById("bracketRoundIndicator"),
+    leftContainer: document.getElementById("bracketLeft"),
+    leftImg: document.getElementById("bracketLeftImg"),
+    rightContainer: document.getElementById("bracketRight"),
+    rightImg: document.getElementById("bracketRightImg"),
+    quitBtn: document.getElementById("bracketQuitBtn"),
+    closeX: document.getElementById("bracketCloseX"),
   },
 
   imgModal: {

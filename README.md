@@ -23,6 +23,7 @@ A powerful, local web and desktop application for generating and managing consis
     -   **Archive**: Hide unwanted images without deleting them.
     -   **Gallery Download**: Download all currently visible images as a ZIP file (respects filters).
     -   **Search**: Quickly find cards by name using the search bar.
+    -   **Bracket Mode**: Tournament-style image comparison to find your best card variation.
 
 ### 🤖 AI Art Director Assistant
 -   **Intelligent Chat Interface**: Your personal **Art Director** and creative partner.

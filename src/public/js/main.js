@@ -4,6 +4,7 @@ import * as api from "./api.js";
 import * as projectCtrl from "./controllers/projectController.js";
 import * as cardCtrl from "./controllers/cardController.js";
 import * as galleryCtrl from "./controllers/galleryController.js";
+import { bracketController } from "./controllers/bracketController.js";
 
 import { ChatManager } from "./chat.js";
 import { statusService } from "./statusService.js";
@@ -537,9 +538,13 @@ async function init() {
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      // Priority: Regeneration Modal (Topmost)
+      // Priority: Regeneration or Bracket Modal (Topmost)
       if (!dom.regenModal.self.classList.contains("hidden")) {
         dom.regenModal.self.classList.add("hidden");
+        return;
+      }
+      if (!dom.bracketModal.self.classList.contains("hidden")) {
+        bracketController.closeModal();
         return;
       }
 
@@ -595,6 +600,61 @@ async function init() {
   dom.btns.downloadGallery.addEventListener("click", () => {
     galleryCtrl.downloadCurrentGallery();
   });
+
+  // Bracket Mode Integration
+  if (dom.btns.startBracket) {
+    dom.btns.startBracket.addEventListener("click", async () => {
+      // Get current images from gallery controller state (or fetch fresh)
+      // bracketController.start expects an array of image URLs (paths)
+      // We can grab them from the rendered gallery or use the filtered list if accessible.
+      // Ideally galleryController exposes currentImageList or we fetch fresh.
+
+      // Let's rely on api fetch for consistency or expose it.
+      // GalleryCtrl has `loadImagesForCard`.
+      // Let's import api inside here or use existing
+      if (!state.currentProject || !state.currentCard) return;
+
+      try {
+        const images = await api.fetchCardImages(
+          state.currentProject.id,
+          state.currentCard.id,
+          true,
+        );
+        if (images && images.length > 0) {
+          bracketController.start(images);
+        } else {
+          showStatus("No images to compare", "error");
+        }
+      } catch (e) {
+        showStatus("Failed to load images for bracket", "error");
+      }
+    });
+  }
+
+  // Bracket Modal Interactions
+  if (dom.bracketModal.quitBtn) {
+    dom.bracketModal.quitBtn.addEventListener("click", () => {
+      bracketController.closeModal();
+    });
+  }
+
+  if (dom.bracketModal.closeX) {
+    dom.bracketModal.closeX.addEventListener("click", () => {
+      bracketController.closeModal();
+    });
+  }
+
+  if (dom.bracketModal.leftContainer) {
+    dom.bracketModal.leftContainer.addEventListener("click", () => {
+      bracketController.vote(0);
+    });
+  }
+
+  if (dom.bracketModal.rightContainer) {
+    dom.bracketModal.rightContainer.addEventListener("click", () => {
+      bracketController.vote(1);
+    });
+  }
 
   // Global Link Interceptor for External Links
   document.addEventListener("click", (event) => {

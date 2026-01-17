@@ -375,6 +375,15 @@
                   </div>
                 </div>
                 <button
+                  id="startBracketBtn"
+                  class="secondary-btn icon-btn"
+                  title="Find your Favorite (Bracket Mode)"
+                  aria-label="Find your Favorite"
+                  style="margin-left: 8px"
+                >
+                  <span class="material-icons">emoji_events</span>
+                </button>
+                <button
                   id="galleryFilterFavorites"
                   class="secondary-btn icon-btn"
                   title="Show Favorites Only"
@@ -787,6 +796,50 @@
       </div>
     </div>
 
+    <!-- Bracket Comparison Modal -->
+    <div
+      id="bracketModal"
+      class="modal hidden bracket-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bracketModalTitle"
+    >
+      <div class="modal-content bracket-content">
+        <button
+          id="bracketCloseX"
+          class="modal-close-x"
+          aria-label="Close Modal"
+        >
+          <span class="material-icons">close</span>
+        </button>
+        <div class="bracket-header">
+          <h3 id="bracketModalTitle">Choose Your Favorite</h3>
+          <div id="bracketRoundIndicator" class="bracket-stats">Round 1/3</div>
+        </div>
+
+        <div class="bracket-pair-container">
+          <div id="bracketLeft" class="bracket-card glow-on-hover">
+            <img id="bracketLeftImg" src="" alt="Option A" />
+            <div class="bracket-overlay">Choose This</div>
+          </div>
+          <div class="bracket-vs">VS</div>
+          <div id="bracketRight" class="bracket-card glow-on-hover">
+            <img id="bracketRightImg" src="" alt="Option B" />
+            <div class="bracket-overlay">Choose This</div>
+          </div>
+        </div>
+
+        <div
+          class="modal-actions"
+          style="justify-content: center; margin-top: 20px"
+        >
+          <button id="bracketQuitBtn" class="secondary-btn">
+            Quit Comparison
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modifier Edit Modal -->
     <div
       id="editModifierModal"
@@ -921,6 +974,7 @@
                     font-size: 1.2em;
                     vertical-align: middle;
                     margin-left: 4px;
+                    display: none;
                   "
                   >autorenew</span
                 >
