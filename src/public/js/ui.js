@@ -35,8 +35,8 @@ export const dom = {
     openCardFolder: document.getElementById("openCardFolderBtn"),
     generate: document.getElementById("generateBtn"),
     favFilter: document.getElementById("galleryFilterFavorites"),
-    archiveFilter: document.getElementById("galleryFilterArchive"),
     downloadGallery: document.getElementById("galleryDownloadBtn"),
+
     startBracket: document.getElementById("startBracketBtn"),
     projectSelectionCreate: document.getElementById(
       "projectSelectionCreateBtn",

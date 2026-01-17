@@ -603,10 +603,6 @@ async function init() {
     galleryCtrl.toggleFilterFavorites();
   });
 
-  dom.btns.archiveFilter.addEventListener("click", () => {
-    galleryCtrl.toggleFilterArchive();
-  });
-
   dom.btns.downloadGallery.addEventListener("click", () => {
     galleryCtrl.downloadCurrentGallery();
   });

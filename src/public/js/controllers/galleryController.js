@@ -5,33 +5,9 @@ import * as api from "../api.js";
 let currentImageList = [];
 
 let isFavoritesOnly = false;
-let isArchiveView = false; // "Trash" view
 
 export function toggleFilterFavorites() {
-  if (isArchiveView) {
-    // If in archive view, maybe just toggle off archive view first?
-    // Or allow filtering favorites IN archive view?
-    // Let's allow simple mutual exclusion for clarity first, or independent.
-    // User probably wants to see favorites in normal view.
-    toggleFilterArchive(); // Turn off archive view
-  }
-
   isFavoritesOnly = !isFavoritesOnly;
-  updateFilterButtons();
-
-  if (state.currentProject && state.currentCard) {
-    loadImagesForCard(state.currentProject.id, state.currentCard.id);
-  }
-}
-
-export function toggleFilterArchive() {
-  if (isFavoritesOnly) {
-    // disable favorites filter when switching to archive?
-    // Or keep it? Let's keep it simple: Archive view is a different mode.
-    isFavoritesOnly = false;
-  }
-
-  isArchiveView = !isArchiveView;
   updateFilterButtons();
 
   if (state.currentProject && state.currentCard) {
@@ -41,18 +17,10 @@ export function toggleFilterArchive() {
 
 function updateFilterButtons() {
   const favBtn = dom.btns.favFilter;
-  const archBtn = dom.btns.archiveFilter; // We need to add this to main/ui
 
   if (favBtn) {
     favBtn.classList.toggle("active", isFavoritesOnly);
     favBtn.setAttribute("aria-pressed", isFavoritesOnly);
-  }
-
-  if (archBtn) {
-    archBtn.classList.toggle("active", isArchiveView);
-    archBtn.setAttribute("aria-pressed", isArchiveView);
-    // Maybe change icon color to red when active?
-    archBtn.style.color = isArchiveView ? "#ef4444" : "";
   }
 }
 
@@ -61,7 +29,7 @@ export async function loadImagesForCard(projectId, cardId) {
   try {
     // Always fetch ALL images so we can filter client-side
     // This makes switching views instant and we don't need to re-fetch to see "Trash"
-    const images = await api.fetchCardImages(projectId, cardId, true);
+    const images = await api.fetchCardImages(projectId, cardId, false);
 
     const favs = state.currentCard?.favoriteImages || [];
     const archived = state.currentCard?.archivedImages || [];
@@ -76,21 +44,6 @@ export async function loadImagesForCard(projectId, cardId) {
 
     let displayImages = images;
 
-    // Filter by Archive Status
-    if (isArchiveView) {
-      // Show ONLY archived
-      displayImages = displayImages.filter((img) => {
-        const filename = img.split("/").pop();
-        return archived.includes(filename);
-      });
-    } else {
-      // Show ONLY non-archived (default)
-      displayImages = displayImages.filter((img) => {
-        const filename = img.split("/").pop();
-        return !archived.includes(filename);
-      });
-    }
-
     // Filter by Favorites (Include Starred items in this view)
     if (isFavoritesOnly) {
       displayImages = displayImages.filter((img) => {
@@ -103,9 +56,7 @@ export async function loadImagesForCard(projectId, cardId) {
     }
 
     if (displayImages.length === 0) {
-      dom.gallery.innerHTML = isArchiveView
-        ? '<div class="empty-state">Trash is empty</div>'
-        : '<div class="empty-state">No images found</div>';
+      dom.gallery.innerHTML = '<div class="empty-state">No images found</div>';
       currentImageList = [];
       return;
     }
@@ -170,19 +121,14 @@ export function addImageToGallery(
     toggleImageFavorite(imgUrl);
   };
 
-  // Archive Icon
+  // Delete Icon
   const archiveIcon = document.createElement("div");
   archiveIcon.className = `gallery-archive-icon`;
-  // Icon depends on view? Or always trash can?
-  // If in archive view, maybe "Restore" icon (undo arrow)?
-  // For now, let's use Trash for both, but maybe different color/tooltip
-  archiveIcon.innerHTML = isArchiveView
-    ? '<span class="material-icons">restore_from_trash</span>'
-    : '<span class="material-icons">delete_outline</span>';
-  archiveIcon.title = isArchiveView ? "Restore Image" : "Archive Image";
+  archiveIcon.innerHTML = '<span class="material-icons">delete_outline</span>';
+  archiveIcon.title = "Delete Image";
   archiveIcon.onclick = (e) => {
     e.stopPropagation();
-    toggleImageArchive(imgUrl);
+    deleteImage(imgUrl);
   };
 
   // Star Icon
@@ -423,29 +369,17 @@ export async function openImageDetails(imgUrl) {
   updateModalStarBtn(isStarred);
   dom.imgModal.starBtn.onclick = () => toggleImageStar(imgUrl);
 
-  // Archive button in modal needs to reflect state (Archive vs Restore)
-  const isArchived = state.currentCard?.archivedImages?.includes(filename);
+  // Delete button in modal
   const archIcon = dom.imgModal.archiveBtn.querySelector(".material-icons");
   if (archIcon) {
-    archIcon.textContent = isArchived ? "restore_from_trash" : "delete_outline";
+    archIcon.textContent = "delete_outline";
   }
-  dom.imgModal.archiveBtn.title = isArchived
-    ? "Restore Image"
-    : "Archive Image";
-  dom.imgModal.archiveBtn.setAttribute(
-    "aria-label",
-    isArchived ? "Restore Image" : "Archive Image",
-  );
+  dom.imgModal.archiveBtn.title = "Delete Image";
+  dom.imgModal.archiveBtn.setAttribute("aria-label", "Delete Image");
+  dom.imgModal.archiveBtn.style.borderColor = "#ef4444";
+  dom.imgModal.archiveBtn.style.color = "#ef4444";
 
-  // Adjust color: Red for archive, Primary/Green for restore?
-  dom.imgModal.archiveBtn.style.borderColor = isArchived
-    ? "var(--primary)"
-    : "#ef4444";
-  dom.imgModal.archiveBtn.style.color = isArchived
-    ? "var(--primary)"
-    : "#ef4444";
-
-  dom.imgModal.archiveBtn.onclick = () => toggleImageArchive(imgUrl);
+  dom.imgModal.archiveBtn.onclick = () => deleteImage(imgUrl);
 
   // Visuals: indicate loading
   dom.imgModal.name.classList.add("text-loading");
@@ -694,96 +628,68 @@ async function submitRegeneration() {
   }
 }
 
-export async function toggleImageArchive(imgUrl = null) {
+export async function deleteImage(imgUrl = null) {
   const targetUrl = imgUrl || currentImgPath;
   if (!targetUrl || !state.currentCard || !state.currentProject) return;
 
   const filename = targetUrl.split("/").pop();
-  const isCurrentlyArchived =
-    state.currentCard?.archivedImages?.includes(filename);
 
-  // Confirm only when archiving? Restoring is probably safe.
-  const executeToggle = async () => {
+  const executeDelete = async () => {
     try {
-      const res = await api.archiveImage(
-        state.currentCard.id,
+      const res = await api.deleteImage(
         state.currentProject.id,
+        state.currentCard.id,
         filename,
       );
 
-      // Backend returns { success: true, isArchived: boolean }
-      const data = await res.json();
-      if (data.success) {
-        if (!state.currentCard.archivedImages)
-          state.currentCard.archivedImages = [];
-
-        if (data.isArchived) {
-          if (!state.currentCard.archivedImages.includes(filename))
-            state.currentCard.archivedImages.push(filename);
-          createToast("Image archived", "success");
-        } else {
-          const idx = state.currentCard.archivedImages.indexOf(filename);
-          if (idx > -1) state.currentCard.archivedImages.splice(idx, 1);
-          createToast("Image restored", "success");
+      if (res.ok) {
+        // Remove from local state if present
+        if (state.currentCard.favoriteImages) {
+          const validx = state.currentCard.favoriteImages.indexOf(filename);
+          if (validx > -1) state.currentCard.favoriteImages.splice(validx, 1);
+        }
+        if (state.currentCard.starredImage === filename) {
+          state.currentCard.starredImage = undefined;
+        }
+        if (state.currentCard.archivedImages) {
+          const archidx = state.currentCard.archivedImages.indexOf(filename);
+          if (archidx > -1) state.currentCard.archivedImages.splice(archidx, 1);
         }
 
-        // If modal is open, verify if we should close it or update it
+        createToast("Image permanently deleted", "success");
+
+        // If modal was open for this image, close it
         if (
           !dom.imgModal.self.classList.contains("hidden") &&
           currentImgPath === targetUrl
         ) {
-          // If we archived it, and we are not in archive view, we should probably close modal?
-          // Or just let user keep looking at it?
-          // Usually if it disappears from gallery, we might want to close modal.
-          if (isArchiveView !== data.isArchived) {
-            // If view mode matches state (e.g. ArchiveView + IsArchived), keep it.
-            // If ArchiveView + !IsArchived (Restored), close it?
-            // Let's just update the button for now.
-            const archIcon =
-              dom.imgModal.archiveBtn.querySelector(".material-icons");
-            if (archIcon) {
-              archIcon.textContent = data.isArchived
-                ? "restore_from_trash"
-                : "delete_outline";
-            }
-            dom.imgModal.archiveBtn.title = data.isArchived
-              ? "Restore Image"
-              : "Archive Image";
-            dom.imgModal.archiveBtn.setAttribute(
-              "aria-label",
-              data.isArchived ? "Restore Image" : "Archive Image",
-            );
-
-            dom.imgModal.archiveBtn.style.borderColor = data.isArchived
-              ? "var(--primary)"
-              : "#ef4444";
-            dom.imgModal.archiveBtn.style.color = data.isArchived
-              ? "var(--primary)"
-              : "#ef4444";
-          }
+          dom.imgModal.self.classList.add("hidden");
+          currentImgPath = null;
         }
 
-        // Refresh gallery to update list
+        // Refresh gallery
         loadImagesForCard(state.currentProject.id, state.currentCard.id);
+      } else {
+        const err = await res.json();
+        createToast(
+          "Failed to delete image: " + (err.error || "Unknown"),
+          "error",
+        );
       }
     } catch (e) {
-      createToast("Failed to toggle archive: " + e.message, "error");
+      createToast("Failed to delete image: " + e.message, "error");
     }
   };
 
-  if (!isCurrentlyArchived) {
-    confirmAction(
-      "Archive Image?",
-      "Are you sure you want to archive this image?",
-      executeToggle,
-    );
-  } else {
-    await executeToggle();
-  }
+  confirmAction(
+    "Permanently Delete Image?",
+    "This cannot be undone. Area you sure?",
+    executeDelete,
+  );
 }
 
-// Renamed for compatibility if needed, or export new name
-export const archiveCurrentImage = () => toggleImageArchive(currentImgPath);
+// Export for external usage if needed
+export const deleteCurrentImage = () => deleteImage(currentImgPath);
 
 function updateModalStarBtn(isStarred) {
   if (dom.imgModal.starBtn) {
@@ -811,11 +717,7 @@ export async function downloadCurrentGallery() {
     // Extract filenames from the current image URLs
     const filenames = currentImageList.map((imgUrl) => imgUrl.split("/").pop());
 
-    const viewType = isArchiveView
-      ? "archived"
-      : isFavoritesOnly
-        ? "favorite"
-        : "all";
+    const viewType = isFavoritesOnly ? "favorite" : "all";
     createToast(
       `Downloading ${filenames.length} ${viewType} image${
         filenames.length === 1 ? "" : "s"

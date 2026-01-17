@@ -53,6 +53,13 @@ export async function fetchImageMetadata(imgUrl) {
   return await res.json();
 }
 
+export async function deleteImage(projectId, cardId, filename) {
+  const url = `/api/projects/${projectId}/cards/${cardId}/images/${filename}`;
+  return await fetch(url, {
+    method: "DELETE",
+  });
+}
+
 export async function archiveImage(cardId, projectId, filename) {
   return await fetch(`/api/cards/${cardId}/archive`, {
     method: "POST",
