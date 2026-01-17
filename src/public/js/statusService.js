@@ -6,10 +6,11 @@ class StatusService {
     this.eventSource = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 10;
-    this.reconnectDelay = 1000; // Start with 1 second
+    this.reconnectDelay = 500;
     this.activeToasts = new Map(); // jobId -> toast object
     this.activeJobs = new Map(); // jobId -> job object
     this.isConnected = false;
+    this.offlineToast = null;
   }
 
   connect() {
@@ -24,7 +25,14 @@ class StatusService {
       console.log("[StatusService] Connected to status stream");
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      this.reconnectDelay = 1000;
+      this.reconnectDelay = 500;
+
+      // Clear offline toast if it exists
+      if (this.offlineToast) {
+        this.offlineToast.remove();
+        this.offlineToast = null;
+        createToast("Connected to server", "success", 2000);
+      }
     };
 
     this.eventSource.onmessage = (event) => {
@@ -50,22 +58,23 @@ class StatusService {
       this.eventSource.close();
       this.eventSource = null;
 
-      // Attempt to reconnect with exponential backoff
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
-        this.reconnectAttempts++;
-        const delay = Math.min(
-          this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-          30000
-        );
-        console.log(
-          `[StatusService] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
-        );
-        setTimeout(() => this.connect(), delay);
-      } else {
-        console.error(
-          "[StatusService] Max reconnect attempts reached. Giving up."
+      // Show sticky offline toast if not already showing
+      if (!this.offlineToast) {
+        this.offlineToast = createToast(
+          "Connection lost. You are offline.",
+          "error",
+          0,
+          "wifi_off",
         );
       }
+
+      // Attempt to reconnect indefinitely with constant delay
+      this.reconnectAttempts++;
+      const delay = this.reconnectDelay; // Constant 500ms delay
+      console.log(
+        `[StatusService] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})...`,
+      );
+      setTimeout(() => this.connect(), delay);
     };
   }
 
@@ -118,7 +127,7 @@ class StatusService {
       if (toast) {
         toast.update(
           `Success: "${cardName}" (${total} image${total > 1 ? "s" : ""})`,
-          "success"
+          "success",
         );
         setTimeout(() => {
           toast.remove();
@@ -130,7 +139,7 @@ class StatusService {
         createToast(
           `Success: "${cardName}" (${total} image${total > 1 ? "s" : ""})`,
           "success",
-          4000
+          4000,
         );
       }
 
@@ -143,7 +152,7 @@ class StatusService {
             cardId: job.cardId,
             results: job.results,
           },
-        })
+        }),
       );
 
       // Electron notification
@@ -152,7 +161,7 @@ class StatusService {
           "Images Generated",
           `"${cardName}" - ${total} image${total > 1 ? "s" : ""} completed`,
           job.projectId,
-          job.cardId
+          job.cardId,
         );
       }
     } else if (status === "error") {
@@ -175,6 +184,10 @@ class StatusService {
       this.eventSource.close();
       this.eventSource = null;
       this.isConnected = false;
+      if (this.offlineToast) {
+        this.offlineToast.remove();
+        this.offlineToast = null;
+      }
     }
   }
 }
