@@ -277,9 +277,10 @@ export async function toggleImageFavorite(imgUrl = null) {
         loadImagesForCard(state.currentProject.id, state.currentCard.id);
       } else {
         const items = Array.from(dom.gallery.children);
-        const item = items.find((el) =>
-          el.querySelector("img").src.endsWith(targetUrl),
-        );
+        const item = items.find((el) => {
+          const img = el.querySelector("img");
+          return img && img.src.endsWith(targetUrl);
+        });
         if (item) {
           const icon = item.querySelector(".gallery-fav-icon");
           if (icon) {
@@ -296,6 +297,7 @@ export async function toggleImageFavorite(imgUrl = null) {
       }
     }
   } catch (e) {
+    console.error("Failed to toggle favorite", e);
     createToast("Failed to toggle favorite", "error");
   }
 }
