@@ -43,13 +43,13 @@ export class ImageGenerator {
       {
         role: "user",
         parts: [
-          { text: `Aspect Ratio: ${aspectRatio}\n\n${prompt}` },
           ...(options.referenceImages || []).map((img) => ({
             inlineData: {
               mimeType: img.mimeType,
               data: img.buffer.toString("base64"),
             },
           })),
+          { text: `${prompt}` },
         ],
       },
     ];

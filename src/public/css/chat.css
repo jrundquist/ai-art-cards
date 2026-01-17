@@ -122,14 +122,10 @@
   color: var(--text-muted);
   white-space: pre-wrap;
   font-family: monospace;
-  line-height: 1.4;
-
-  /* Scroll & Max Height */
+  line-height: 1.4; /* Scroll & Max Height */
   max-height: 250px;
   overflow-y: auto;
-  scrollbar-width: thin;
-
-  /* Top/Bottom Fade Mask */
+  scrollbar-width: thin; /* Top/Bottom Fade Mask */
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -174,9 +170,7 @@
   /* Add padding to push content out of the fade zone when at strict top/bottom */
   padding-top: 16px;
   padding-bottom: 16px;
-  scrollbar-width: thin;
-
-  /* Top/Bottom Fade Mask */
+  scrollbar-width: thin; /* Top/Bottom Fade Mask */
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
@@ -469,29 +463,30 @@
   background: var(--bg-section);
   border-top: var(--glass-border);
   display: flex;
+  flex-direction: column;
   gap: 10px;
   align-items: flex-end;
 }
 
-.chat-image-previews:not(:empty) ~ .chat-input-area {
-  border-top: none;
+.chat-input-group {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-self: flex-start;
+}
+
+.chat-image-previews {
+  border-bottom: var(--glass-border);
 }
 
 .chat-input-area textarea {
   background: var(--bg-ai-input);
-
   border: 1px solid var(--border);
-
   border-radius: 20px;
-
   padding: 10px 14px;
-
   resize: none;
-
   min-height: 42px;
-
   max-height: 120px;
-
   line-height: 1.4;
 }
 
@@ -508,6 +503,7 @@
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .primary-btn-sm:hover {
   background: var(--primary-dark);
@@ -616,12 +612,16 @@
   flex-shrink: 0;
   border: 1px solid var(--border-light);
   background: var(--bg-input);
+  position: relative;
 }
 
 .chat-preview-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .chat-preview-remove {

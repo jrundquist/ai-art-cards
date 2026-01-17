@@ -340,6 +340,8 @@
 
 .modifier-toggle-label input[type="checkbox"] {
   accent-color: var(--primary);
+  width: 10px;
+  height: 10px;
 }
 
 .modifier-toggle-label span {

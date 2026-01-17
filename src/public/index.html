@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/cards.css" />
     <link rel="stylesheet" href="css/chat.css" />
     <link rel="stylesheet" href="css/modals.css" />
+    <link rel="stylesheet" href="css/image-details.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap"
       rel="stylesheet"
@@ -449,40 +450,46 @@
               </ul>
             </div>
           </div>
-          <div id="chatImagePreviews" class="chat-image-previews hidden"></div>
           <div class="chat-input-area" id="chatInputArea">
-            <input
-              type="file"
-              id="chatFileInput"
-              multiple
-              accept="image/*"
-              class="hidden"
-            />
-            <button
-              id="chatUploadBtn"
-              class="icon-btn-sm secondary"
-              title="Upload Images"
-              style="margin-right: 4px"
-            >
-              <span class="material-icons">add_photo_alternate</span>
-            </button>
-            <button
-              id="thinkingToggleBtn"
-              class="icon-btn-sm secondary"
-              title="Thinking Mode (Off)"
-              aria-pressed="false"
-              style="margin-right: 8px"
-            >
-              <span class="material-icons">psychology</span>
-            </button>
+            <div
+              id="chatImagePreviews"
+              class="chat-image-previews hidden"
+            ></div>
+
             <textarea
               id="chatInput"
               placeholder="Type a message..."
               rows="1"
             ></textarea>
-            <button id="sendChatBtn" class="primary-btn-sm">
-              <span class="material-icons">send</span>
-            </button>
+            <div class="chat-input-group">
+              <input
+                type="file"
+                id="chatFileInput"
+                multiple
+                accept="image/*"
+                class="hidden"
+              />
+              <button
+                id="chatUploadBtn"
+                class="icon-btn-sm secondary"
+                title="Upload Images"
+                style="margin-right: 4px"
+              >
+                <span class="material-icons">add_photo_alternate</span>
+              </button>
+              <button
+                id="thinkingToggleBtn"
+                class="icon-btn-sm secondary"
+                title="Thinking Mode (Off)"
+                aria-pressed="false"
+                style="margin-right: 8px"
+              >
+                <span class="material-icons">psychology</span>
+              </button>
+              <button id="sendChatBtn" class="primary-btn-sm">
+                <span class="material-icons">send</span>
+              </button>
+            </div>
           </div>
         </aside>
       </div>
@@ -860,44 +867,50 @@
           <h3 id="imgModalTitle">Details</h3>
           <div class="form-group">
             <label>Filename</label>
-            <div
-              id="imgModalName"
-              style="color: white; word-break: break-all"
-            ></div>
+            <div id="imgModalName" class="name-field"></div>
           </div>
           <div class="form-group">
             <label>Created</label>
-            <div
-              id="imgModalDate"
-              style="color: white; font-size: 0.9em; color: var(--text-muted)"
-            ></div>
+            <div id="imgModalDate" class="date-field"></div>
           </div>
-          <div
-            class="form-group"
-            style="
-              flex: 1;
-              min-height: 0;
-              display: flex;
-              flex-direction: column;
-            "
-          >
-            <label>Prompt</label>
-            <div
-              id="imgModalPrompt"
-              style="
-                flex: 1;
-                overflow-y: auto;
-                background: rgba(0, 0, 0, 0.3);
-                padding: 8px;
-                border-radius: 4px;
-                font-size: 0.85em;
-                white-space: pre-wrap;
-              "
-            ></div>
+          <div class="form-group prompt-container">
+            <div id="imgModalPrompt" class="prompt-text"></div>
+          </div>
+
+          <div id="imgModalMetadata" class="img-modal-metadata">
+            <div><strong>Model:</strong> <span id="imgModalModel">-</span></div>
+            <div><strong>Size:</strong> <span id="imgModalSize">-</span></div>
+            <div class="hidden">
+              <strong>Creator:</strong> <span id="imgModalCreator">-</span>
+            </div>
+          </div>
+
+          <!-- Reference Images (if any) -->
+          <div id="imgModalRefContainer" class="hidden ref-images-container">
+            <div class="ref-images-label">Referenced Images</div>
+            <div id="imgModalRefImages" class="ref-images-grid">
+              <!-- Thumbnails injected here -->
+            </div>
           </div>
 
           <div class="modal-actions-vertical">
             <div class="modal-actions-row">
+              <button
+                id="imgModalRegenBtn"
+                class="primary-btn hidden"
+                title="Regenerate"
+              >
+                Remake
+                <span
+                  class="material-icons"
+                  style="
+                    font-size: 1.2em;
+                    vertical-align: middle;
+                    margin-left: 4px;
+                  "
+                  >autorenew</span
+                >
+              </button>
               <button
                 id="imgModalFavoriteBtn"
                 class="icon-btn-round"
@@ -1121,6 +1134,51 @@
             style="background: #ef4444; border-color: #ef4444"
           >
             Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Regeneration Modal -->
+    <div
+      id="regenerationModal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="regenModalTitle"
+      style="z-index: 1200"
+    >
+      <div class="modal-content" style="width: 500px; max-width: 90vw">
+        <h3 id="regenModalTitle">Regenerate Image</h3>
+
+        <div class="form-group">
+          <label for="regenPrompt">Prompt</label>
+          <textarea id="regenPrompt" rows="5"></textarea>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="regenCount">Count</label>
+            <input type="number" id="regenCount" value="1" min="1" max="10" />
+          </div>
+        </div>
+
+        <div id="regenRefsContainer" class="form-group hidden">
+          <label>Reference Images (Uncheck to remove)</label>
+          <div id="regenRefList" class="regen-ref-list">
+            <!-- Checks -->
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancelRegenBtn" class="secondary-btn cancel-btn">
+            Cancel
+          </button>
+          <button id="confirmRegenBtn" class="primary-btn">
+            Generate
+            <span class="material-icons" style="margin-left: 5px"
+              >auto_awesome</span
+            >
           </button>
         </div>
       </div>

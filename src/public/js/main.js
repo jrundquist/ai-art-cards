@@ -455,6 +455,13 @@ async function init() {
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      // Priority: Regeneration Modal (Topmost)
+      if (!dom.regenModal.self.classList.contains("hidden")) {
+        dom.regenModal.self.classList.add("hidden");
+        return;
+      }
+
+      // Default: Close other modals
       dom.imgModal.self.classList.add("hidden");
       dom.modal.self.classList.add("hidden");
       dom.helpModal.self.classList.add("hidden");
@@ -471,7 +478,10 @@ async function init() {
     }
 
     // Gallery Navigation
-    if (!dom.imgModal.self.classList.contains("hidden")) {
+    if (
+      !dom.imgModal.self.classList.contains("hidden") &&
+      dom.regenModal.self.classList.contains("hidden")
+    ) {
       if (
         e.key === "ArrowRight" ||
         e.key === "ArrowDown" ||

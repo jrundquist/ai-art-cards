@@ -22,12 +22,31 @@ export function createImagesRouter(
         return res.status(404).json({ error: "Card not found" });
       }
 
-      const subfolder = card.outputSubfolder || "default";
+      const folder = (card as any).outputSubfolder || card.id;
+
       // Construct the static path served by /data
-      // Path format: /data/projects/{projectId}/assets/{subfolder}/{filename}
-      const staticUrl = `/data/projects/${projectId}/assets/${subfolder}/${filename}`;
+      const staticUrl = `/data/projects/${projectId}/assets/${folder}/${filename}`;
 
       res.redirect(staticUrl);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Helper: Serve Temporary Image by ID
+  router.get("/temp-image/:id", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const buffer = await dataService.getTempImage(id);
+      if (!buffer) {
+        return res.status(404).json({ error: "Temp image not found" });
+      }
+
+      // Default to PNG, or try to detect?
+      // For now, most temp images are PNG/JPEG.
+      // We can try to guess from magic bytes or just serve generic.
+      res.setHeader("Content-Type", "image/png");
+      res.send(buffer);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -58,12 +77,38 @@ export function createImagesRouter(
       }
 
       const stats = await fs.stat(fullPath);
-      const tags = await exiftool.read(fullPath);
+      const tags: any = await exiftool.read(fullPath);
+
+      let generationArgs = null;
+      // Try to parse UserComment (where we stored JSON)
+      const userComment = tags.UserComment || tags["XMP:UserComment"];
+      if (userComment) {
+        try {
+          // Sometimes it might be wrapped or have a header, but our writer does clean JSON usually.
+          // exiftool might return it as a string.
+          if (typeof userComment === "string" && userComment.startsWith("{")) {
+            generationArgs = JSON.parse(userComment);
+          } else if (typeof userComment === "object") {
+            generationArgs = userComment;
+          }
+        } catch (e) {
+          logger.warn("Failed to parse UserComment JSON", e);
+        }
+      }
 
       res.json({
         filename: path.basename(fullPath),
         created: stats.birthtime,
-        prompt: tags.Description || tags.ImageDescription || "No prompt found",
+        prompt:
+          tags["XMP-dc:Description"] ||
+          tags.Description ||
+          tags.ImageDescription ||
+          "No prompt found",
+        description: tags["XMP-dc:Description"] || tags.Description || "",
+        creator: tags["XMP-dc:Creator"] || tags.Creator || "",
+        model:
+          tags["XMP-exif:Model"] || tags.Model || generationArgs?.model || "",
+        generationArgs,
       });
     } catch (e: any) {
       logger.error("Metadata error:", e);

@@ -72,3 +72,8 @@ body {
   cursor: not-allowed !important;
   box-shadow: none !important;
 }
+
+.cancel-btn {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}

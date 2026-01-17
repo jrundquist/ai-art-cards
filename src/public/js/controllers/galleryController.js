@@ -345,16 +345,228 @@ export async function openImageDetails(imgUrl) {
     dom.imgModal.date.textContent = new Date(meta.created).toLocaleString();
     dom.imgModal.prompt.textContent = meta.prompt;
 
-    // Remove loading class
-    dom.imgModal.name.classList.remove("text-loading");
     dom.imgModal.date.classList.remove("text-loading");
     dom.imgModal.prompt.classList.remove("text-loading");
+
+    // Populate Extended Metadata
+    dom.imgModal.model.textContent = meta.model || "Unknown";
+    dom.imgModal.creator.textContent = meta.creator || "Unknown";
+
+    let resText = "-";
+    let arText = "-";
+
+    if (meta.generationArgs) {
+      if (meta.generationArgs.resolution)
+        resText = meta.generationArgs.resolution;
+      if (meta.generationArgs.aspectRatio)
+        arText = meta.generationArgs.aspectRatio;
+    }
+
+    dom.imgModal.size.textContent = `${resText} (AR: ${arText})`;
+
+    // Reference Images
+    dom.imgModal.refImages.innerHTML = "";
+    const refs = meta.generationArgs?.referenceImageFiles || [];
+    const tempRefs = meta.generationArgs?.referenceImageIds || [];
+
+    if (refs.length > 0 || tempRefs.length > 0) {
+      dom.imgModal.refContainer.classList.remove("hidden");
+
+      // 1. Historical Files
+      refs.forEach((ref) => {
+        if (ref.projectId && ref.cardId && ref.filename) {
+          const img = document.createElement("img");
+          const url = `/api/ref-image/${ref.projectId}/${ref.cardId}/${ref.filename}`;
+          img.src = url;
+          img.title = `Reference: ${ref.filename}`;
+          img.classList.add("ref-image");
+          dom.imgModal.refImages.appendChild(img);
+        }
+      });
+
+      // 2. Temporary IDs
+      tempRefs.forEach((id) => {
+        const img = document.createElement("img");
+        const url = `/api/temp-image/${id}`;
+        img.src = url;
+        img.title = `Temp Reference`;
+        img.classList.add("ref-image");
+        dom.imgModal.refImages.appendChild(img);
+      });
+    } else {
+      dom.imgModal.refContainer.classList.add("hidden");
+    }
+
+    // Regeneration Button
+    if (meta.generationArgs) {
+      dom.imgModal.regenBtn.classList.remove("hidden");
+      dom.imgModal.regenBtn.onclick = () =>
+        openRegenerateDialog(meta.generationArgs);
+    } else {
+      dom.imgModal.regenBtn.classList.add("hidden");
+    }
   } catch (e) {
     if (currentImgPath !== imgUrl) return;
     dom.imgModal.prompt.textContent = "Error loading metadata: " + e.message;
     dom.imgModal.name.classList.remove("text-loading");
     dom.imgModal.date.classList.remove("text-loading");
     dom.imgModal.prompt.classList.remove("text-loading");
+  }
+}
+
+let activeRegenArgs = null;
+
+function openRegenerateDialog(args) {
+  activeRegenArgs = JSON.parse(JSON.stringify(args)); // Deep copy to avoid mutating orig
+
+  dom.regenModal.prompt.value = activeRegenArgs.prompt || "";
+  dom.regenModal.count.value = 1; // Default to 1 for regeneration
+
+  // Reference Images
+  dom.regenModal.refList.innerHTML = "";
+  const refs = activeRegenArgs.referenceImageFiles || [];
+  const tempRefs = activeRegenArgs.referenceImageIds || [];
+
+  if (refs.length > 0 || tempRefs.length > 0) {
+    dom.regenModal.refContainer.classList.remove("hidden");
+
+    // 1. Render Historical References
+    refs.forEach((ref, index) => {
+      const item = document.createElement("div");
+      item.className = "regen-ref-item";
+      item.title = ref.filename;
+
+      const img = document.createElement("img");
+      const url = `/api/ref-image/${ref.projectId}/${ref.cardId}/${ref.filename}`;
+      img.src = url;
+      img.className = "regen-ref-img";
+      img.loading = "lazy";
+
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.className = "regen-ref-checkbox";
+      chk.checked = true;
+      chk.dataset.type = "file";
+      chk.dataset.index = index;
+
+      item.appendChild(img);
+      item.appendChild(chk);
+      dom.regenModal.refList.appendChild(item);
+    });
+
+    // 2. Render Temporary References
+    tempRefs.forEach((id, index) => {
+      const item = document.createElement("div");
+      item.className = "regen-ref-item";
+      item.title = "Temporary Reference";
+
+      const img = document.createElement("img");
+      const url = `/api/temp-image/${id}`;
+      img.src = url;
+      img.className = "regen-ref-img";
+      img.loading = "lazy";
+
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.className = "regen-ref-checkbox";
+      chk.checked = true;
+      chk.dataset.type = "id";
+      chk.dataset.index = index; // Index within tempRefs array
+
+      item.appendChild(img);
+      item.appendChild(chk);
+      dom.regenModal.refList.appendChild(item);
+    });
+  } else {
+    dom.regenModal.refContainer.classList.add("hidden");
+  }
+
+  dom.regenModal.self.classList.remove("hidden");
+
+  dom.regenModal.cancel.onclick = () => {
+    dom.regenModal.self.classList.add("hidden");
+  };
+
+  dom.regenModal.confirm.onclick = async () => {
+    await submitRegeneration();
+  };
+}
+
+async function submitRegeneration() {
+  if (!activeRegenArgs) return;
+
+  dom.regenModal.confirm.textContent = "Starting...";
+  dom.regenModal.confirm.disabled = true;
+
+  try {
+    const newPrompt = dom.regenModal.prompt.value;
+    const count = parseInt(dom.regenModal.count.value) || 1;
+
+    // Filter References
+    const remainingRefs = [];
+    const remainingRefIds = [];
+
+    const checkboxes = dom.regenModal.refList.querySelectorAll(
+      'input[type="checkbox"]'
+    );
+    checkboxes.forEach((cb) => {
+      if (cb.checked) {
+        const idx = parseInt(cb.dataset.index);
+        const type = cb.dataset.type;
+
+        if (type === "file") {
+          if (activeRegenArgs.referenceImageFiles[idx]) {
+            remainingRefs.push(activeRegenArgs.referenceImageFiles[idx]);
+          }
+        } else if (type === "id") {
+          if (activeRegenArgs.referenceImageIds[idx]) {
+            remainingRefIds.push(activeRegenArgs.referenceImageIds[idx]);
+          }
+        }
+      }
+    });
+
+    const targetCardId = activeRegenArgs.cardId || state.currentCard?.id;
+    const targetProjectId =
+      activeRegenArgs.projectId || state.currentProject?.id;
+
+    if (!targetCardId || !targetProjectId) {
+      throw new Error("Cannot determine target Card/Project for regeneration.");
+    }
+
+    console.log("Regeneration Prompt:", newPrompt);
+
+    const payload = {
+      projectId: targetProjectId,
+      cardId: targetCardId,
+      promptOverride: newPrompt, // Backend expects promptOverride
+      count: count,
+      aspectRatio: activeRegenArgs.aspectRatio,
+      resolution: activeRegenArgs.resolution,
+      referenceImageFiles: remainingRefs,
+      referenceImageIds: remainingRefIds,
+    };
+
+    dom.regenModal.self.classList.add("hidden");
+
+    const jobs = await api.generateImages(payload);
+    const res = await jobs.json();
+
+    if (res.jobId) {
+      createToast(`Regeneration started! (${count} images)`, "success");
+    } else {
+      createToast("Failed to start job: " + (res.error || "Unknown"), "error");
+    }
+  } catch (e) {
+    createToast("Regeneration failed: " + e.message, "error");
+  } finally {
+    dom.regenModal.self.classList.add("hidden");
+    dom.imgModal.self.classList.add("hidden");
+
+    dom.regenModal.confirm.textContent = "Generate";
+    dom.regenModal.confirm.innerHTML =
+      'Generate <span class="material-icons" style="margin-left:5px">auto_awesome</span>';
+    dom.regenModal.confirm.disabled = false;
   }
 }
 

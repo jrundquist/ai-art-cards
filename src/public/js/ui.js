@@ -88,6 +88,23 @@ export const dom = {
     closeBtn: document.getElementById("imgModalCloseBtn"),
     closeX: document.getElementById("imgModalCloseX"),
     favBtn: document.getElementById("imgModalFavoriteBtn"),
+    // New Fields
+    regenBtn: document.getElementById("imgModalRegenBtn"),
+    model: document.getElementById("imgModalModel"),
+    size: document.getElementById("imgModalSize"),
+    creator: document.getElementById("imgModalCreator"),
+    refContainer: document.getElementById("imgModalRefContainer"),
+    refImages: document.getElementById("imgModalRefImages"),
+  },
+  regenModal: {
+    self: document.getElementById("regenerationModal"),
+    title: document.getElementById("regenModalTitle"),
+    prompt: document.getElementById("regenPrompt"),
+    count: document.getElementById("regenCount"),
+    refContainer: document.getElementById("regenRefsContainer"),
+    refList: document.getElementById("regenRefList"),
+    cancel: document.getElementById("cancelRegenBtn"),
+    confirm: document.getElementById("confirmRegenBtn"),
   },
   helpModal: {
     self: document.getElementById("helpModal"),
