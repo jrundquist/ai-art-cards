@@ -129,9 +129,18 @@ export function renderCardList(cards) {
 
     const count = card.imageCount !== undefined ? card.imageCount : 0;
 
+    let thumbHtml = "";
+    if (card.starredImage && card.outputSubfolder) {
+      const thumbUrl = `/data/projects/${card.projectId}/assets/${card.outputSubfolder}/${card.starredImage}`;
+      thumbHtml = `<img src="${thumbUrl}" class="card-item-thumb" loading="lazy">`;
+    }
+
     div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <span>${card.name}</span>
+            <div style="display: flex; align-items: center; overflow: hidden;">
+                ${thumbHtml}
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${card.name}</span>
+            </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 0.8em; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${count}</span>
               <button class="delete-card-icon" title="Delete Card" style="background: none; border: none; cursor: pointer; color: #64748b; font-size: 1.1em; padding: 0; line-height: 1; display: none;"><span class="material-icons" style="font-size: 16px;">delete_outline</span></button>
@@ -169,7 +178,7 @@ export function renderCardList(cards) {
 export function filterCards() {
   const term = dom.searchInput.value.toLowerCase();
   let filtered = state.allCards.filter((c) =>
-    c.name.toLowerCase().includes(term)
+    c.name.toLowerCase().includes(term),
   );
 
   // Apply Sort
@@ -182,6 +191,15 @@ export function selectCard(card, updateHistory = true) {
   state.currentCard = card;
   dom.editorArea.classList.remove("hidden");
   dom.currentCardTitle.textContent = card.name;
+
+  if (card.starredImage && card.outputSubfolder) {
+    const thumbUrl = `/data/projects/${card.projectId}/assets/${card.outputSubfolder}/${card.starredImage}`;
+    dom.currentCardThumbnail.src = thumbUrl;
+    dom.currentCardThumbnail.classList.remove("hidden");
+  } else {
+    dom.currentCardThumbnail.classList.add("hidden");
+    dom.currentCardThumbnail.src = "";
+  }
 
   dom.inputs.name.value = card.name;
   dom.inputs.subfolder.value = card.outputSubfolder || "";
@@ -244,7 +262,7 @@ export function selectCard(card, updateHistory = true) {
 
   // Dispatch event for other components (e.g., Chat)
   document.dispatchEvent(
-    new CustomEvent("card-selected", { detail: { card } })
+    new CustomEvent("card-selected", { detail: { card } }),
   );
 }
 
@@ -272,7 +290,11 @@ export async function createNewCard() {
     }
 
     await loadCards(state.currentProject.id); // Refresh list
-    selectCard(res.card);
+
+    // Need to find the fresh card object from state to ensure we have all fields
+    const freshCard =
+      state.allCards.find((c) => c.id === res.card.id) || res.card;
+    selectCard(freshCard);
   } else {
     showStatus("Failed to create card: " + (res.error || "Unknown"), "error");
   }
@@ -327,7 +349,7 @@ export async function deleteCard(card) {
       }
 
       await loadCards(state.currentProject.id);
-    }
+    },
   );
 }
 
@@ -356,7 +378,7 @@ export async function generateArt(overrides = null) {
 
     // Explicitly clean up any undefined values if merge caused them (though fetch handles this mostly, cleaner to be sure)
     Object.keys(payload).forEach(
-      (key) => payload[key] === undefined && delete payload[key]
+      (key) => payload[key] === undefined && delete payload[key],
     );
 
     const data = await api.generateImages(payload);

@@ -162,6 +162,10 @@ async function init() {
     }
   });
 
+  document.addEventListener("card-starred", () => {
+    cardCtrl.filterCards();
+  });
+
   // Initialize Status Service for SSE notifications
   statusService.connect();
 
@@ -499,6 +503,20 @@ async function init() {
 
   dom.btns.editTitle.addEventListener("click", startTitleEdit);
   dom.currentCardTitle.addEventListener("click", startTitleEdit);
+
+  if (dom.currentCardThumbnail) {
+    dom.currentCardThumbnail.style.cursor = "pointer";
+    dom.currentCardThumbnail.addEventListener("click", () => {
+      if (
+        state.currentCard &&
+        state.currentCard.starredImage &&
+        state.currentCard.outputSubfolder
+      ) {
+        const imgUrl = `data/projects/${state.currentProject.id}/assets/${state.currentCard.outputSubfolder}/${state.currentCard.starredImage}`;
+        galleryCtrl.openImageDetails(imgUrl);
+      }
+    });
+  }
 
   dom.inputs.titleInput.addEventListener("blur", saveTitleEdit);
   dom.inputs.titleInput.addEventListener("keydown", (e) => {

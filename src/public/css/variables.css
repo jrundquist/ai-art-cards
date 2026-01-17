@@ -51,6 +51,7 @@
   --text-gradient-brand: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
   --success-text: #6ee7b7;
   --error-text: #fca5a5;
+  --star-active: #fbbf24;
 }
 
 [data-theme="light"] {

@@ -191,18 +191,23 @@ export function createCardsRouter(
           isFavorite = true;
         }
       } else {
-        // Star it
+        // Handle OLD star if exists (it gets unstarred, so it should become favorite)
+        if (card.starredImage) {
+          if (!card.favoriteImages.includes(card.starredImage)) {
+            card.favoriteImages.push(card.starredImage);
+          }
+        }
+
+        // Star the new one
         card.starredImage = filename;
         isStarred = true;
-        // Keep favorite status as is (or should we force it? Requirement says "When a card is already starred, it loses its star but gains a heart". Implies Unstar -> Heart. Requirements didn't specify Star -> Heart, usually Star implies Favorite or is separate. Let's keep them independent or follow the "Starring makes it the ONE art". Usually the "chosen one" is special.)
-        // User request: "When a card is already starred, it loses its star but gains a heart (favorite)." -> This is for UNSTARRING (toggle off).
-        // "This will be the single art image chosen for the card." -> Only one star.
 
-        // If there was another star, should it become a favorite?
-        // "This will be the single art image chosen for the card."
-        // Implies mutually exclusive star.
-        // Requirement doesn't explicitly say what happens to the OLD star.
-        // Usually it just loses star. Let's leave it as is.
+        // Remove new star from favorites (enforce either-or)
+        const idx = card.favoriteImages.indexOf(filename);
+        if (idx > -1) {
+          card.favoriteImages.splice(idx, 1);
+          isFavorite = false;
+        }
       }
 
       await dataService.saveCard(card);

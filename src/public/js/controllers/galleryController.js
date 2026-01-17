@@ -91,11 +91,14 @@ export async function loadImagesForCard(projectId, cardId) {
       });
     }
 
-    // Filter by Favorites
+    // Filter by Favorites (Include Starred items in this view)
     if (isFavoritesOnly) {
       displayImages = displayImages.filter((img) => {
         const filename = img.split("/").pop();
-        return favs.includes(filename);
+        return (
+          favs.includes(filename) ||
+          state.currentCard?.starredImage === filename
+        );
       });
     }
 
@@ -315,6 +318,34 @@ export async function toggleImageStar(imgUrl = null) {
       // Update state
       state.currentCard.starredImage = data.starredImage;
 
+      // Update allCards for sidebar matching
+      if (state.allCards) {
+        const cardInList = state.allCards.find(
+          (c) => c.id === state.currentCard.id,
+        );
+        if (cardInList) {
+          cardInList.starredImage = data.starredImage;
+        }
+      }
+
+      // Update Top Bar Thumbnail
+      if (dom.currentCardThumbnail) {
+        if (
+          state.currentCard.starredImage &&
+          state.currentCard.outputSubfolder
+        ) {
+          const thumbUrl = `/data/projects/${state.currentProject.id}/assets/${state.currentCard.outputSubfolder}/${state.currentCard.starredImage}`;
+          dom.currentCardThumbnail.src = thumbUrl;
+          dom.currentCardThumbnail.classList.remove("hidden");
+        } else {
+          dom.currentCardThumbnail.classList.add("hidden");
+          dom.currentCardThumbnail.src = "";
+        }
+      }
+
+      // Signal sidebar update
+      document.dispatchEvent(new CustomEvent("card-starred"));
+
       // If backend says it's favorite (e.g. was unstarred), ensure state reflects that
       if (data.isFavorite) {
         if (!state.currentCard.favoriteImages)
@@ -322,7 +353,17 @@ export async function toggleImageStar(imgUrl = null) {
         if (!state.currentCard.favoriteImages.includes(filename)) {
           state.currentCard.favoriteImages.push(filename);
         }
+      } else {
+        // If not favorite (e.g. became starred), remove from favorites list
+        if (state.currentCard.favoriteImages) {
+          const idx = state.currentCard.favoriteImages.indexOf(filename);
+          if (idx > -1) {
+            state.currentCard.favoriteImages.splice(idx, 1);
+          }
+        }
       }
+
+      console.log("Toggle Star Response:", data);
 
       // Refresh Gallery to update ALL stars (exclusive) and favorites
       // (Optimally we could update just the DOM elements, but loadImagesForCard is robust)
@@ -336,13 +377,13 @@ export async function toggleImageStar(imgUrl = null) {
         // Update Modal Star Icon
         updateModalStarBtn(!!data.isStarred);
         // Update Modal Favorite Icon (might have changed if unstarred)
-        dom.imgModal.favBtn.classList.toggle("active", !!data.isFavorite);
+        const showHeart = !!data.isFavorite;
+        console.log("Updating Modal Heart:", showHeart);
+        dom.imgModal.favBtn.classList.toggle("active", showHeart);
         const modalFavIcon =
           dom.imgModal.favBtn.querySelector(".material-icons");
         if (modalFavIcon) {
-          modalFavIcon.textContent = data.isFavorite
-            ? "favorite"
-            : "favorite_border";
+          modalFavIcon.textContent = showHeart ? "favorite" : "favorite_border";
         }
       }
 
@@ -743,13 +784,14 @@ export async function toggleImageArchive(imgUrl = null) {
 export const archiveCurrentImage = () => toggleImageArchive(currentImgPath);
 
 function updateModalStarBtn(isStarred) {
-  if (!dom.imgModal.starBtn) return;
-  dom.imgModal.starBtn.classList.toggle("active", isStarred);
-  const icon = dom.imgModal.starBtn.querySelector(".material-icons");
-  if (icon) {
-    icon.textContent = isStarred ? "star" : "star_border";
+  if (dom.imgModal.starBtn) {
+    dom.imgModal.starBtn.classList.toggle("active", isStarred);
+    const icon = dom.imgModal.starBtn.querySelector(".material-icons");
+    if (icon) {
+      icon.textContent = isStarred ? "star" : "star_border";
+    }
+    dom.imgModal.starBtn.title = isStarred ? "Unstar" : "Star Image";
   }
-  dom.imgModal.starBtn.title = isStarred ? "Unstar" : "Star Image";
 }
 
 export async function downloadCurrentGallery() {

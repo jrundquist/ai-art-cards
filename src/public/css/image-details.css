@@ -39,13 +39,19 @@
 
 .gallery-star-icon.active {
   opacity: 1;
-  color: #fbbf24; /* Amber-400 */
+  color: var(--star-active);
 }
 
 .gallery-star-icon:hover {
   background: rgba(0, 0, 0, 0.8);
   transform: scale(1.1);
-  color: #fbbf24;
+  color: var(--star-active);
+}
+
+#imgModalStarBtn.icon-btn-round.active {
+  color: var(--star-active) !important;
+  border-color: var(--star-active) !important;
+  background: rgba(251, 191, 36, 0.1) !important;
 }
 
 .ref-images-label {
@@ -54,10 +60,25 @@
   margin-bottom: 5px;
 }
 
-.ref-images-grid {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+/* Thumbnails */
+.card-header-thumb {
+  width: 30px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+}
+
+.card-item-thumb {
+  width: 20px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 2px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  background: #222;
 }
 
 /* Prompt Box in Modal */

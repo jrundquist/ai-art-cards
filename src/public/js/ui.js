@@ -10,6 +10,7 @@ export const dom = {
   newCardBtn: document.getElementById("newCardBtn"),
   newCardBtnSmall: document.getElementById("newCardBtnSmall"),
   currentCardTitle: document.getElementById("currentCardTitle"),
+  currentCardThumbnail: document.getElementById("currentCardThumbnail"),
   editorArea: document.getElementById("editorArea"),
   inputs: {
     name: document.getElementById("cardNameInput"),
