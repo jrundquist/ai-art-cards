@@ -8,10 +8,11 @@ export class ChatInputManager {
     this.previewsContainer = uiElements.previewsContainer;
     this.inputArea = uiElements.inputArea;
     this.input = uiElements.input; // for pasting/focus
+    this.sidebar = uiElements.sidebar; // Drag target
 
     // Callbacks / External dependencies
     this.onUpdate = callbacks.onUpdate || (() => {});
-    
+
     // State
     this.selectedImages = []; // Array of { file, mimeType, data, previewUrl }
     this.selectedImageReferences = []; // Array of { projectId, cardId, filename }
@@ -20,52 +21,55 @@ export class ChatInputManager {
   }
 
   init() {
-     if (this.uploadBtn && this.fileInput) {
-        this.uploadBtn.addEventListener("click", () => this.fileInput.click());
-        this.fileInput.addEventListener("change", (e) =>
-          this.handleFileSelect(e.target.files)
-        );
-     }
+    if (this.uploadBtn && this.fileInput) {
+      this.uploadBtn.addEventListener("click", () => this.fileInput.click());
+      this.fileInput.addEventListener("change", (e) =>
+        this.handleFileSelect(e.target.files),
+      );
+    }
 
-     if (this.inputArea) {
-        this.inputArea.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          this.inputArea.classList.add("drag-over");
-        });
-        this.inputArea.addEventListener("dragleave", (e) => {
-          e.preventDefault();
-          this.inputArea.classList.remove("drag-over");
-        });
-        this.inputArea.addEventListener("drop", (e) => this.handleDrop(e));
-     }
+    if (this.sidebar) {
+      this.sidebar.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        this.sidebar.classList.add("drag-over");
+      });
+      this.sidebar.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        // Only remove if leaving the sidebar entirely, not entering a child
+        if (!this.sidebar.contains(e.relatedTarget)) {
+          this.sidebar.classList.remove("drag-over");
+        }
+      });
+      this.sidebar.addEventListener("drop", (e) => this.handleDrop(e));
+    }
 
-     if (this.input) {
-         this.input.addEventListener("paste", (e) => {
-          if (e.clipboardData && e.clipboardData.files.length > 0) {
-            e.preventDefault();
-            this.handleFileSelect(e.clipboardData.files);
-          }
-        });
-     }
+    if (this.input) {
+      this.input.addEventListener("paste", (e) => {
+        if (e.clipboardData && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          this.handleFileSelect(e.clipboardData.files);
+        }
+      });
+    }
   }
 
   getSelectedImages() {
-      return this.selectedImages;
+    return this.selectedImages;
   }
-  
+
   getSelectedReferences() {
-      return this.selectedImageReferences;
+    return this.selectedImageReferences;
   }
 
   clearSelection() {
-      this.selectedImages = [];
-      this.selectedImageReferences = [];
-      this.updateImagePreviews();
+    this.selectedImages = [];
+    this.selectedImageReferences = [];
+    this.updateImagePreviews();
   }
 
   async handleDrop(e) {
     e.preventDefault();
-    this.inputArea.classList.remove("drag-over");
+    if (this.sidebar) this.sidebar.classList.remove("drag-over");
 
     // 0. Check for internal art card reference
     const refData = e.dataTransfer.getData("application/x-art-cards-reference");
@@ -78,7 +82,7 @@ export class ChatInputManager {
             (r) =>
               r.projectId === ref.projectId &&
               r.cardId === ref.cardId &&
-              r.filename === ref.filename
+              r.filename === ref.filename,
           );
           if (!exists) {
             this.selectedImageReferences.push(ref);
@@ -149,7 +153,7 @@ export class ChatInputManager {
 
   async handleFileSelect(files) {
     const validFiles = Array.from(files).filter((file) =>
-      file.type.startsWith("image/")
+      file.type.startsWith("image/"),
     );
 
     if (validFiles.length === 0) return;
@@ -250,5 +254,4 @@ export class ChatInputManager {
     this.selectedImageReferences.splice(index, 1);
     this.updateImagePreviews();
   }
-
 }

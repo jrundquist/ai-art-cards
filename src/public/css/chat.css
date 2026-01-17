@@ -239,7 +239,9 @@
   color: var(--text-muted);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s, color 0.2s;
+  transition:
+    opacity 0.2s,
+    color 0.2s;
   padding: 6px;
   display: flex;
   align-items: center;
@@ -413,8 +415,9 @@
   margin: 4px 0;
   border-left: 3px solid var(--secondary);
   color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   border-top: 1px solid var(--border-light);
   border-bottom: 1px solid var(--border-light);
   border-right: 1px solid var(--border-light);
@@ -652,9 +655,24 @@
   background: #ef4444;
 }
 
-.chat-input-area.drag-over {
-  border: 2px dashed var(--primary) !important;
-  background: rgba(var(--primary-rgb), 0.1) !important;
+.chat-sidebar.drag-over::after {
+  content: "Upload to Art Director";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85); /* Slightly darker for legibility */
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease-out;
+  border: 2px dashed var(--primary);
+  margin: 4px;
+  border-radius: inherit;
 }
 
 /* Secondary small icon button */

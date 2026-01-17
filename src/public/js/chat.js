@@ -52,7 +52,7 @@ export class ChatManager {
       this.sidebar,
       this.toggleBtn,
       this.mainContent,
-      this.resizeHandle
+      this.resizeHandle,
     );
 
     this.inputManager = new ChatInputManager(
@@ -62,8 +62,9 @@ export class ChatManager {
         previewsContainer: this.previewsContainer,
         inputArea: this.inputArea,
         input: this.input,
+        sidebar: this.sidebar, // Add sidebar for drag/drop target
       },
-      {}
+      {},
     );
 
     // State
@@ -102,7 +103,7 @@ export class ChatManager {
     }
     if (this.historyCloseBtn) {
       this.historyCloseBtn.addEventListener("click", () =>
-        this.closeHistoryModal()
+        this.closeHistoryModal(),
       );
     }
     // Close on click outside
@@ -139,7 +140,7 @@ export class ChatManager {
 
     // Focus input when sidebar opens
     const originalToggle = this.uiController.toggleSidebar.bind(
-      this.uiController
+      this.uiController,
     );
     this.uiController.toggleSidebar = (saveState = true) => {
       const isOpen = originalToggle(saveState);
@@ -151,7 +152,7 @@ export class ChatManager {
 
     // Listen for generation completions
     document.addEventListener("generation-completed", (e) =>
-      this.handleGenerationCompleted(e.detail)
+      this.handleGenerationCompleted(e.detail),
     );
 
     // Listen for generation retry (Generate Again)
@@ -167,7 +168,7 @@ export class ChatManager {
   toggleThinkingMode() {
     console.log(
       "[ChatManager] toggleThinkingMode called. Current:",
-      this.useThinking
+      this.useThinking,
     );
     this.useThinking = !this.useThinking;
     localStorage.setItem("useThinking", this.useThinking);
@@ -179,7 +180,7 @@ export class ChatManager {
     this.historyModal.classList.remove("hidden");
     // Refresh list when opening
     this.loadConversationList(
-      state.currentProject ? state.currentProject.id : null
+      state.currentProject ? state.currentProject.id : null,
     );
   }
 
@@ -264,7 +265,7 @@ export class ChatManager {
     // Refresh list to remove active state
     // Always refresh list
     this.loadConversationList(
-      state.currentProject ? state.currentProject.id : null
+      state.currentProject ? state.currentProject.id : null,
     );
   }
 
@@ -301,7 +302,7 @@ export class ChatManager {
         selectedImages.map((img) => ({
           mimeType: img.mimeType,
           data: img.data,
-        }))
+        })),
       );
     }
     this.messageRenderer.appendMessage("user", text);
@@ -367,13 +368,13 @@ export class ChatManager {
 
             this.messageRenderer.updateStreamingContent(
               currentAiDiv,
-              accumulatedMarkdown
+              accumulatedMarkdown,
             );
           },
           onThought: (content) => {
             this.currentThoughtContent = this.messageRenderer.appendThought(
               currentAiDiv,
-              content
+              content,
             );
           },
           onToolCall: (calls) => {
@@ -421,7 +422,7 @@ export class ChatManager {
               const toolElement = this.toolCallManager.createToolCallElement(
                 call.name,
                 toolId,
-                call.args
+                call.args,
               );
               this.messagesContainer.appendChild(toolElement);
             }
@@ -439,7 +440,7 @@ export class ChatManager {
                 toolCallEntry.element,
                 toolName,
                 toolCallEntry.args,
-                result
+                result,
               );
               this.messageRenderer.scrollToBottom();
             }
@@ -451,7 +452,7 @@ export class ChatManager {
             // Refresh conversation list to show updated title
             // Pass current project ID if active, otherwise null
             this.loadConversationList(
-              state.currentProject ? state.currentProject.id : null
+              state.currentProject ? state.currentProject.id : null,
             );
           },
           onSpecialAction: async (action) => {
@@ -488,7 +489,7 @@ export class ChatManager {
         [], // parts
         referencesToSend,
         [], // generatedImageFiles
-        this.useThinking
+        this.useThinking,
       );
     } catch (e) {
       this.messageRenderer.appendError(aiContentDiv, e.message);
@@ -520,13 +521,12 @@ export class ChatManager {
   }
 
   async loadConversationList(projectId) {
-    const conversations = await this.conversationService.loadConversationList(
-      projectId
-    );
+    const conversations =
+      await this.conversationService.loadConversationList(projectId);
     this.conversationService.renderConversationList(
       conversations,
       (convId) => this.loadConversation(convId),
-      (convId) => this.deleteConversation(convId)
+      (convId) => this.deleteConversation(convId),
     );
     return conversations;
   }
@@ -534,9 +534,8 @@ export class ChatManager {
   async loadConversation(conversationId) {
     if (this.isGenerating) return;
 
-    const data = await this.conversationService.loadConversation(
-      conversationId
-    );
+    const data =
+      await this.conversationService.loadConversation(conversationId);
 
     if (!data) return;
 
@@ -634,7 +633,7 @@ export class ChatManager {
 
         const skipThresholdIndex = Math.max(
           0,
-          totalInlineImages - totalReferences
+          totalInlineImages - totalReferences,
         );
         let currentInlineIndex = 0;
 
@@ -651,7 +650,7 @@ export class ChatManager {
             if (accumulatedText) {
               this.messageRenderer.appendMessageWithMarkdown(
                 role,
-                accumulatedText
+                accumulatedText,
               );
               accumulatedText = "";
             }
@@ -681,7 +680,7 @@ export class ChatManager {
                 this.toolCallManager.createCompletedToolElement(
                   call.name,
                   call.args || {},
-                  {} // Will be updated by functionResponse
+                  {}, // Will be updated by functionResponse
                 );
               toolElement.setAttribute("data-pending-result", "true");
               this.messagesContainer.appendChild(toolElement);
@@ -696,7 +695,7 @@ export class ChatManager {
                 .find(
                   (el) =>
                     el.getAttribute("data-tool-name") === toolName &&
-                    el.getAttribute("data-pending-result") === "true"
+                    el.getAttribute("data-pending-result") === "true",
                 );
 
               if (pendingDiv) {
@@ -705,12 +704,12 @@ export class ChatManager {
                   pendingDiv,
                   toolName,
                   {}, // ToolCallManager will recover args from data-args
-                  result
+                  result,
                 );
               } else {
                 console.warn(
                   "[ChatManager] history loop: Pending tool div NOT found for response:",
-                  toolName
+                  toolName,
                 );
               }
             } else if (part.inlineData) {
@@ -718,7 +717,7 @@ export class ChatManager {
               if (accumulatedText) {
                 this.messageRenderer.appendMessageWithMarkdown(
                   role,
-                  accumulatedText
+                  accumulatedText,
                 );
                 accumulatedText = "";
               }
@@ -749,9 +748,8 @@ export class ChatManager {
   }
 
   async deleteConversation(conversationId) {
-    const deleted = await this.conversationService.deleteConversation(
-      conversationId
-    );
+    const deleted =
+      await this.conversationService.deleteConversation(conversationId);
     if (deleted) {
       if (
         this.conversationService.getCurrentConversationId() === conversationId
@@ -791,7 +789,7 @@ export class ChatManager {
           // 3. Open Image if provided
           if (filename) {
             console.log(
-              `[ChatManager] Dispatching view request for ${filename}`
+              `[ChatManager] Dispatching view request for ${filename}`,
             );
             setTimeout(() => {
               const event = new CustomEvent("request-view-image", {
@@ -802,7 +800,7 @@ export class ChatManager {
           }
         } else {
           console.warn(
-            `[ChatManager] Card ${cardId} not found in project ${projectId}`
+            `[ChatManager] Card ${cardId} not found in project ${projectId}`,
           );
           showStatus("Card not found", "error");
         }
@@ -824,7 +822,7 @@ export class ChatManager {
       if (args && args.referenceImageFiles) {
         console.log(
           "[ChatManager] Reference Files in args:",
-          args.referenceImageFiles
+          args.referenceImageFiles,
         );
       } else {
         console.warn("[ChatManager] No referenceImageFiles in args!");
@@ -842,7 +840,7 @@ export class ChatManager {
       // Feedback in chat
       this.messageRenderer.appendMessage(
         "system",
-        `🔄 Retrying generation with same parameters...`
+        `🔄 Retrying generation with same parameters...`,
       );
 
       const jobId = await generateArt(args);
@@ -857,7 +855,7 @@ export class ChatManager {
       console.error("[ChatManager] Retry failed:", e);
       this.messageRenderer.appendMessage(
         "system",
-        `Error retrying generation: ${e.message}`
+        `Error retrying generation: ${e.message}`,
       );
       this.isGenerating = false;
       this.updateSendButtonState();
@@ -881,7 +879,7 @@ export class ChatManager {
 
     this.trackedJobs.delete(jobId);
     console.log(
-      `[ChatManager] Tracked job ${jobId} completed. Sending feedback.`
+      `[ChatManager] Tracked job ${jobId} completed. Sending feedback.`,
     );
 
     try {
@@ -977,7 +975,7 @@ export class ChatManager {
 
             this.messageRenderer.updateStreamingContent(
               currentAiDiv,
-              accumulatedMarkdown
+              accumulatedMarkdown,
             );
           },
           onToolCall: (calls) => {
@@ -987,11 +985,11 @@ export class ChatManager {
               const toolElement = this.toolCallManager.createToolCallElement(
                 call.name,
                 toolId,
-                call.args
+                call.args,
               );
               this.messagesContainer.insertBefore(
                 toolElement,
-                currentAiDiv.parentNode
+                currentAiDiv.parentNode,
               );
               this.messageRenderer.scrollToBottom();
             }
@@ -1004,7 +1002,7 @@ export class ChatManager {
                 toolCallEntry.element,
                 toolName,
                 toolCallEntry.args,
-                result
+                result,
               );
               this.messageRenderer.scrollToBottom();
             }
@@ -1031,7 +1029,7 @@ export class ChatManager {
         parts, // PASS THE PARTS HERE
         referencesToSend, // PASS REFERENCES HERE
         generatedImageFiles, // PASS GENERATED FILES HERE
-        false // useThinking (System turns usually don't need thinking)
+        false, // useThinking (System turns usually don't need thinking)
       );
     } catch (e) {
       this.messageRenderer.appendError(currentAiDiv, e.message);
