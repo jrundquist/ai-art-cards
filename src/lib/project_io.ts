@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import archiver from "archiver";
-import AdmZip from "adm-zip";
+import StreamZip from "node-stream-zip";
 import { logger } from "./logger";
 
 export interface ImportResult {
@@ -57,7 +57,7 @@ export async function exportProject(
 
 /**
  * Imports a project zip file into the projects root directory.
- * Uses 'adm-zip' for synchronous unzipping / inspecting.
+ * Uses 'node-stream-zip' to handle large files and stream extraction.
  * Merges files: always overwrites if the zip version is newer (or just overwrites based on user pref).
  * User requested: "merging if the project already exists (always taking the newest version of each file)."
  */
@@ -68,25 +68,24 @@ export async function importProject(
   try {
     logger.info(`Importing project from ${zipPath} into ${projectsRoot}`);
 
-    const zip = new AdmZip(zipPath);
-    const zipEntries = zip.getEntries();
+    const zip = new StreamZip.async({ file: zipPath });
 
-    if (zipEntries.length === 0) {
+    // Validate project structure and find project.json
+    const entries = await zip.entries();
+    const entryValues = Object.values(entries);
+
+    if (entryValues.length === 0) {
+      await zip.close();
       return { success: false, message: "The project file is empty." };
     }
 
-    // Identify project structure.
-    // Case 1: The zip contains a root folder (common if zipped manually).
-    // Case 2: The zip contains files at root (our exportProject does this).
-    // We look for 'project.json' to confirm valid project and get ID/Name.
-
-    let projectJsonEntry = zipEntries.find(
+    let projectJsonEntry = entryValues.find(
       (entry) =>
-        entry.entryName === "project.json" ||
-        entry.entryName.endsWith("/project.json"),
+        entry.name === "project.json" || entry.name.endsWith("/project.json"),
     );
 
     if (!projectJsonEntry) {
+      await zip.close();
       return {
         success: false,
         message: "Invalid project file: project.json not found.",
@@ -94,11 +93,13 @@ export async function importProject(
     }
 
     // Read project.json
-    const projectJsonContent = projectJsonEntry.getData().toString("utf8");
+    const projectJsonBuffer = await zip.entryData(projectJsonEntry.name);
+    const projectJsonContent = projectJsonBuffer.toString("utf8");
     let projectData;
     try {
       projectData = JSON.parse(projectJsonContent);
     } catch (e) {
+      await zip.close();
       return {
         success: false,
         message: "Invalid project file: project.json is corrupted.",
@@ -106,15 +107,6 @@ export async function importProject(
     }
 
     const projectId = projectData.id;
-    // We prefer the ID as folder name, or whatever the existing convention is.
-    // The existing system likely uses the folder name as the ID or maps it.
-    // Let's assume folder name = project ID for consistency, or we use the project name if ID is not suitable.
-    // However, user projects seem to be in `data/projects/<folder>`.
-    // Let's check if the project already exists.
-
-    // If the zip has a root dir, `projectJsonEntry.entryName` might be `my-project/project.json`.
-    // If flattened, it is `project.json`.
-
     // We want to extract to `projectsRoot/<projectId>`.
     const targetProjectDir = path.join(projectsRoot, projectId);
 
@@ -123,26 +115,24 @@ export async function importProject(
       fs.mkdirSync(targetProjectDir, { recursive: true });
     }
 
+    // Determine root folder inside zip (if any)
+    const projectJsonDir = path.dirname(projectJsonEntry.name);
+
     // Iterate and extract/merge
-    for (const entry of zipEntries) {
+    for (const entry of entryValues) {
       if (entry.isDirectory) {
         continue;
       }
 
-      // Determine relative path in the project
-      // If zip entry is "root/sub/file", and project.json was at "root/project.json", relative is "sub/file".
-      // If zip entry is "sub/file", and project.json was at "project.json", relative is "sub/file".
-
-      let relativePathInProject = entry.entryName;
+      let relativePathInProject = entry.name;
       // Strip the potential root folder from the entry name if it exists in the zip
-      const projectJsonDir = path.dirname(projectJsonEntry.entryName);
       if (projectJsonDir !== ".") {
-        if (entry.entryName.startsWith(projectJsonDir + "/")) {
-          relativePathInProject = entry.entryName.substring(
+        if (entry.name.startsWith(projectJsonDir + "/")) {
+          relativePathInProject = entry.name.substring(
             projectJsonDir.length + 1,
           );
         } else {
-          // Entry is possibly outside the project structure we identified? Skip.
+          // Entry is outside the project structure we identified. Skip.
           continue;
         }
       }
@@ -159,16 +149,10 @@ export async function importProject(
       if (fs.existsSync(targetFilePath)) {
         const stats = fs.statSync(targetFilePath);
         const diskTime = stats.mtime;
-        const zipTime = entry.header.time; // Date object in adm-zip?
-        // Adm-zip header.time is actually tricky, getData().time might be safer or just trust user wants overwrite.
-        // User said: "always taking the newest version of each file".
+        // zip entry time is usually reliable
+        const zipTime = new Date(entry.time);
 
-        // zip.extractEntryTo doesn't give us easy date comparison beforehand easily without reading.
-        // entry.header.time is raw Date or similar.
-
-        // Let's blindly assume zip time is correct.
-        // Actually, let's look at `entry.header.time`. It's a Date.
-        if (entry.header.time < diskTime) {
+        if (zipTime < diskTime) {
           logger.info(`Skipping older file in zip: ${relativePathInProject}`);
           shouldOverwrite = false;
         }
@@ -176,15 +160,19 @@ export async function importProject(
 
       if (shouldOverwrite) {
         // Extract specific entry
-        // target path must be directory for extractEntryTo? No, it takes target path.
-        // actually extractEntryTo takes a directory.
-        // We can use fs.writeFileSync(targetFilePath, entry.getData());
-        fs.writeFileSync(targetFilePath, entry.getData());
-        // restore timestamp if possible?
-        const time = entry.header.time;
-        fs.utimesSync(targetFilePath, time, time);
+        await zip.extract(entry.name, targetFilePath);
+
+        // Restore timestamp
+        const time = new Date(entry.time);
+        try {
+          fs.utimesSync(targetFilePath, time, time);
+        } catch (e) {
+          logger.warn(`Failed to set timestamp for ${targetFilePath}`, e);
+        }
       }
     }
+
+    await zip.close();
 
     return {
       success: true,

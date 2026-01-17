@@ -662,13 +662,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"adm-zip@npm:^0.5.16":
-  version: 0.5.16
-  resolution: "adm-zip@npm:0.5.16"
-  checksum: 1f4104f3462b99e1b34d78ccfbdcf47e533a9cc7f894cedec6cd67b06cc6ad0b3a45241d66df5471050c7abbdd67e5707e3959fc76d75176ed6101a5b2a580d5
-  languageName: node
-  linkType: hard
-
 "agent-base@npm:^7.1.0, agent-base@npm:^7.1.2":
   version: 7.1.4
   resolution: "agent-base@npm:7.1.4"
@@ -689,7 +682,6 @@ __metadata:
     "@types/express": ^5.0.6
     "@types/mime": ^4.0.0
     "@types/node": ^25.0.6
-    adm-zip: ^0.5.16
     archiver: ^7.0.1
     cors: ^2.8.5
     dotenv: ^17.2.3
@@ -700,6 +692,7 @@ __metadata:
     exiftool-vendored: ^35.0.0
     express: ^5.2.1
     mime: ^4.1.0
+    node-stream-zip: ^1.15.0
     ts-node: ^10.9.2
     typescript: ^5.9.3
   languageName: unknown
@@ -3112,6 +3105,13 @@ __metadata:
   bin:
     node-gyp: bin/node-gyp.js
   checksum: 198d91c535fe9940bcdc0db4e578f94cf9872e0d068e88ef2f4656924248bb67245b270b48eded6634c7513841c0cd42f3da3ac9d77c8e16437fcd90703b9ef3
+  languageName: node
+  linkType: hard
+
+"node-stream-zip@npm:^1.15.0":
+  version: 1.15.0
+  resolution: "node-stream-zip@npm:1.15.0"
+  checksum: 0b73ffbb09490e479c8f47038d7cba803e6242618fbc1b71c26782009d388742ed6fb5ce6e9d31f528b410249e7eb1c6e7534e9d3792a0cafd99813ac5a35107
   languageName: node
   linkType: hard
 
