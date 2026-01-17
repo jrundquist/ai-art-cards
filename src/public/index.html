@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -451,44 +451,47 @@
             </div>
           </div>
           <div class="chat-input-area" id="chatInputArea">
-            <div
-              id="chatImagePreviews"
-              class="chat-image-previews hidden"
-            ></div>
-
-            <textarea
-              id="chatInput"
-              placeholder="Type a message..."
-              rows="1"
-            ></textarea>
-            <div class="chat-input-group">
-              <input
-                type="file"
-                id="chatFileInput"
-                multiple
-                accept="image/*"
-                class="hidden"
-              />
-              <button
-                id="chatUploadBtn"
-                class="icon-btn-sm secondary"
-                title="Upload Images"
-                style="margin-right: 4px"
-              >
-                <span class="material-icons">add_photo_alternate</span>
-              </button>
-              <button
-                id="thinkingToggleBtn"
-                class="icon-btn-sm secondary"
-                title="Thinking Mode (Off)"
-                aria-pressed="false"
-                style="margin-right: 8px"
-              >
-                <span class="material-icons">psychology</span>
-              </button>
-              <button id="sendChatBtn" class="primary-btn-sm">
-                <span class="material-icons">send</span>
-              </button>
+            <div class="chat-input-wrapper">
+              <div
+                id="chatImagePreviews"
+                class="chat-image-previews hidden"
+              ></div>
+              <textarea
+                id="chatInput"
+                placeholder="Type a message..."
+                rows="1"
+              ></textarea>
+              <div class="chat-input-footer">
+                <div class="chat-input-footer-left">
+                  <input
+                    type="file"
+                    id="chatFileInput"
+                    multiple
+                    accept="image/*"
+                    class="hidden"
+                  />
+                  <button
+                    id="chatUploadBtn"
+                    class="icon-btn-sm secondary"
+                    title="Upload Images"
+                  >
+                    <span class="material-icons">add_photo_alternate</span>
+                  </button>
+                  <button
+                    id="thinkingToggleBtn"
+                    class="icon-btn-sm secondary"
+                    title="Thinking Mode (Off)"
+                    aria-pressed="false"
+                  >
+                    <span class="material-icons">psychology</span>
+                  </button>
+                </div>
+                <div class="chat-input-footer-right">
+                  <button id="sendChatBtn" class="primary-btn-sm">
+                    <span class="material-icons">send</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
@@ -765,7 +768,11 @@
         <div class="modal-actions">
           <button
             class="primary-btn"
-            onclick="document.getElementById('modifierHelpModal').classList.add('hidden')"
+            onclick="
+              document
+                .getElementById('modifierHelpModal')
+                .classList.add('hidden')
+            "
           >
             Got it
           </button>

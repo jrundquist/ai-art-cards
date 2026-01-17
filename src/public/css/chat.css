@@ -460,42 +460,69 @@
   font-size: 0.9em;
 }
 
-/* Input Area */
+/* Input Area Wrapper */
+.chat-input-wrapper {
+  background: var(--bg-ai-input, #2a2a2a);
+  border-radius: 24px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.chat-input-wrapper:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+}
+
 .chat-input-area {
   padding: 16px;
   background: var(--bg-section);
   border-top: var(--glass-border);
-  display: flex;
+  display: flex; /* Ensure it stays flex container if needed but wrapper handles most */
   flex-direction: column;
-  gap: 10px;
-  align-items: flex-end;
 }
 
-.chat-input-group {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  align-self: flex-start;
-}
-
-.chat-image-previews {
-  border-bottom: var(--glass-border);
-}
-
+/* Textarea - remove independent styles */
 .chat-input-area textarea {
-  background: var(--bg-ai-input);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 6px;
   resize: none;
-  min-height: 42px;
+  min-height: 24px;
   max-height: 120px;
-  line-height: 1.4;
+  line-height: 1.5;
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
+  box-shadow: none;
 }
 
+.chat-input-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.chat-input-footer-left {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-footer-right {
+  display: flex;
+}
+
+/* Primary Send Button */
 .primary-btn-sm {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
   background: var(--primary);
@@ -506,7 +533,6 @@
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
-  margin-left: auto;
 }
 .primary-btn-sm:hover {
   background: var(--primary-dark);
@@ -592,8 +618,6 @@
 
 /* Chat Image Upload */
 .chat-image-previews {
-  background: var(--bg-section);
-  border-top: var(--glass-border);
   padding: 8px 16px;
   display: flex;
   gap: 8px;
@@ -601,6 +625,9 @@
   min-height: 58px;
   animation: slideIn 0.2s ease;
   align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
 }
 .chat-image-previews.hidden {
   display: none;
