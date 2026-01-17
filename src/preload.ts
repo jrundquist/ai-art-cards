@@ -10,10 +10,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     title: string,
     body: string,
     projectId: string,
-    cardId: string
+    cardId: string,
   ) => ipcRenderer.invoke("show-notification", title, body, projectId, cardId),
+  exportProject: (projectPath: string, defaultName: string) =>
+    ipcRenderer.invoke("export-project", projectPath, defaultName),
   onNavigateToCard: (callback: (projectId: string, cardId: string) => void) =>
     ipcRenderer.on("navigate-to-card", (_event, projectId, cardId) =>
-      callback(projectId, cardId)
+      callback(projectId, cardId),
     ),
 });

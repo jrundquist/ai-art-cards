@@ -405,12 +405,6 @@
               </div>
             </div>
           </div>
-          <div
-            id="toast-container"
-            class="toast-container"
-            role="status"
-            aria-live="polite"
-          ></div>
         </main>
 
         <!-- Chat Sidebar -->
@@ -717,9 +711,17 @@
 
         <div class="modal-actions">
           <button
+            id="exportProjectBtn"
+            class="secondary-btn"
+            style="margin-right: auto"
+          >
+            Export Project
+          </button>
+          <div style="flex: 1"></div>
+          <button
             id="deleteProjectBtn"
             class="secondary-btn"
-            style="color: #ef4444; border-color: #ef4444; margin-right: auto"
+            style="color: #ef4444; border-color: #ef4444"
           >
             Delete Project
           </button>
@@ -1190,6 +1192,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Toast Container (Moved to end of body for z-index) -->
+    <div
+      id="toast-container"
+      class="toast-container"
+      role="status"
+      aria-live="polite"
+    ></div>
 
     <script type="module" src="js/main.js"></script>
   </body>

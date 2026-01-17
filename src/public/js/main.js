@@ -33,7 +33,7 @@ async function loadKeys() {
   const lastName = localStorage.getItem("lastApiKeyName");
   if (lastName) {
     const option = Array.from(dom.inputs.keySelect.options).find(
-      (o) => o.text === lastName
+      (o) => o.text === lastName,
     );
     if (option) {
       dom.inputs.keySelect.value = option.value;
@@ -189,7 +189,7 @@ async function init() {
     const currentCardId = state.currentCard ? state.currentCard.id : "null";
 
     console.log(
-      `[Main] Validation: Project(${currentProjectId} vs ${projectId}), Card(${currentCardId} vs ${cardId})`
+      `[Main] Validation: Project(${currentProjectId} vs ${projectId}), Card(${currentCardId} vs ${cardId})`,
     );
 
     if (
@@ -360,10 +360,10 @@ async function init() {
 
   // Project Modals
   dom.newProjectBtn.addEventListener("click", () =>
-    projectCtrl.openProjectModal(null)
+    projectCtrl.openProjectModal(null),
   );
   dom.btns.projectSelectionCreate.addEventListener("click", () =>
-    projectCtrl.openProjectModal(null)
+    projectCtrl.openProjectModal(null),
   );
   dom.editProjectBtn.addEventListener("click", () => {
     if (state.currentProject)
@@ -371,31 +371,95 @@ async function init() {
   });
 
   dom.modal.cancel.addEventListener("click", () =>
-    dom.modal.self.classList.add("hidden")
+    dom.modal.self.classList.add("hidden"),
   );
   dom.modal.save.addEventListener("click", projectCtrl.saveProjectConfig);
   dom.modal.delete.addEventListener("click", projectCtrl.deleteCurrentProject); // NEW
 
+  // Export Project
+  const exportBtn = document.getElementById("exportProjectBtn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", async () => {
+      if (!state.currentProject) return;
+
+      if (!window.electronAPI || !window.electronAPI.exportProject) {
+        showStatus("Export not supported in this environment", "error");
+        return;
+      }
+
+      const pRoot = state.currentProject.outputRoot || state.currentProject.id;
+      // We need absolute path. The backend expects absolute path?
+      // Wait, the backend has `exportProject(projectPath, ...)`.
+      // The frontend doesn't know the absolute path easily unless we tell it.
+      // Actually `export-project` handler in `electron.ts` takes `projectPath`.
+      // But the frontend only knows relative paths usually or we handle it in backend.
+
+      // OPTION: Pass `state.currentProject.id` to backend, and let backend figure out the path.
+      // In `electron.ts`, I implemented: `ipcMain.handle("export-project", async (event, projectPath: string, defaultName: string) => { ... })`
+      // So it expects a path.
+      // But `projectPath` coming from frontend might be tricky.
+      // Let's change `electron.ts` to accept `projectId` instead or have frontend send path if known.
+      // Frontend doesn't know absolute path.
+      // `projects` in `state` might have it if we put it there?
+      // `projectCtrl.loadProjects` fetches from API.
+
+      // Let's assume we need to change backend to take ID and resolve path.
+      // OR, we assume `projectPath` is just the ID?
+      // In `electron.ts`: `await exportProject(projectPath, result.filePath);` which calls `archive.directory(projectPath, ...)`
+      // So `projectPath` MUST be absolute or relative to CWD.
+
+      // REVISION: I should update `electron.ts` to resolved path from ID.
+      // For now, I'll send the ID as the path, and fix `electron.ts`.
+
+      // actually, let's look at `electron.ts` again. I can fix it there easily.
+      // "projectPath" param name suggests path.
+      // I'll send the ID.
+
+      const projectId = state.currentProject.id;
+      const projectName = state.currentProject.name || "project";
+      const filename = `${projectName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.artproj`;
+
+      showStatus("Exporting project...", "info");
+      try {
+        const result = await window.electronAPI.exportProject(
+          projectId,
+          filename,
+        );
+        if (result && result.success) {
+          showStatus("Project exported successfully", "success");
+        } else if (result && !result.canceled) {
+          showStatus(
+            "Export failed: " + (result.message || "Unknown error"),
+            "error",
+          );
+        }
+      } catch (e) {
+        console.error("Export error:", e);
+        showStatus("Export failed", "error");
+      }
+    });
+  }
+
   // Image Modal
   dom.imgModal.closeBtn.addEventListener("click", () =>
-    dom.imgModal.self.classList.add("hidden")
+    dom.imgModal.self.classList.add("hidden"),
   );
   dom.imgModal.closeX.addEventListener("click", () =>
-    dom.imgModal.self.classList.add("hidden")
+    dom.imgModal.self.classList.add("hidden"),
   );
   dom.imgModal.archiveBtn.addEventListener(
     "click",
-    galleryCtrl.archiveCurrentImage
+    galleryCtrl.archiveCurrentImage,
   );
 
   const closeOnBackdrop = (e, modalDiv) => {
     if (e.target === modalDiv) modalDiv.classList.add("hidden");
   };
   dom.modal.self.addEventListener("click", (e) =>
-    closeOnBackdrop(e, dom.modal.self)
+    closeOnBackdrop(e, dom.modal.self),
   );
   dom.imgModal.self.addEventListener("click", (e) =>
-    closeOnBackdrop(e, dom.imgModal.self)
+    closeOnBackdrop(e, dom.imgModal.self),
   );
 
   // Editable Title Logic

@@ -17,6 +17,7 @@ import path from "path";
 import fs from "fs";
 import { logger, configureLogger } from "./lib/logger";
 import log from "electron-log";
+import { exportProject, importProject } from "./lib/project_io";
 
 // --- Auto Updater Setup ---
 const logFile = log.transports.file.getFile().path;
@@ -92,6 +93,7 @@ autoUpdater.on("error", (err) => {
 });
 
 let mainWindow: BrowserWindow | null;
+let pendingOpenFilePath: string | null = null;
 
 function createMenu() {
   const isMac = process.platform === "darwin";
@@ -128,7 +130,57 @@ function createMenu() {
     // { role: 'fileMenu' }
     {
       label: "File",
-      submenu: [isMac ? { role: "close" } : { role: "quit" }],
+      submenu: [
+        {
+          label: "Import Project...",
+          click: async () => {
+            if (mainWindow) {
+              const result = await dialog.showOpenDialog(mainWindow, {
+                properties: ["openFile"],
+                filters: [
+                  { name: "AI Art Project", extensions: ["artproj", "zip"] },
+                ],
+              });
+
+              if (!result.canceled && result.filePaths.length > 0) {
+                const zipPath = result.filePaths[0];
+                const dataPath = path.join(app.getPath("userData"), "data");
+                const projectsRoot = path.join(dataPath, "projects");
+
+                // Ensure projects root exists
+                if (!fs.existsSync(projectsRoot)) {
+                  fs.mkdirSync(projectsRoot, { recursive: true });
+                }
+
+                try {
+                  const importResult = await importProject(
+                    zipPath,
+                    projectsRoot,
+                  );
+                  if (importResult.success) {
+                    dialog.showMessageBox(mainWindow, {
+                      type: "info",
+                      title: "Import Successful",
+                      message: `Project "${importResult.projectName}" imported successfully.`,
+                    });
+                    // Refresh projects in UI
+                    mainWindow.reload(); // Simple reload to refresh state
+                  } else {
+                    dialog.showErrorBox("Import Failed", importResult.message);
+                  }
+                } catch (err: any) {
+                  dialog.showErrorBox(
+                    "Import Error",
+                    err.message || "Unknown error",
+                  );
+                }
+              }
+            }
+          },
+        },
+        { type: "separator" },
+        isMac ? { role: "close" } : { role: "quit" },
+      ],
     },
     // { role: 'editMenu' }
     {
@@ -203,7 +255,7 @@ function createMenu() {
           label: "Learn More",
           click: async () => {
             await shell.openExternal(
-              "https://github.com/rundquist/ai-art-cards"
+              "https://github.com/rundquist/ai-art-cards",
             );
           },
         },
@@ -332,7 +384,7 @@ app.on("ready", async () => {
       title: string,
       body: string,
       projectId: string,
-      cardId: string
+      cardId: string,
     ) => {
       if (Notification.isSupported()) {
         const notification = new Notification({
@@ -353,7 +405,41 @@ app.on("ready", async () => {
 
         notification.show();
       }
-    }
+    },
+  );
+
+  ipcMain.handle(
+    "export-project",
+    async (event, projectId: string, defaultName: string) => {
+      // projectId is passed from frontend. Resolve to path.
+      if (!mainWindow) return { success: false, message: "No window" };
+
+      const projectPath = path.join(dataRoot, "projects", projectId);
+
+      if (!fs.existsSync(projectPath)) {
+        return {
+          success: false,
+          message: "Project folder not found: " + projectId,
+        };
+      }
+
+      const result = await dialog.showSaveDialog(mainWindow, {
+        title: "Export Project",
+        defaultPath: defaultName || "project.artproj",
+        filters: [{ name: "AI Art Project", extensions: ["artproj", "zip"] }],
+      });
+
+      if (!result.canceled && result.filePath) {
+        try {
+          await exportProject(projectPath, result.filePath);
+          return { success: true, filePath: result.filePath };
+        } catch (err: any) {
+          logger.error("Export failed:", err);
+          return { success: false, message: err.message };
+        }
+      }
+      return { canceled: true };
+    },
   );
 
   await startServer(5432, dataRoot, logFile);
@@ -362,7 +448,77 @@ app.on("ready", async () => {
   setupDockMenu();
 
   createWindow();
+
+  // Process any pending file open (if app was opened via file)
+  if (pendingOpenFilePath) {
+    handleOpenFile(pendingOpenFilePath);
+    pendingOpenFilePath = null;
+  }
 });
+
+// Handle File Open (macOS)
+app.on("open-file", (event, filePath) => {
+  event.preventDefault();
+  if (app.isReady() && mainWindow) {
+    handleOpenFile(filePath);
+  } else {
+    pendingOpenFilePath = filePath;
+  }
+});
+
+// Handle File Open (Windows - Second Instance)
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (event, commandLine, workingDirectory) => {
+    // Somewhere in commandLine is the file path
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+
+      const filePath = commandLine.find((arg) => arg.endsWith(".artproj"));
+      if (filePath) {
+        handleOpenFile(filePath);
+      }
+    }
+  });
+}
+
+async function handleOpenFile(filePath: string) {
+  if (!filePath.endsWith(".artproj") && !filePath.endsWith(".zip")) return;
+
+  logger.info("Opening file from OS:", filePath);
+
+  const dataPath = path.join(app.getPath("userData"), "data");
+  const projectsRoot = path.join(dataPath, "projects");
+  if (!fs.existsSync(projectsRoot)) {
+    fs.mkdirSync(projectsRoot, { recursive: true });
+  }
+
+  try {
+    const importResult = await importProject(filePath, projectsRoot);
+    if (importResult.success) {
+      if (mainWindow) {
+        dialog.showMessageBox(mainWindow, {
+          type: "info",
+          title: "Import Successful",
+          message: `Project "${importResult.projectName}" imported successfully.`,
+        });
+        mainWindow.reload();
+      }
+    } else {
+      if (mainWindow) {
+        dialog.showErrorBox("Import Failed", importResult.message);
+      }
+    }
+  } catch (err: any) {
+    logger.error("Error handling open file:", err);
+    if (mainWindow) {
+      dialog.showErrorBox("Import Error", err.message);
+    }
+  }
+}
 
 function createTray() {
   try {

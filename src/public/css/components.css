@@ -540,19 +540,12 @@ button {
 /* Toast Notifications */
 .toast-container {
   position: absolute;
-
   bottom: 24px;
-
   right: 24px;
-
   display: flex;
-
   flex-direction: column;
-
   gap: 10px;
-
-  z-index: 1000;
-
+  z-index: 2000;
   pointer-events: none;
 }
 
@@ -574,14 +567,16 @@ button {
 .toast.error {
   border-color: #ef4444;
   color: var(--error-text);
-  background: linear-gradient(rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.15)),
+  background:
+    linear-gradient(rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.15)),
     var(--bg-panel-solid);
 }
 
 .toast.success {
   border-color: var(--primary);
   color: var(--success-text);
-  background: linear-gradient(
+  background:
+    linear-gradient(
       rgba(var(--primary-rgb), 0.15),
       rgba(var(--primary-rgb), 0.15)
     ),
@@ -710,7 +705,9 @@ button {
 .project-card:hover {
   transform: translateY(-4px);
   border-color: rgba(var(--primary-rgb), 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), var(--shadow-glow);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    var(--shadow-glow);
 }
 
 .project-card h3 {
