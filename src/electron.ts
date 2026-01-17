@@ -18,6 +18,7 @@ import fs from "fs";
 import { logger, configureLogger } from "./lib/logger";
 import log from "electron-log";
 import { exportProject, importProject } from "./lib/project_io";
+import contextMenu from "electron-context-menu";
 
 // --- Auto Updater Setup ---
 const logFile = log.transports.file.getFile().path;
@@ -286,10 +287,21 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
+      spellcheck: true,
     },
     title: "AICardArts",
     backgroundColor: "#1e1e1e",
     show: false, // Wait until ready-to-show
+  });
+
+  contextMenu({
+    // Ensures spellcheck related items (like 'Learn Spelling') are shown
+    showLearnSpelling: true,
+    // Add other menu items as needed, e.g., inspect element
+    showInspectElement: process.env.NODE_ENV === "development",
+    showSaveImageAs: true,
+    showSelectAll: true,
+    window: mainWindow,
   });
 
   // Load the app
