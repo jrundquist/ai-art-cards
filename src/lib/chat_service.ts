@@ -67,11 +67,11 @@ export class ChatService {
     parts: any[] = [],
     referenceImageFiles: any[] = [],
     generatedImageFiles: string[] = [],
-    useThinking: boolean = false
+    useThinking: boolean = false,
   ) {
     // 1. Load History
     logger.info(
-      `[ChatService] Sending message stream for conv: ${conversationId} (Thinking: ${useThinking})`
+      `[ChatService] Sending message stream for conv: ${conversationId} (Thinking: ${useThinking})`,
     );
     logger.info(`[ChatService] Received ${images.length} images`);
 
@@ -118,7 +118,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 
     // New: Include info on recent/active generation jobs
     const activeJobs = this.getActiveJobs().filter(
-      (j) => j.projectId === projectId
+      (j) => j.projectId === projectId,
     );
     if (activeJobs.length > 0) {
       contextStr += `\nRecent/Active Generation Jobs for this project:\n`;
@@ -181,7 +181,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         const { id } = await this.dataService.saveTempImage(
           buffer,
           img.mimeType,
-          projectId
+          projectId,
         );
         imageIds.push(id);
 
@@ -196,7 +196,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       // Process Generated Images (System Feedback)
       if (generatedImageFiles && generatedImageFiles.length > 0) {
         logger.info(
-          `[ChatService] Processing ${generatedImageFiles.length} generated images for feedback`
+          `[ChatService] Processing ${generatedImageFiles.length} generated images for feedback`,
         );
         for (const relPath of generatedImageFiles) {
           try {
@@ -223,7 +223,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             logger.info(`[ChatService] Attached generated result: ${relPath}`);
           } catch (e: any) {
             logger.error(
-              `[ChatService] Failed to load generated image ${relPath}: ${e.message}`
+              `[ChatService] Failed to load generated image ${relPath}: ${e.message}`,
             );
           }
         }
@@ -233,7 +233,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       // Process Reference Images (Historical/Gallery Images)
       if (referenceImageFiles.length > 0) {
         logger.info(
-          `[ChatService] Processing ${referenceImageFiles.length} reference images`
+          `[ChatService] Processing ${referenceImageFiles.length} reference images`,
         );
         for (const ref of referenceImageFiles) {
           try {
@@ -250,7 +250,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 projectId,
                 "assets",
                 subfolder,
-                filename
+                filename,
               );
 
               const buffer = await fs.readFile(filePath);
@@ -265,16 +265,16 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 },
               });
               logger.info(
-                `[ChatService] Attached reference image: ${filename}`
+                `[ChatService] Attached reference image: ${filename}`,
               );
             } else {
               logger.warn(
-                `[ChatService] Card not found for reference: ${cardId}`
+                `[ChatService] Card not found for reference: ${cardId}`,
               );
             }
           } catch (e: any) {
             logger.error(
-              `[ChatService] Failed to load reference image: ${e.message}`
+              `[ChatService] Failed to load reference image: ${e.message}`,
             );
           }
         }
@@ -282,22 +282,55 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 
       // Inject system context about images (unify both uploaded and referenced)
       const systemParts: string[] = [];
-      if (imageIds.length > 0) {
-        systemParts.push(`Attached Image IDs: ${imageIds.join(", ")}`);
+
+      // We need to list ONLY what we just added to imageParts in specific order.
+      // Order in imageParts:
+      // 1. Uploaded Images (from `images` arg)
+      // 2. Generated Images (Feedback)
+      // 3. Referenced Images
+
+      // Let's create a combined textual manifest
+      let currentImageIndex = 0;
+
+      // 1. Uploads
+      if (images.length > 0) {
+        images.forEach((img, idx) => {
+          // We can use the ID if we have it, or just "Attached Image (Index N)"
+          // Using Index relative to the inlineData array is most robust for the frontend parser
+          systemParts.push(
+            `Attached Image (inlineIndex: ${currentImageIndex})`,
+          );
+          currentImageIndex++;
+        });
       }
+
+      // 2. Generated Images
+      if (generatedImageFiles.length > 0) {
+        generatedImageFiles.forEach((file) => {
+          systemParts.push(
+            `Attached Generated Image: ${file} (inlineIndex: ${currentImageIndex})`,
+          );
+          currentImageIndex++;
+        });
+      }
+
+      // 3. References
       if (referenceImageFiles.length > 0) {
-        // Simplify the object for the LLM to reduce token usage and confusion
-        const simpleRefs = referenceImageFiles.map((r) => ({
-          projectId: r.projectId,
-          cardId: r.cardId,
-          filename: r.filename,
-        }));
-        systemParts.push(
-          `Referenced Images (pass these to generateImage tool as 'referenceImageFiles'): ${JSON.stringify(
-            simpleRefs
-          )}`
-        );
+        referenceImageFiles.forEach((ref) => {
+          // We sent the image as inlineData, so it consumes an index
+          systemParts.push(
+            `Referenced Image: ${JSON.stringify({
+              projectId: ref.projectId,
+              cardId: ref.cardId,
+              filename: ref.filename,
+            })} (inlineIndex: ${currentImageIndex})`,
+          );
+          currentImageIndex++;
+        });
       }
+
+      // Legacy formatted lines (optional, but keep briefly for backward compat or debugging?)
+      // We'll replace the old "Attached Image IDs" / "Referenced Images JSON" blocks with this unified list.
 
       let finalMessageText = message;
       // Prepend Context for the current turn
@@ -357,7 +390,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         const fullHistory = accumulatedHistory;
 
         logger.info(
-          `[ChatService] Sending stateless request with history length: ${fullHistory.length}`
+          `[ChatService] Sending stateless request with history length: ${fullHistory.length}`,
         );
 
         // We need to map our history format to the API format if needed,
@@ -390,7 +423,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 `data: ${JSON.stringify({
                   type: "thought",
                   content: part.text,
-                })}\n\n`
+                })}\n\n`,
               );
             } else if (part.text) {
               // Accumulate text for history
@@ -409,7 +442,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
                 `data: ${JSON.stringify({
                   type: "text",
                   content: part.text,
-                })}\n\n`
+                })}\n\n`,
               );
             }
           }
@@ -469,7 +502,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
               `data: ${JSON.stringify({
                 type: "tool_call",
                 content: calls,
-              })}\n\n`
+              })}\n\n`,
             );
           }
         }
@@ -491,7 +524,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             logger.info(`[ChatService] Tool Call: ${call.name}`);
             logger.info(
               `[ChatService] Full call object:`,
-              JSON.stringify(call, null, 2)
+              JSON.stringify(call, null, 2),
             );
             const toolResult = await this.executeTool(call.name, call.args);
 
@@ -526,14 +559,14 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
             }
 
             logger.info(
-              `[ChatService] Tool result for ${call.name} ready to send.`
+              `[ChatService] Tool result for ${call.name} ready to send.`,
             );
             res.write(
               `data: ${JSON.stringify({
                 type: "tool_result",
                 toolName: call.name,
                 result: toolResult,
-              })}\n\n`
+              })}\n\n`,
             );
           }
 
@@ -547,7 +580,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 
           if (thoughtSignature && responseParts.length > 0) {
             logger.info(
-              `[ChatService] Attaching thoughtSignature INSIDE first functionResponse.response payload`
+              `[ChatService] Attaching thoughtSignature INSIDE first functionResponse.response payload`,
             );
 
             // Try putting it inside functionResponse.response
@@ -612,7 +645,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
           conversation.title = newTitle;
           // Send title update event
           res.write(
-            `data: ${JSON.stringify({ type: "title", content: newTitle })}\n\n`
+            `data: ${JSON.stringify({ type: "title", content: newTitle })}\n\n`,
           );
         }
       }
@@ -624,7 +657,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
     } catch (e: any) {
       logger.error("[ChatService] Error:", e);
       res.write(
-        `data: ${JSON.stringify({ type: "error", content: e.message })}\n\n`
+        `data: ${JSON.stringify({ type: "error", content: e.message })}\n\n`,
       );
       res.end();
     }
@@ -635,8 +668,8 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       `[ChatService] DEBUG: executeTool called for ${name} with args: ${JSON.stringify(
         args,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
     return handleToolCall(name, args, this.dataService, this.dataRoot);
   }
@@ -680,7 +713,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         if (!f.endsWith(".json")) continue;
         try {
           const data = JSON.parse(
-            await fs.readFile(path.join(dir, f), "utf-8")
+            await fs.readFile(path.join(dir, f), "utf-8"),
           );
           convs.push(data);
         } catch (err) {
@@ -714,7 +747,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         };
       }
       const conversation: Conversation = JSON.parse(
-        await fs.readFile(filepath, "utf-8")
+        await fs.readFile(filepath, "utf-8"),
       );
 
       // Sanitize history: Fix 'class' of function responses
@@ -723,11 +756,11 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
         conversation.history = conversation.history.map((msg) => {
           // check if any part is a functionResponse
           const hasFunctionResponse = msg.parts.some(
-            (p: any) => p.functionResponse
+            (p: any) => p.functionResponse,
           );
           if (hasFunctionResponse && msg.role === "user") {
             logger.info(
-              `[ChatService] Sanitizing message role from 'user' to 'function' for conversation ${conversationId}`
+              `[ChatService] Sanitizing message role from 'user' to 'function' for conversation ${conversationId}`,
             );
             return { ...msg, role: "function" };
           }
@@ -749,7 +782,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
     try {
       const json = JSON.stringify(conversation, null, 2);
       logger.info(
-        `[ChatService] Saving conversation ${conversation.id}, size: ${json.length} bytes`
+        `[ChatService] Saving conversation ${conversation.id}, size: ${json.length} bytes`,
       );
       await fs.writeFile(tempFilepath, json);
       await fs.rename(tempFilepath, filepath);
@@ -757,7 +790,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
     } catch (e: any) {
       logger.error(
         `[ChatService] Failed to save conversation ${conversation.id}:`,
-        e
+        e,
       );
       // Try to clean up temp file
       try {
@@ -769,7 +802,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 
   async deleteConversation(conversationId: string): Promise<boolean> {
     logger.info(
-      `[ChatService] Attempting to delete conversation: ${conversationId}`
+      `[ChatService] Attempting to delete conversation: ${conversationId}`,
     );
     try {
       const dir = await this.ensureConversationsDir();
@@ -789,7 +822,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
               part.text.includes("[System: Attached Image IDs:")
             ) {
               const match = part.text.match(
-                /\[System: Attached Image IDs: ([^\]]+)\]/
+                /\[System: Attached Image IDs: ([^\]]+)\]/,
               );
               if (match && match[1]) {
                 match[1].split(",").forEach((id) => {
@@ -803,7 +836,7 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
 
         if (imageIdsToClean.size > 0) {
           logger.info(
-            `[ChatService] Found ${imageIdsToClean.size} cached images to cleanup for conversation ${conversationId}`
+            `[ChatService] Found ${imageIdsToClean.size} cached images to cleanup for conversation ${conversationId}`,
           );
           for (const id of imageIdsToClean) {
             await this.dataService.deleteTempImage(id);

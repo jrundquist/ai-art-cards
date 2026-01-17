@@ -295,17 +295,16 @@ export class ChatManager {
     const selectedImages = this.inputManager.getSelectedImages();
     const selectedReferences = this.inputManager.getSelectedReferences();
 
-    // Append User Message with images if any
-    if (selectedImages.length > 0) {
-      this.messageRenderer.appendImages(
-        "user",
-        selectedImages.map((img) => ({
-          mimeType: img.mimeType,
-          data: img.data,
-        })),
-      );
-    }
-    this.messageRenderer.appendMessage("user", text);
+    // Unified render for User Message
+    this.messageRenderer.renderUnifiedMessage(
+      "user",
+      text,
+      selectedImages.map((img) => ({
+        mimeType: img.mimeType,
+        data: img.data,
+      })),
+      selectedReferences,
+    );
 
     // Capture images for sending
     const imagesToSend = selectedImages.map((img) => ({
@@ -315,10 +314,6 @@ export class ChatManager {
 
     // Capture references
     const referencesToSend = [...selectedReferences];
-
-    if (selectedReferences.length > 0) {
-      this.messageRenderer.appendReferences("user", selectedReferences);
-    }
 
     // Clear images & references
     this.inputManager.clearSelection();
@@ -605,37 +600,24 @@ export class ChatManager {
       });
       if (shouldHide) return;
 
+      // --- UNIFIED RENDERING LOGIC FOR USER ---
+      if (role === "user") {
+        const { accumulatedText, validInlineImages, references } =
+          this._parseUserMessage(msg);
+
+        // 4. Render
+        this.messageRenderer.renderUnifiedMessage(
+          role,
+          accumulatedText,
+          validInlineImages,
+          references,
+        );
+        return; // Done for this message
+      }
+
+      // --- EXISTING STREAMING/SPLIT LOGIC FOR MODEL ---
       if (msg.parts && msg.parts.length > 0) {
         let accumulatedText = "";
-
-        // Pre-scan to count references AND total inline images
-        let totalReferences = 0;
-        let totalInlineImages = 0;
-
-        msg.parts.forEach((p) => {
-          const t = p.text || (typeof p === "string" ? p : "");
-          const refs = extractReferences(t);
-          if (refs.length > 0)
-            currentReferences = [...currentReferences, ...refs];
-
-          totalReferences += refs.length;
-          if (p.inlineData) {
-            totalInlineImages++;
-          }
-        });
-
-        // We want to skip the LAST 'totalReferences' inline images, as ChatService appends them after uploads.
-
-        // The indices to skip are: [totalInlineImages - totalReferences, ..., totalInlineImages - 1]
-        // Example: 1 Upload, 1 Ref. Total=2. Ref=1. Skip index 1 (2-1). Keep index 0.
-        // Example: 2 Uploads, 1 Ref. Total=3. Ref=1. Skip index 2 (3-1). Keep 0, 1.
-        // Example: 0 Uploads, 1 Ref. Total=1. Ref=1. Skip index 0.
-
-        const skipThresholdIndex = Math.max(
-          0,
-          totalInlineImages - totalReferences,
-        );
-        let currentInlineIndex = 0;
 
         msg.parts.forEach((part) => {
           // Extract text content if present
@@ -713,26 +695,8 @@ export class ChatManager {
                 );
               }
             } else if (part.inlineData) {
-              // Render accumulated text first
-              if (accumulatedText) {
-                this.messageRenderer.appendMessageWithMarkdown(
-                  role,
-                  accumulatedText,
-                );
-                accumulatedText = "";
-              }
-
-              // Check if we should skip this inline image
-              if (currentInlineIndex >= skipThresholdIndex) {
-                // This falls into the tail end of images, which are References
-                // We skip it because appendMessageWithMarkdown handles the reference display
-                currentInlineIndex++;
-                return;
-              }
-
-              // Render image
+              // Render inline image for model (unlikely but possible)
               this.messageRenderer.appendImages(role, [part.inlineData]);
-              currentInlineIndex++;
             }
           }
         });
@@ -809,6 +773,70 @@ export class ChatManager {
       console.error("[ChatManager] Error navigating UI:", e);
       showStatus("Error navigating UI", "error");
     }
+  }
+
+  /**
+   * Helper to parse user messages for new explicitly indexed format
+   * @param {Object} msg - The message object from history
+   * @returns {Object} { accumulatedText, validInlineImages, references }
+   */
+  _parseUserMessage(msg) {
+    let accumulatedText = "";
+    let inlineImages = [];
+    let explicitReferences = [];
+    let explicitUploadsIndices = new Set();
+
+    // 1. Collect all inlineData
+    msg.parts.forEach((part) => {
+      if (part.inlineData) {
+        inlineImages.push(part.inlineData);
+      }
+    });
+
+    // 2. Parse Text for System Manifest
+    msg.parts.forEach((part) => {
+      const t = part.text || (typeof part === "string" ? part : "");
+      if (t) {
+        accumulatedText += t;
+
+        // Pattern: Referenced Image: {json} (inlineIndex: N)
+        const refRegex = /Referenced Image: (\{.*?\}) \(inlineIndex: (\d+)\)/g;
+        let match;
+        while ((match = refRegex.exec(t)) !== null) {
+          try {
+            const refData = JSON.parse(match[1]);
+            explicitReferences.push(refData);
+          } catch (e) {
+            console.error("Bad Ref JSON", e);
+          }
+        }
+
+        // Pattern: Attached Image (inlineIndex: N) or Attached Generated Image: ... (inlineIndex: N)
+        const attachRegex =
+          /Attached (?:Generated )?Image.*\(inlineIndex: (\d+)\)/g;
+        let attachMatch;
+        while ((attachMatch = attachRegex.exec(t)) !== null) {
+          const idx = parseInt(attachMatch[1], 10);
+          explicitUploadsIndices.add(idx);
+        }
+      }
+    });
+
+    // 3. Resolve Uploads
+    let validInlineImages = [];
+    if (explicitUploadsIndices.size > 0) {
+      Array.from(explicitUploadsIndices)
+        .sort((a, b) => a - b)
+        .forEach((idx) => {
+          if (inlineImages[idx]) validInlineImages.push(inlineImages[idx]);
+        });
+    }
+
+    return {
+      accumulatedText,
+      validInlineImages,
+      references: explicitReferences,
+    };
   }
 
   async handleRetryGeneration(args) {

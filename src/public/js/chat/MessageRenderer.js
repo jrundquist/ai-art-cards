@@ -61,7 +61,7 @@ export class MessageRenderer {
         // It generally looks like: ... marker ... [ { ... } ] ...
         const openBracket = markdown.indexOf(
           "[",
-          markerIndex + refMarker.length
+          markerIndex + refMarker.length,
         );
         if (openBracket !== -1) {
           // Let's just Regex it: `\[ {.*} \]`
@@ -69,7 +69,7 @@ export class MessageRenderer {
           const jsonRegex = new RegExp(
             refMarker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
               "\\s*(\\[\\s*\\{.*?\\}\\s*\\])",
-            "s"
+            "s",
           );
           const match = markdown.match(jsonRegex);
           if (match && match[1]) {
@@ -86,7 +86,7 @@ export class MessageRenderer {
     if (delimiterIndex !== -1) {
       // Show everything AFTER the delimiter
       cleanMarkdown = markdown.substring(
-        delimiterIndex + userMsgDelimiter.length
+        delimiterIndex + userMsgDelimiter.length,
       );
     } else {
       // Check for old [System: ...] tags and hide them if possible
@@ -315,6 +315,117 @@ export class MessageRenderer {
    */
   appendError(targetElement, errorMessage) {
     targetElement.innerHTML += `<div class="message-error">${errorMessage}</div>`;
+    this.scrollToBottom();
+  }
+
+  /**
+   * Render a unified message with text, images, and references in a single bubble
+   * @param {string} role - 'user' or 'model'
+   * @param {string} text - Message text
+   * @param {Array} images - Array of { mimeType, data } (inline images)
+   * @param {Array} references - Array of referencing objects
+   */
+  renderUnifiedMessage(role, text, images = [], references = []) {
+    // 1. Prepare message container
+    const msgDiv = this.createMessageDiv(role);
+    const contentDiv = msgDiv.querySelector(".message-content");
+
+    // 2. Prepare Images Grid (Images + References)
+    if (
+      (images && images.length > 0) ||
+      (references && references.length > 0)
+    ) {
+      const grid = document.createElement("div");
+      grid.className = "chat-images-grid"; // Unified grid
+
+      // 2a. Add Inline Images (Uploads)
+      if (images) {
+        images.forEach((img) => {
+          const imgEl = document.createElement("img");
+          imgEl.src = `data:${img.mimeType};base64,${img.data}`;
+          imgEl.className = "chat-message-image";
+          imgEl.onclick = () => {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("imgModalPreview");
+            if (modal && modalImg) {
+              modalImg.src = imgEl.src;
+              document.getElementById("imgModalTitle").textContent =
+                "Image Preview";
+              document.getElementById("imgModalPrompt").textContent = "";
+              modal.classList.remove("hidden");
+            }
+          };
+          grid.appendChild(imgEl);
+        });
+      }
+
+      // 2b. Add References
+      if (references) {
+        references.forEach((ref) => {
+          const refItem = document.createElement("div");
+          refItem.className = "reference-preview-item";
+
+          // Similar to appendReferences logic
+          const displayUrl =
+            ref.url ||
+            `/api/ref-image/${ref.projectId}/${ref.cardId}/${ref.filename}`;
+
+          refItem.innerHTML = `
+               <div class="reference-badge"><span class="material-icons">link</span></div>
+               <img src="${
+                 displayUrl.startsWith("/") ? displayUrl : "/" + displayUrl
+               }" alt="${ref.filename}" class="chat-message-image"/>
+            `;
+
+          refItem.onclick = () => {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("imgModalPreview");
+            if (modal && modalImg) {
+              modalImg.src = displayUrl.startsWith("/")
+                ? displayUrl
+                : "/" + displayUrl;
+              document.getElementById("imgModalTitle").textContent =
+                "Reference Preview";
+              document.getElementById("imgModalPrompt").textContent =
+                ref.filename;
+              modal.classList.remove("hidden");
+            }
+          };
+          grid.appendChild(refItem);
+        });
+      }
+
+      contentDiv.appendChild(grid);
+    }
+
+    // 3. Render Text
+    if (text && text.trim()) {
+      // Filter out [System] tags for display if needed
+      const userMsgDelimiter = "[User Message]\n";
+      let cleanMarkdown = text;
+
+      const delimiterIndex = text.indexOf(userMsgDelimiter);
+      if (delimiterIndex !== -1) {
+        cleanMarkdown = text.substring(
+          delimiterIndex + userMsgDelimiter.length,
+        );
+      } else {
+        // Also remove the References JSON text from display if it's there
+        const refMarker =
+          "Referenced Images (pass these to generateImage tool as 'referenceImageFiles'):";
+        if (cleanMarkdown.includes(refMarker)) {
+          // Attempt to strip just the system block
+          cleanMarkdown = cleanMarkdown.replace(/\[System:.*?\]/g, "").trim();
+        }
+      }
+
+      const textDiv = document.createElement("div");
+      textDiv.className = "message-text-content";
+      textDiv.innerHTML = this.renderMarkdown(cleanMarkdown);
+      contentDiv.appendChild(textDiv);
+    }
+
+    this.messagesContainer.appendChild(msgDiv);
     this.scrollToBottom();
   }
 }
