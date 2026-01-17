@@ -20,7 +20,7 @@ export class ImageGenerator {
       aspectRatio?: string;
       resolution?: string;
       referenceImages?: { buffer: Buffer; mimeType: string }[];
-    } = {}
+    } = {},
   ): Promise<{ buffer: Buffer; mimeType: string; modelName: string }> {
     const modelName = "gemini-3-pro-image-preview";
     const aspectRatio = options.aspectRatio || "auto";
@@ -55,34 +55,34 @@ export class ImageGenerator {
     ];
 
     logger.info(
-      `[ImageGenerator] Starting generation with model: ${modelName}`
+      `[ImageGenerator] Starting generation with model: ${modelName}`,
     );
     logger.info(`[ImageGenerator] Config: AR=${aspectRatio}, Res=${imageSize}`);
     if (options.referenceImages?.length) {
       logger.info(
-        `[ImageGenerator] Including ${options.referenceImages.length} reference images.`
+        `[ImageGenerator] Including ${options.referenceImages.length} reference images.`,
       );
       options.referenceImages.forEach((img, i) => {
         logger.info(
           `[ImageGenerator] Ref Image ${i + 1}: ${
             img.buffer.length
-          } bytes (type: ${img.mimeType})`
+          } bytes (type: ${img.mimeType})`,
         );
       });
     }
 
     // Deep debug of contents structure
     logger.info(
-      `[ImageGenerator] Payload Parts Count: ${contents[0].parts.length}`
+      `[ImageGenerator] Payload Parts Count: ${contents[0].parts.length}`,
     );
     contents[0].parts.forEach((p: any, i) => {
       if (p.text)
         logger.info(
-          `[ImageGenerator] Part ${i}: TEXT ("${p.text.substring(0, 50)}...")`
+          `[ImageGenerator] Part ${i}: TEXT ("${p.text.substring(0, 50)}...")`,
         );
       if (p.inlineData)
         logger.info(
-          `[ImageGenerator] Part ${i}: INLINE_DATA (mime: ${p.inlineData.mimeType}, data_len: ${p.inlineData.data.length})`
+          `[ImageGenerator] Part ${i}: INLINE_DATA (mime: ${p.inlineData.mimeType}, data_len: ${p.inlineData.data.length})`,
         );
     });
 
@@ -94,10 +94,10 @@ export class ImageGenerator {
         // Check Prompt Feedback (safety block on input)
         if (chunk.promptFeedback?.blockReason) {
           logger.error(
-            `[ImageGenerator] Prompt blocked: ${chunk.promptFeedback.blockReason}`
+            `[ImageGenerator] Prompt blocked: ${chunk.promptFeedback.blockReason}`,
           );
           throw new Error(
-            `Safety: ${chunk.promptFeedback.blockReason} (Prompt Blocked)`
+            `Safety: ${chunk.promptFeedback.blockReason} (Prompt Blocked)`,
           );
         }
 
@@ -106,7 +106,7 @@ export class ImageGenerator {
 
         if (candidate.finishReason === "SAFETY") {
           logger.error(
-            `[ImageGenerator] Generation blocked by safety filters.`
+            `[ImageGenerator] Generation blocked by safety filters.`,
           );
           throw new Error("Safety: Image generation blocked by filters.");
         }
@@ -114,7 +114,7 @@ export class ImageGenerator {
         if (candidate.finishReason && candidate.finishReason !== "STOP") {
           // Other reasons: RECITATION, OTHER
           logger.warn(
-            `[ImageGenerator] Generation stopped: ${candidate.finishReason}`
+            `[ImageGenerator] Generation stopped: ${candidate.finishReason}`,
           );
           throw new Error(`Generation stopped: ${candidate.finishReason}`);
         }
@@ -126,14 +126,14 @@ export class ImageGenerator {
             const mimeType = part.inlineData.mimeType || "image/png";
             const buffer = Buffer.from(part.inlineData.data || "", "base64");
             logger.info(
-              `[ImageGenerator] Image received (mime: ${mimeType}, size: ${buffer.length} bytes)`
+              `[ImageGenerator] Image received (mime: ${mimeType}, size: ${buffer.length} bytes)`,
             );
             return { buffer, mimeType, modelName };
           }
         }
       }
       logger.error(
-        `[ImageGenerator] No images received after ${chunkCount} chunks.`
+        `[ImageGenerator] No images received after ${chunkCount} chunks.`,
       );
       throw new Error("No images received from API (Unknown Reason).");
     } catch (error) {
@@ -153,7 +153,7 @@ export class ImageGenerator {
       project?: string;
       cardId?: string;
       generationArgs?: any;
-    } = {}
+    } = {},
   ): Promise<string> {
     logger.info(`[ImageGenerator] Saving image to: ${outputFolder}`);
     await fs.mkdir(outputFolder, { recursive: true });
@@ -169,7 +169,7 @@ export class ImageGenerator {
       const nextVersion = await this.getNextVersion(
         outputFolder,
         filename,
-        fileExtension
+        fileExtension,
       );
       const finalFilename = `${filename}_v${nextVersion}.${fileExtension}`;
       finalOutputPath = path.join(outputFolder, finalFilename);
@@ -177,22 +177,22 @@ export class ImageGenerator {
       try {
         // 'wx' flag fails if file exists
         logger.info(
-          `[ImageGenerator] Attempting to save version ${nextVersion}: ${finalFilename}`
+          `[ImageGenerator] Attempting to save version ${nextVersion}: ${finalFilename}`,
         );
         await fs.writeFile(finalOutputPath, buffer, { flag: "wx" });
         saved = true;
         logger.info(
-          `[ImageGenerator] Successfully saved to: ${finalOutputPath}`
+          `[ImageGenerator] Successfully saved to: ${finalOutputPath}`,
         );
       } catch (e: any) {
         if (e.code === "EEXIST") {
           logger.warn(
-            `[ImageGenerator] File exists (version ${nextVersion}), retrying...`
+            `[ImageGenerator] File exists (version ${nextVersion}), retrying...`,
           );
           attempts++;
           // Small delay to reduce contention
           await new Promise((resolve) =>
-            setTimeout(resolve, 50 + Math.random() * 50)
+            setTimeout(resolve, 50 + Math.random() * 50),
           );
         } else {
           throw e;
@@ -202,13 +202,13 @@ export class ImageGenerator {
 
     if (!saved) {
       throw new Error(
-        `Failed to save image after ${attempts} attempts due to file collisions.`
+        `Failed to save image after ${attempts} attempts due to file collisions.`,
       );
     }
 
-    // Metadata
-    try {
-      await exiftool.write(
+    // Metadata - Fire and forget to avoid blocking the generation loop
+    exiftool
+      .write(
         finalOutputPath,
         {
           "XMP-dc:Title": metadata.title || "Generated Image",
@@ -221,14 +221,16 @@ export class ImageGenerator {
             : `Project: ${metadata.project} | CardID: ${metadata.cardId}`,
           Software: "ai-art-cards",
         } as any,
-        { writeArgs: ["-overwrite_original"] }
-      );
-      logger.info(
-        `[ImageGenerator] Metadata written successfully to: ${finalOutputPath}`
-      );
-    } catch (e) {
-      logger.warn(`[ImageGenerator] Metadata write failed:`, e);
-    }
+        { writeArgs: ["-overwrite_original"] },
+      )
+      .then(() => {
+        logger.info(
+          `[ImageGenerator] Metadata written successfully to: ${finalOutputPath}`,
+        );
+      })
+      .catch((e) => {
+        logger.warn(`[ImageGenerator] Metadata write failed:`, e);
+      });
 
     return finalOutputPath;
   }
@@ -236,7 +238,7 @@ export class ImageGenerator {
   private async getNextVersion(
     dir: string,
     name: string,
-    ext: string
+    ext: string,
   ): Promise<string> {
     try {
       const files = await fs.readdir(dir);
