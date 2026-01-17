@@ -91,7 +91,10 @@ class StatusService {
         totalImages += job.total;
       }
       const imageWord = totalImages === 1 ? "image" : "images";
-      updateStatusBar(`Generating ${totalImages} ${imageWord}...`);
+      // Icon added as requested
+      updateStatusBar(
+        `<span class="material-icons" style="font-size: 1.2em; vertical-align: bottom; margin-right: 6px;">auto_awesome</span>Generating ${totalImages} ${imageWord}...`,
+      );
       setStatusBarGenerating(true);
     }
   }
@@ -110,6 +113,15 @@ class StatusService {
 
     // Update status bar based on active jobs
     this.updateStatusBarFromJobs();
+
+    // Dispatch granular update for UI components (e.g. placeholders)
+    document.dispatchEvent(
+      new CustomEvent("generation-update", {
+        detail: {
+          activeJobs: Array.from(this.activeJobs.values()),
+        },
+      }),
+    );
 
     // Get or create toast for this job
     let toast = this.activeToasts.get(id);

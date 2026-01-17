@@ -1,6 +1,7 @@
 import { state } from "../state.js";
 import { dom, createToast, confirmAction } from "../ui.js";
 import * as api from "../api.js";
+import { statusService } from "../statusService.js";
 
 let currentImageList = [];
 
@@ -70,6 +71,9 @@ export async function loadImagesForCard(projectId, cardId) {
       const isArchived = archived.includes(filename);
       addImageToGallery(imgUrl, false, isFav, isArchived, isStarred);
     });
+
+    // Render placeholders for any active generations
+    renderPlaceholders();
   } catch (e) {
     dom.gallery.innerHTML = `<div class="error-state">Error loading images: ${e.message}</div>`;
   }
@@ -736,3 +740,65 @@ export async function downloadCurrentGallery() {
     createToast(`Download failed: ${e.message}`, "error");
   }
 }
+
+function renderPlaceholders(activeJobs = null) {
+  if (!state.currentCard || !state.currentProject) return;
+
+  const currentCardId = state.currentCard.id;
+  // Get jobs from arg or service
+  const jobs = activeJobs || Array.from(statusService.activeJobs.values());
+
+  const relevantJobs = jobs.filter(
+    (j) => j.cardId === currentCardId && j.status === "generating",
+  );
+
+  // Calculate pending count
+  let totalPending = 0;
+  let aspectRatio = null;
+
+  relevantJobs.forEach((job) => {
+    // If backend reports current progress, subtract it.
+    // If not, use total. Default to 1.
+    const total = job.total || 1;
+    const current = job.current || 0;
+    const pending = Math.max(0, total - current);
+    totalPending += pending;
+
+    // Capture aspect aspect ratio from first relevant job
+    if (!aspectRatio && job.aspectRatio) {
+      aspectRatio = job.aspectRatio;
+    }
+  });
+
+  // Remove existing placeholders
+  const existing = dom.gallery.querySelectorAll(".gallery-item.placeholder");
+  existing.forEach((el) => el.remove());
+
+  if (totalPending === 0) return;
+
+  // Add new placeholders (Prepend)
+  for (let i = 0; i < totalPending; i++) {
+    const div = document.createElement("div");
+    div.className = "gallery-item placeholder";
+
+    if (aspectRatio) {
+      // Support "16:9" format -> "16/9"
+      div.style.aspectRatio = aspectRatio.replace(":", "/");
+    }
+
+    div.innerHTML = `
+        <div class="placeholder-content">
+            <span class="material-icons">auto_awesome</span>
+            <span class="placeholder-text">Generating...</span>
+        </div>
+      `;
+
+    // Insert at beginning
+    dom.gallery.prepend(div);
+  }
+}
+
+// Listen for generation updates
+document.addEventListener("generation-update", (e) => {
+  renderPlaceholders(e.detail.activeJobs);
+});

@@ -240,7 +240,7 @@ export function confirmAction(title, message, onConfirm) {
 
 export function updateStatusBar(msg) {
   if (dom.statusBar.message) {
-    dom.statusBar.message.textContent = msg;
+    dom.statusBar.message.innerHTML = msg;
   }
 }
 
