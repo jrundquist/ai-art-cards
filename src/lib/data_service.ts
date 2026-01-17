@@ -91,7 +91,7 @@ export class DataService {
     try {
       await fs.access(this.legacyKeysFile);
       logger.info(
-        `[Migration] Legacy keys file found. It will be kept as is for now.`
+        `[Migration] Legacy keys file found. It will be kept as is for now.`,
       );
       // We might want to move it to dataRoot/keys.json if it's not there already,
       // but current logic uses it centrally, so it's fine.
@@ -107,7 +107,7 @@ export class DataService {
 
           const projectJsonPath = path.join(this.projectsDir, f);
           const projectData = JSON.parse(
-            await fs.readFile(projectJsonPath, "utf-8")
+            await fs.readFile(projectJsonPath, "utf-8"),
           );
 
           // 1. Create new project folder
@@ -117,13 +117,13 @@ export class DataService {
           // 2. Move project.json
           await fs.rename(
             projectJsonPath,
-            path.join(newProjectDir, "project.json")
+            path.join(newProjectDir, "project.json"),
           );
 
           // 3. Move Cards
           const legacyProjectCardDir = path.join(
             this.legacyCardsDir,
-            projectId
+            projectId,
           );
           const newCardsDir = path.join(newProjectDir, "cards");
           try {
@@ -138,7 +138,7 @@ export class DataService {
           const legacyConvDir = path.join(
             this.dataRoot,
             "conversations",
-            projectId
+            projectId,
           );
           const newConvDir = path.join(newProjectDir, "conversations");
           try {
@@ -163,7 +163,7 @@ export class DataService {
             const oldOutputPath = path.join(
               this.dataRoot,
               "output",
-              projectData.outputRoot
+              projectData.outputRoot,
             );
             const newAssetsPath = path.join(newProjectDir, "assets");
 
@@ -171,12 +171,12 @@ export class DataService {
               await fs.access(oldOutputPath);
               await fs.rename(oldOutputPath, newAssetsPath);
               logger.info(
-                `[Migration] Moved assets from ${oldOutputPath} to ${newAssetsPath}`
+                `[Migration] Moved assets from ${oldOutputPath} to ${newAssetsPath}`,
               );
             } catch (e) {
               logger.warn(
                 `[Migration] Could not move assets for ${projectId}:`,
-                e
+                e,
               );
             }
 
@@ -195,12 +195,12 @@ export class DataService {
             await this.migrateFilesToGlobal(
               projectConvDir,
               this.conversationsDir,
-              projectId
+              projectId,
             );
             // Try to remove the now empty directory
             await fs.rmdir(projectConvDir);
             logger.info(
-              `[Migration] Moved conversations for ${projectId} to global storage`
+              `[Migration] Moved conversations for ${projectId} to global storage`,
             );
           } catch {}
 
@@ -211,7 +211,7 @@ export class DataService {
             await this.migrateFilesToGlobal(projectCacheDir, this.cacheDir);
             await fs.rmdir(projectCacheDir);
             logger.info(
-              `[Migration] Moved cache for ${projectId} to global storage`
+              `[Migration] Moved cache for ${projectId} to global storage`,
             );
           } catch {}
 
@@ -239,7 +239,7 @@ export class DataService {
             const pPath = path.join(
               this.projectsDir,
               entry.name,
-              "project.json"
+              "project.json",
             );
             const data = JSON.parse(await fs.readFile(pPath, "utf-8"));
             projects.push(data);
@@ -256,7 +256,7 @@ export class DataService {
 
   async saveProject(project: Project): Promise<void> {
     logger.info(
-      `[DataService] Saving project: ${project.id} (${project.name})`
+      `[DataService] Saving project: ${project.id} (${project.name})`,
     );
     await this.ensureDirs();
     const projectDir = path.join(this.projectsDir, project.id);
@@ -264,7 +264,7 @@ export class DataService {
 
     await fs.writeFile(
       path.join(projectDir, "project.json"),
-      JSON.stringify(project, null, 2)
+      JSON.stringify(project, null, 2),
     );
   }
 
@@ -305,7 +305,7 @@ export class DataService {
       for (const f of files) {
         if (!f.endsWith(".json")) continue;
         const data = JSON.parse(
-          await fs.readFile(path.join(projectCardDir, f), "utf-8")
+          await fs.readFile(path.join(projectCardDir, f), "utf-8"),
         );
         cards.push(data);
       }
@@ -319,7 +319,7 @@ export class DataService {
 
   async saveCard(card: Card): Promise<void> {
     logger.info(
-      `[DataService] Saving card: ${card.id} in project: ${card.projectId}`
+      `[DataService] Saving card: ${card.id} in project: ${card.projectId}`,
     );
     // Path: data/projects/{projectId}/cards
     const projectCardDir = path.join(this.projectsDir, card.projectId, "cards");
@@ -327,7 +327,7 @@ export class DataService {
 
     await fs.writeFile(
       path.join(projectCardDir, `${card.id}.json`),
-      JSON.stringify(card, null, 2)
+      JSON.stringify(card, null, 2),
     );
   }
 
@@ -335,7 +335,7 @@ export class DataService {
     try {
       const data = await fs.readFile(
         path.join(this.projectsDir, id, "project.json"),
-        "utf-8"
+        "utf-8",
       );
       return JSON.parse(data);
     } catch {
@@ -382,13 +382,13 @@ export class DataService {
 
   async deleteCard(projectId: string, cardId: string): Promise<void> {
     logger.info(
-      `[DataService] Deleting card: ${cardId} in project: ${projectId}`
+      `[DataService] Deleting card: ${cardId} in project: ${projectId}`,
     );
     await fs.rm(
       path.join(this.projectsDir, projectId, "cards", `${cardId}.json`),
       {
         force: true,
-      }
+      },
     );
   }
 
@@ -396,7 +396,7 @@ export class DataService {
   async saveTempImage(
     buffer: Buffer,
     mimeType: string,
-    projectId?: string // Kept for interface compatibility but ignored for storage location
+    projectId?: string, // Kept for interface compatibility but ignored for storage location
   ): Promise<{ id: string; path: string }> {
     await this.ensureDirs();
 
@@ -443,7 +443,7 @@ export class DataService {
   async listCardImages(
     projectId: string,
     cardId: string,
-    includeArchived = false
+    includeArchived = false,
   ): Promise<{
     images: {
       path: string;
@@ -464,7 +464,7 @@ export class DataService {
         this.projectsDir,
         projectId,
         "assets",
-        subfolder
+        subfolder,
       );
 
       try {
@@ -493,7 +493,7 @@ export class DataService {
             projectId,
             "assets",
             subfolder,
-            file
+            file,
           ),
           filename: file,
           time: stats.birthtime,
@@ -502,8 +502,15 @@ export class DataService {
         });
       }
 
-      // Sort by newest first
-      images.sort((a, b) => b.time.getTime() - a.time.getTime());
+      // Sort by Name (Natural) DESCENDING then Time Descending
+      images.sort((a, b) => {
+        const nameDiff = b.filename.localeCompare(a.filename, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+        if (nameDiff !== 0) return nameDiff;
+        return b.time.getTime() - a.time.getTime();
+      });
 
       return { images, count: images.length };
     } catch (e) {
@@ -516,7 +523,7 @@ export class DataService {
   private async migrateFilesToGlobal(
     sourceDir: string,
     targetDir: string,
-    injectProjectId?: string
+    injectProjectId?: string,
   ) {
     try {
       await fs.access(sourceDir);
@@ -534,13 +541,13 @@ export class DataService {
                 data.projectId = injectProjectId;
                 await fs.writeFile(srcPath, JSON.stringify(data, null, 2));
                 logger.info(
-                  `[Migration] Injected projectId: ${injectProjectId} into ${f}`
+                  `[Migration] Injected projectId: ${injectProjectId} into ${f}`,
                 );
               }
             } catch (err) {
               logger.warn(
                 `[Migration] Failed to inject projectId for ${f}:`,
-                err
+                err,
               );
             }
           }
@@ -550,7 +557,7 @@ export class DataService {
         } catch (e) {
           logger.warn(
             `[Migration] Failed to move file ${f} from ${sourceDir} to ${targetDir}`,
-            e
+            e,
           );
         }
       }
