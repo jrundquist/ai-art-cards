@@ -7,7 +7,7 @@ import archiver from "archiver";
 
 export function createCardsRouter(
   dataService: DataService,
-  resolvedDataRoot: string
+  resolvedDataRoot: string,
 ) {
   const router = Router();
 
@@ -40,7 +40,7 @@ export function createCardsRouter(
               "projects",
               req.params.projectId,
               "assets",
-              c.outputSubfolder || "default"
+              c.outputSubfolder || "default",
             );
 
             // Check if dir exists
@@ -54,7 +54,7 @@ export function createCardsRouter(
           } catch (e) {
             return { ...c, imageCount: 0 };
           }
-        })
+        }),
       );
 
       res.json(enriched);
@@ -83,10 +83,10 @@ export function createCardsRouter(
           "projects",
           projectId,
           "assets",
-          card.outputSubfolder
+          card.outputSubfolder,
         );
         logger.info(
-          `[Server] Attempting to delete card output directory: ${outPath}`
+          `[Server] Attempting to delete card output directory: ${outPath}`,
         );
         // Security check
         if (
@@ -96,7 +96,7 @@ export function createCardsRouter(
           logger.info(`[Server] Card output directory deleted.`);
         } else {
           logger.warn(
-            `[Server] Card output directory outside project dir, skipping deletion: ${outPath}`
+            `[Server] Card output directory outside project dir, skipping deletion: ${outPath}`,
           );
         }
       }
@@ -165,6 +165,58 @@ export function createCardsRouter(
     }
   });
 
+  // Toggle Star
+  router.post("/cards/:cardId/star", async (req, res) => {
+    const { cardId } = req.params;
+    const { projectId, filename } = req.body;
+
+    try {
+      const cards = await dataService.getCards(projectId);
+      const card = cards.find((c) => c.id === cardId);
+      if (!card) return res.status(404).json({ error: "Card not found" });
+
+      if (!card.favoriteImages) card.favoriteImages = [];
+
+      let isStarred = false;
+      let isFavorite = card.favoriteImages.includes(filename);
+
+      if (card.starredImage === filename) {
+        // Unstar -> Favorite
+        card.starredImage = undefined;
+        isStarred = false;
+
+        // Ensure it is a favorite
+        if (!isFavorite) {
+          card.favoriteImages.push(filename);
+          isFavorite = true;
+        }
+      } else {
+        // Star it
+        card.starredImage = filename;
+        isStarred = true;
+        // Keep favorite status as is (or should we force it? Requirement says "When a card is already starred, it loses its star but gains a heart". Implies Unstar -> Heart. Requirements didn't specify Star -> Heart, usually Star implies Favorite or is separate. Let's keep them independent or follow the "Starring makes it the ONE art". Usually the "chosen one" is special.)
+        // User request: "When a card is already starred, it loses its star but gains a heart (favorite)." -> This is for UNSTARRING (toggle off).
+        // "This will be the single art image chosen for the card." -> Only one star.
+
+        // If there was another star, should it become a favorite?
+        // "This will be the single art image chosen for the card."
+        // Implies mutually exclusive star.
+        // Requirement doesn't explicitly say what happens to the OLD star.
+        // Usually it just loses star. Let's leave it as is.
+      }
+
+      await dataService.saveCard(card);
+      res.json({
+        success: true,
+        isStarred,
+        isFavorite,
+        starredImage: card.starredImage,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Download Gallery Images as Zip
   router.post("/cards/:cardId/download-zip", async (req, res) => {
     const { cardId } = req.params;
@@ -186,7 +238,7 @@ export function createCardsRouter(
         "projects",
         projectId,
         "assets",
-        cardSubfolder
+        cardSubfolder,
       );
 
       // Create archive

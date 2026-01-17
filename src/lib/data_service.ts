@@ -19,6 +19,7 @@ export interface Card {
   resolution?: string;
   archivedImages?: string[];
   favoriteImages?: string[];
+  starredImage?: string;
   inactiveModifiers?: string[];
 }
 
@@ -450,6 +451,7 @@ export class DataService {
       filename: string;
       time: Date;
       isFavorite: boolean;
+      isStarred: boolean;
       isArchived: boolean;
     }[];
     count: number;
@@ -483,6 +485,7 @@ export class DataService {
         if (!includeArchived && isArchived) continue;
 
         const isFavorite = card.favoriteImages?.includes(file) || false;
+        const isStarred = card.starredImage === file;
         const stats = await fs.stat(path.join(assetsDir, file));
 
         images.push({
@@ -498,6 +501,7 @@ export class DataService {
           filename: file,
           time: stats.birthtime,
           isFavorite,
+          isStarred,
           isArchived,
         });
       }

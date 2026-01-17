@@ -39,7 +39,7 @@ export async function fetchProjectPreviews(projectId) {
 export async function fetchCardImages(
   projectId,
   cardId,
-  includeArchived = false
+  includeArchived = false,
 ) {
   const url = `/api/projects/${projectId}/cards/${cardId}/images?includeArchived=${includeArchived}`;
   const res = await fetch(url);
@@ -48,7 +48,7 @@ export async function fetchCardImages(
 
 export async function fetchImageMetadata(imgUrl) {
   const res = await fetch(
-    `/api/image-metadata?path=${encodeURIComponent(imgUrl)}`
+    `/api/image-metadata?path=${encodeURIComponent(imgUrl)}`,
   );
   return await res.json();
 }
@@ -66,6 +66,17 @@ export async function archiveImage(cardId, projectId, filename) {
 
 export async function toggleFavorite(cardId, projectId, filename) {
   return await fetch(`/api/cards/${cardId}/favorite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      projectId: projectId,
+      filename: filename,
+    }),
+  });
+}
+
+export async function toggleStar(cardId, projectId, filename) {
+  return await fetch(`/api/cards/${cardId}/star`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

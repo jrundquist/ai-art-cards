@@ -37,7 +37,7 @@ export const dom = {
     archiveFilter: document.getElementById("galleryFilterArchive"),
     downloadGallery: document.getElementById("galleryDownloadBtn"),
     projectSelectionCreate: document.getElementById(
-      "projectSelectionCreateBtn"
+      "projectSelectionCreateBtn",
     ),
     newCardHeader: document.getElementById("newCardHeaderBtn"),
   },
@@ -88,6 +88,7 @@ export const dom = {
     closeBtn: document.getElementById("imgModalCloseBtn"),
     closeX: document.getElementById("imgModalCloseX"),
     favBtn: document.getElementById("imgModalFavoriteBtn"),
+    starBtn: document.getElementById("imgModalStarBtn"),
     // New Fields
     regenBtn: document.getElementById("imgModalRegenBtn"),
     model: document.getElementById("imgModalModel"),

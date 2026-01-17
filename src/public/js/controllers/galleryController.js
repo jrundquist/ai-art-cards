@@ -112,8 +112,9 @@ export async function loadImagesForCard(projectId, cardId) {
     displayImages.forEach((imgUrl) => {
       const filename = imgUrl.split("/").pop();
       const isFav = favs.includes(filename);
+      const isStarred = state.currentCard?.starredImage === filename;
       const isArchived = archived.includes(filename);
-      addImageToGallery(imgUrl, false, isFav, isArchived);
+      addImageToGallery(imgUrl, false, isFav, isArchived, isStarred);
     });
   } catch (e) {
     dom.gallery.innerHTML = `<div class="error-state">Error loading images: ${e.message}</div>`;
@@ -124,7 +125,8 @@ export function addImageToGallery(
   imgUrl,
   prepend = false,
   isFav = false,
-  isArchived = false
+  isArchived = false,
+  isStarred = false,
 ) {
   const div = document.createElement("div");
   div.className = "gallery-item";
@@ -146,7 +148,7 @@ export function addImageToGallery(
     };
     e.dataTransfer.setData(
       "application/x-art-cards-reference",
-      JSON.stringify(refData)
+      JSON.stringify(refData),
     );
   };
 
@@ -180,14 +182,29 @@ export function addImageToGallery(
     toggleImageArchive(imgUrl);
   };
 
+  // Star Icon
+  const starIcon = document.createElement("div");
+  starIcon.className = `gallery-star-icon ${isStarred ? "active" : ""}`;
+  starIcon.innerHTML = `<span class="material-icons">${
+    isStarred ? "star" : "star_border"
+  }</span>`;
+  starIcon.title = isStarred ? "Unstar (makes favorite)" : "Star this image";
+  starIcon.onclick = (e) => {
+    e.stopPropagation();
+    toggleImageStar(imgUrl);
+  };
+
   div.appendChild(img);
-  div.appendChild(favIcon);
+  if (isStarred) {
+    div.appendChild(starIcon);
+  } else {
+    div.appendChild(favIcon);
+  }
   div.appendChild(archiveIcon);
 
   if (prepend) {
     // Note: Prepend likely needs to handle favorite status check if used during generation
-    if (prepend) currentImageList.unshift(imgUrl);
-    else currentImageList.push(imgUrl);
+    currentImageList.unshift(imgUrl);
     dom.gallery.prepend(div);
   } else {
     dom.gallery.appendChild(div);
@@ -223,7 +240,7 @@ export async function toggleImageFavorite(imgUrl = null) {
     const res = await api.toggleFavorite(
       state.currentCard.id,
       state.currentProject.id,
-      filename
+      filename,
     );
     if (res.ok) {
       const data = await res.json();
@@ -258,7 +275,7 @@ export async function toggleImageFavorite(imgUrl = null) {
       } else {
         const items = Array.from(dom.gallery.children);
         const item = items.find((el) =>
-          el.querySelector("img").src.endsWith(targetUrl)
+          el.querySelector("img").src.endsWith(targetUrl),
         );
         if (item) {
           const icon = item.querySelector(".gallery-fav-icon");
@@ -277,6 +294,65 @@ export async function toggleImageFavorite(imgUrl = null) {
     }
   } catch (e) {
     createToast("Failed to toggle favorite", "error");
+  }
+}
+
+export async function toggleImageStar(imgUrl = null) {
+  const targetUrl = imgUrl || currentImgPath;
+  if (!targetUrl || !state.currentCard || !state.currentProject) return;
+
+  const filename = targetUrl.split("/").pop();
+
+  try {
+    const res = await api.toggleStar(
+      state.currentCard.id,
+      state.currentProject.id,
+      filename,
+    );
+    if (res.ok) {
+      const data = await res.json();
+
+      // Update state
+      state.currentCard.starredImage = data.starredImage;
+
+      // If backend says it's favorite (e.g. was unstarred), ensure state reflects that
+      if (data.isFavorite) {
+        if (!state.currentCard.favoriteImages)
+          state.currentCard.favoriteImages = [];
+        if (!state.currentCard.favoriteImages.includes(filename)) {
+          state.currentCard.favoriteImages.push(filename);
+        }
+      }
+
+      // Refresh Gallery to update ALL stars (exclusive) and favorites
+      // (Optimally we could update just the DOM elements, but loadImagesForCard is robust)
+      loadImagesForCard(state.currentProject.id, state.currentCard.id);
+
+      // If modal is open
+      if (
+        !dom.imgModal.self.classList.contains("hidden") &&
+        currentImgPath === targetUrl
+      ) {
+        // Update Modal Star Icon
+        updateModalStarBtn(!!data.isStarred);
+        // Update Modal Favorite Icon (might have changed if unstarred)
+        dom.imgModal.favBtn.classList.toggle("active", !!data.isFavorite);
+        const modalFavIcon =
+          dom.imgModal.favBtn.querySelector(".material-icons");
+        if (modalFavIcon) {
+          modalFavIcon.textContent = data.isFavorite
+            ? "favorite"
+            : "favorite_border";
+        }
+      }
+
+      createToast(
+        data.isStarred ? "Image Starred" : "Image Unstarred",
+        "success",
+      );
+    }
+  } catch (e) {
+    createToast("Failed to toggle star: " + e.message, "error");
   }
 }
 
@@ -299,6 +375,11 @@ export async function openImageDetails(imgUrl) {
   // Remove event listeners to avoid dupes? Better to assign onclick directly
   dom.imgModal.favBtn.onclick = () => toggleImageFavorite(imgUrl);
 
+  // Set Star Button State
+  const isStarred = state.currentCard?.starredImage === filename;
+  updateModalStarBtn(isStarred);
+  dom.imgModal.starBtn.onclick = () => toggleImageStar(imgUrl);
+
   // Archive button in modal needs to reflect state (Archive vs Restore)
   const isArchived = state.currentCard?.archivedImages?.includes(filename);
   const archIcon = dom.imgModal.archiveBtn.querySelector(".material-icons");
@@ -310,7 +391,7 @@ export async function openImageDetails(imgUrl) {
     : "Archive Image";
   dom.imgModal.archiveBtn.setAttribute(
     "aria-label",
-    isArchived ? "Restore Image" : "Archive Image"
+    isArchived ? "Restore Image" : "Archive Image",
   );
 
   // Adjust color: Red for archive, Primary/Green for restore?
@@ -507,7 +588,7 @@ async function submitRegeneration() {
     const remainingRefIds = [];
 
     const checkboxes = dom.regenModal.refList.querySelectorAll(
-      'input[type="checkbox"]'
+      'input[type="checkbox"]',
     );
     checkboxes.forEach((cb) => {
       if (cb.checked) {
@@ -584,7 +665,7 @@ export async function toggleImageArchive(imgUrl = null) {
       const res = await api.archiveImage(
         state.currentCard.id,
         state.currentProject.id,
-        filename
+        filename,
       );
 
       // Backend returns { success: true, isArchived: boolean }
@@ -627,7 +708,7 @@ export async function toggleImageArchive(imgUrl = null) {
               : "Archive Image";
             dom.imgModal.archiveBtn.setAttribute(
               "aria-label",
-              data.isArchived ? "Restore Image" : "Archive Image"
+              data.isArchived ? "Restore Image" : "Archive Image",
             );
 
             dom.imgModal.archiveBtn.style.borderColor = data.isArchived
@@ -651,7 +732,7 @@ export async function toggleImageArchive(imgUrl = null) {
     confirmAction(
       "Archive Image?",
       "Are you sure you want to archive this image?",
-      executeToggle
+      executeToggle,
     );
   } else {
     await executeToggle();
@@ -660,6 +741,16 @@ export async function toggleImageArchive(imgUrl = null) {
 
 // Renamed for compatibility if needed, or export new name
 export const archiveCurrentImage = () => toggleImageArchive(currentImgPath);
+
+function updateModalStarBtn(isStarred) {
+  if (!dom.imgModal.starBtn) return;
+  dom.imgModal.starBtn.classList.toggle("active", isStarred);
+  const icon = dom.imgModal.starBtn.querySelector(".material-icons");
+  if (icon) {
+    icon.textContent = isStarred ? "star" : "star_border";
+  }
+  dom.imgModal.starBtn.title = isStarred ? "Unstar" : "Star Image";
+}
 
 export async function downloadCurrentGallery() {
   if (!state.currentCard || !state.currentProject) {
@@ -679,19 +770,19 @@ export async function downloadCurrentGallery() {
     const viewType = isArchiveView
       ? "archived"
       : isFavoritesOnly
-      ? "favorite"
-      : "all";
+        ? "favorite"
+        : "all";
     createToast(
       `Downloading ${filenames.length} ${viewType} image${
         filenames.length === 1 ? "" : "s"
       }...`,
-      "info"
+      "info",
     );
 
     await api.downloadGalleryZip(
       state.currentCard.id,
       state.currentProject.id,
-      filenames
+      filenames,
     );
 
     createToast("Download complete!", "success");

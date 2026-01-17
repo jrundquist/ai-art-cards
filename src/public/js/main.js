@@ -651,4 +651,18 @@ if (themeSelect) {
   });
 }
 
+// Global Error Handler
+window.onerror = function (message, source, lineno, colno, error) {
+  console.error("Global Error:", message, error);
+  // Use showStatus to display the error to the user
+  showStatus(`Uncaught Error: ${message}`, "error");
+  return false; // Let default handler run as well
+};
+
+// Global Promise Rejection Handler
+window.onunhandledrejection = function (event) {
+  console.error("Unhandled Rejection:", event.reason);
+  showStatus(`Unhandled Promise Rejection: ${event.reason}`, "error");
+};
+
 init();
