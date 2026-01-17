@@ -445,6 +445,16 @@ async function init() {
     });
   }
 
+  // Export Deck
+  const exportDeckBtn = document.getElementById("exportDeckBtn");
+  if (exportDeckBtn) {
+    exportDeckBtn.addEventListener("click", () => {
+      if (!state.currentProject) return;
+      const url = `/api/projects/${state.currentProject.id}/export-deck`;
+      window.location.href = url;
+    });
+  }
+
   // Image Modal
   dom.imgModal.closeBtn.addEventListener("click", () =>
     dom.imgModal.self.classList.add("hidden"),

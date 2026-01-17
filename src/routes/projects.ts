@@ -2,10 +2,11 @@ import { Router } from "express";
 import { DataService, Project } from "../lib/data_service";
 import path from "path";
 import fs from "fs/promises";
+import archiver from "archiver";
 
 export function createProjectsRouter(
   dataService: DataService,
-  resolvedDataRoot: string
+  resolvedDataRoot: string,
 ) {
   const router = Router();
 
@@ -52,7 +53,7 @@ export function createProjectsRouter(
           "projects",
           projectId,
           "assets",
-          card.outputSubfolder || "default"
+          card.outputSubfolder || "default",
         );
 
         try {
@@ -84,6 +85,64 @@ export function createProjectsRouter(
       res.json(previews);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Export Deck (Starred Images only)
+  router.get("/projects/:id/export-deck", async (req, res) => {
+    const { id } = req.params;
+    try {
+      const project = await dataService.getProject(id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      const cards = await dataService.getCards(id);
+
+      const zipName = (project.outputRoot || project.id) + ".zip";
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="${zipName}"`);
+
+      const archive = archiver("zip", { zlib: { level: 9 } });
+
+      archive.on("error", (err) => {
+        throw err;
+      });
+
+      archive.pipe(res);
+
+      for (const card of cards) {
+        if (card.starredImage) {
+          const subfolder = card.outputSubfolder || "default";
+          const imagePath = path.join(
+            resolvedDataRoot,
+            "projects",
+            id,
+            "assets",
+            subfolder,
+            card.starredImage,
+          );
+
+          try {
+            await fs.access(imagePath);
+            const ext = path.extname(card.starredImage);
+            // Filename is {outputSubfolder}.{ext} as requested
+            // If colliding, archiver might handle it or overwrite? Archiver appends.
+            // But user requirement implies uniqueness or simple naming.
+            // If outputSubfolder is empty/default, we might get collisions "default.jpg".
+            // We'll trust the requirement for now: "filename ... should be the card {outputSubfolder}.{ext}"
+            const nameInZip = (card.outputSubfolder || card.id) + ext;
+
+            archive.file(imagePath, { name: nameInZip });
+          } catch {
+            // Skip missing files
+          }
+        }
+      }
+
+      await archive.finalize();
+    } catch (e: any) {
+      if (!res.headersSent) {
+        res.status(500).json({ error: e.message });
+      }
     }
   });
 

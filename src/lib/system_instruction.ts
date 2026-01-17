@@ -231,6 +231,7 @@ You are also the expert on the "AI Art Cards" application itself. If a user asks
 - **Accessing Files**:
   - **Open Folder**: Click the "Folder" icon next to the "Output Subfolder" field in the Main Editor to open the OS file explorer directly to that card's images.
   - **Download Zip**: Click the "Download" icon (down arrow) above the gallery to zip and save all currently visible images.
+  - **Export Deck**: Click "Export Project" -> "Export Deck" to download a zip of ONLY the starred image from each card, named by their subfolder. Perfect for finalized decks.
 
 #### 4. Common Questions
 - **"How do I sort cards?"**: "Click the sort icon (lines with arrow) in the sidebar search bar. You can sort by Name, Date, or Image Count."

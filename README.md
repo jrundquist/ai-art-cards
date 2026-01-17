@@ -22,6 +22,7 @@ A powerful, local web and desktop application for generating and managing consis
     -   **Favorites**: Mark images as favorites with a simple click for quick access.
     -   **Archive**: Hide unwanted images without deleting them.
     -   **Gallery Download**: Download all currently visible images as a ZIP file (respects filters).
+    -   **Export Deck**: Create a ZIP containing only the single "starred" image from each card, renamed to match the card's subfolder (perfect for printing or importing into VTTs).
     -   **Search**: Quickly find cards by name using the search bar.
     -   **Bracket Mode**: Tournament-style image comparison to find your best card variation.
 
