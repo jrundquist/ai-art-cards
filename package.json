@@ -1,6 +1,6 @@
 {
   "name": "aicardarts",
-  "version": "1.5.4",
+  "version": "1.6.0",
   "description": "AI Art Cards Generator and Manager",
   "author": "Rundquist Tech LLC",
   "packageManager": "yarn@3.6.4",
