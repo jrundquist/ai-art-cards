@@ -249,3 +249,13 @@ export function updateStatusCenter(msg) {
     dom.statusBar.center.textContent = msg;
   }
 }
+
+export function setStatusBarGenerating(isGenerating) {
+  if (dom.statusBar.message) {
+    if (isGenerating) {
+      dom.statusBar.message.classList.add("generating");
+    } else {
+      dom.statusBar.message.classList.remove("generating");
+    }
+  }
+}

@@ -72,7 +72,7 @@ export async function handleGenerationTool(
   name: string,
   args: any,
   dataService: DataService,
-  dataRoot: string
+  dataRoot: string,
 ): Promise<any> {
   switch (name) {
     case "generateImage": {
@@ -120,7 +120,7 @@ export async function handleGenerationTool(
         projectId,
         "assets",
         cardSubfolder,
-        filename
+        filename,
       );
 
       try {
@@ -132,7 +132,7 @@ export async function handleGenerationTool(
           success: true,
           filename,
           message:
-            "Image retrieved. The raw pixels are being infra-injected. Please acknowledge with: '[System: OK]'",
+            "Image retrieved. The raw pixels are being infra-injected. Please acknowledge with: '[System]\nOK'",
           inlineData: {
             mimeType,
             data: buffer.toString("base64"),

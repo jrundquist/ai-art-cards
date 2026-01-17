@@ -345,14 +345,14 @@ export class ChatManager {
             // Auto-collapse thoughts if we start receiving text
             this.collapseThoughts();
 
-            const tag = "[System: OK]";
+            const tag = "[System]\nOK";
             accumulatedMarkdown += content;
             const trimmed = accumulatedMarkdown.trim();
 
-            if (trimmed === tag) {
+            if (trimmed.startsWith(tag)) {
               currentAiDiv.parentNode.classList.add("hidden");
               hasHiddenTag = true;
-            } else if (hasHiddenTag && !content.includes("[System:")) {
+            } else if (hasHiddenTag && !content.includes("[System]")) {
               // We hid a tag and now got new non-tag text
               // Create a fresh div for the follow-up
               currentAiDiv =
@@ -584,8 +584,8 @@ export class ChatManager {
       // Skip rendering system-only turns, BUT start showing messages with Reference Metadata
       const shouldHide = msg.parts.some((part) => {
         const text = part.text || (typeof part === "string" ? part : "");
-        // If it sends purely [System: OK] (e.g. for image vision), hide it.
-        if (text.trim() === "[System: OK]") return true;
+        // If it sends purely [System]\nOK (e.g. for image vision), hide it.
+        if (text.trim().startsWith("[System]\nOK")) return true;
 
         // If it starts with [System: and is NOT a reference context appended to a user message, hide it.
         // We assume valid user messages might contain [System: Referenced Images...] at the end.
@@ -985,7 +985,7 @@ export class ChatManager {
         [], // We'll pass the parts in the message body
         {
           onText: (content) => {
-            const tag = "[System: OK]";
+            const tag = "[System]\nOK";
             accumulatedMarkdown += content;
             const trimmed = accumulatedMarkdown.trim();
 

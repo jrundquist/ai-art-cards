@@ -1,5 +1,5 @@
 // Status Service - SSE Client for Generation Status Updates
-import { createToast, updateStatusBar } from "./ui.js";
+import { createToast, updateStatusBar, setStatusBarGenerating } from "./ui.js";
 
 class StatusService {
   constructor() {
@@ -83,6 +83,7 @@ class StatusService {
 
     if (activeCount === 0) {
       updateStatusBar("Ready");
+      setStatusBarGenerating(false);
     } else {
       // Calculate total images being generated
       let totalImages = 0;
@@ -91,6 +92,7 @@ class StatusService {
       }
       const imageWord = totalImages === 1 ? "image" : "images";
       updateStatusBar(`Generating ${totalImages} ${imageWord}...`);
+      setStatusBarGenerating(true);
     }
   }
 
@@ -113,16 +115,7 @@ class StatusService {
     let toast = this.activeToasts.get(id);
 
     if (status === "generating") {
-      if (!toast) {
-        // Create new toast
-        const message = `Generating "${cardName}" ${current}/${total}...`;
-        toast = createToast(message, "ai-generating", 0, "auto_awesome"); // Infinite duration
-        this.activeToasts.set(id, toast);
-      } else {
-        // Update existing toast
-        const message = `Generating "${cardName}" ${current}/${total}...`;
-        toast.update(message, "ai-generating");
-      }
+      // Pending toast removed in favor of footer animation
     } else if (status === "completed") {
       if (toast) {
         toast.update(

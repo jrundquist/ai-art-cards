@@ -295,10 +295,8 @@ ${projects.map((p) => `- ${p.name} (ID: ${p.id}): ${p.description}`).join("\n")}
       // 1. Uploads
       if (images.length > 0) {
         images.forEach((img, idx) => {
-          // We can use the ID if we have it, or just "Attached Image (Index N)"
-          // Using Index relative to the inlineData array is most robust for the frontend parser
           systemParts.push(
-            `Attached Image (inlineIndex: ${currentImageIndex})`,
+            `Attached Image (inlineIndex: ${currentImageIndex}): ${imageIds[idx]}`,
           );
           currentImageIndex++;
         });
