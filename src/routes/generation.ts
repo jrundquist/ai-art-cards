@@ -15,13 +15,13 @@ export function createGenerationRouter(
   activeJobs: Map<string, GenerationJob>,
   broadcastStatus: BroadcastStatusFn,
   getApiKey: ApiKeyProvider,
-  resolvedDataRoot: string
+  resolvedDataRoot: string,
 ) {
   const router = Router();
 
   router.post("/generate", async (req, res) => {
     logger.info(
-      `[Server] POST /api/generate body: ${JSON.stringify(req.body)}`
+      `[Server] POST /api/generate body: ${JSON.stringify(req.body)}`,
     );
     const {
       cardId,
@@ -78,7 +78,7 @@ export function createGenerationRouter(
 
     logger.info("------------------------------------------------");
     logger.info(
-      `[Server] Generating Art for Card: ${card.name} (ID: ${card.id})`
+      `[Server] Generating Art for Card: ${card.name} (ID: ${card.id})`,
     );
     logger.info(`[Server] Project: ${project.name} (ID: ${project.id})`);
     logger.info(`[Server] Full Prompt: ${fullPrompt}`);
@@ -91,8 +91,8 @@ export function createGenerationRouter(
     if (referenceImageIds.length > 0) {
       logger.info(
         `[Server] Using temporary reference images: ${referenceImageIds.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
       for (const id of referenceImageIds) {
         const buf = await dataService.getTempImage(id, projectId);
@@ -107,7 +107,7 @@ export function createGenerationRouter(
     // 2. Resolve historical files
     if (referenceImageFiles.length > 0) {
       logger.info(
-        `[Server] Resolving ${referenceImageFiles.length} historical reference files...`
+        `[Server] Resolving ${referenceImageFiles.length} historical reference files...`,
       );
       for (const refFile of referenceImageFiles) {
         try {
@@ -118,7 +118,7 @@ export function createGenerationRouter(
           } = refFile;
 
           logger.info(
-            `[Server] Attempting to resolve: project=${refProjectId}, card=${refCardId}, file=${refFilename}`
+            `[Server] Attempting to resolve: project=${refProjectId}, card=${refCardId}, file=${refFilename}`,
           );
 
           const refCards = await dataService.getCards(refProjectId);
@@ -132,7 +132,7 @@ export function createGenerationRouter(
               refProjectId,
               "assets",
               refSubfolder,
-              refFilename
+              refFilename,
             );
 
             logger.info(`[Server] Final resolved path: ${filePath}`);
@@ -145,16 +145,16 @@ export function createGenerationRouter(
 
             referenceImages.push({ buffer: buf, mimeType });
             logger.info(
-              `[Server] Found and loaded reference image: ${refFilename} (${buf.length} bytes, type=${mimeType})`
+              `[Server] Found and loaded reference image: ${refFilename} (${buf.length} bytes, type=${mimeType})`,
             );
           } else {
             logger.warn(
-              `[Server] Failed to find card for reference: ${refCardId} in project ${refProjectId}`
+              `[Server] Failed to find card for reference: ${refCardId} in project ${refProjectId}`,
             );
           }
         } catch (e: any) {
           logger.warn(
-            `[Server] Failed to resolve reference file ${refFile.filename}: ${e.message}`
+            `[Server] Failed to resolve reference file ${refFile.filename}: ${e.message}`,
           );
         }
       }
@@ -165,7 +165,7 @@ export function createGenerationRouter(
     // Path: data/projects/{projectId}/assets/{cardSubfolder}
     const cardSubfolder = (card.outputSubfolder || "default").replace(
       /^(\.\.(\/|\\|$))+/,
-      ""
+      "",
     );
 
     const outputFolder = path.join(
@@ -173,13 +173,13 @@ export function createGenerationRouter(
       "projects",
       projectId,
       "assets",
-      cardSubfolder
+      cardSubfolder,
     );
 
     // Security check
     if (
       !outputFolder.startsWith(
-        path.join(resolvedDataRoot, "projects", projectId)
+        path.join(resolvedDataRoot, "projects", projectId),
       )
     ) {
       res.status(403).json({ error: "Security Error: Invalid output path" });
@@ -208,7 +208,7 @@ export function createGenerationRouter(
     activeJobs.set(jobId, job);
     broadcastStatus(job);
     logger.info(
-      `[Status] Started job ${jobId} for ${card.name} (${num} images)`
+      `[Status] Started job ${jobId} for ${card.name} (${num} images)`,
     );
 
     // Start generation asynchronously
@@ -220,6 +220,10 @@ export function createGenerationRouter(
           resOverride || card.resolution || project.defaultResolution || "2K";
 
         if (!aspectRatio) resolution = "2K";
+
+        // Update job with aspectRatio so frontend can display correct placeholder shape
+        job.aspectRatio = aspectRatio;
+        broadcastStatus(job);
 
         logger.info(`Config: AR=${aspectRatio}, Res=${resolution}`);
 
@@ -249,7 +253,7 @@ export function createGenerationRouter(
                 referenceImageFiles,
                 model: modelName,
               },
-            }
+            },
           );
 
           // Return relative path for frontend
@@ -265,7 +269,7 @@ export function createGenerationRouter(
           job.current = i + 1;
           broadcastStatus(job);
           logger.info(
-            `[Status] Job ${jobId} progress: ${job.current}/${job.total}`
+            `[Status] Job ${jobId} progress: ${job.current}/${job.total}`,
           );
         }
 

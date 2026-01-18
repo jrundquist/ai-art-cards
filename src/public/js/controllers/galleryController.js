@@ -73,7 +73,11 @@ export async function loadImagesForCard(projectId, cardId) {
     });
 
     // Render placeholders for any active generations
-    renderPlaceholders();
+    try {
+      renderPlaceholders();
+    } catch (e) {
+      console.warn("Error rendering placeholders:", e);
+    }
   } catch (e) {
     dom.gallery.innerHTML = `<div class="error-state">Error loading images: ${e.message}</div>`;
   }
@@ -799,6 +803,11 @@ function renderPlaceholders(activeJobs = null) {
 }
 
 // Listen for generation updates
+// Listen for generation updates
 document.addEventListener("generation-update", (e) => {
-  renderPlaceholders(e.detail.activeJobs);
+  try {
+    renderPlaceholders(e.detail.activeJobs);
+  } catch (err) {
+    console.error("Error updating placeholders:", err);
+  }
 });

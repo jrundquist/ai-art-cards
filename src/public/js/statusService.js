@@ -115,13 +115,20 @@ class StatusService {
     this.updateStatusBarFromJobs();
 
     // Dispatch granular update for UI components (e.g. placeholders)
-    document.dispatchEvent(
-      new CustomEvent("generation-update", {
-        detail: {
-          activeJobs: Array.from(this.activeJobs.values()),
-        },
-      }),
-    );
+    try {
+      document.dispatchEvent(
+        new CustomEvent("generation-update", {
+          detail: {
+            activeJobs: Array.from(this.activeJobs.values()),
+          },
+        }),
+      );
+    } catch (e) {
+      console.error(
+        "[StatusService] Error dispatching generation-update:",
+        e.message,
+      );
+    }
 
     // Get or create toast for this job
     let toast = this.activeToasts.get(id);
@@ -149,16 +156,23 @@ class StatusService {
       }
 
       // Dispatch event for gallery refresh
-      document.dispatchEvent(
-        new CustomEvent("generation-completed", {
-          detail: {
-            jobId: id,
-            projectId: job.projectId,
-            cardId: job.cardId,
-            results: job.results,
-          },
-        }),
-      );
+      try {
+        document.dispatchEvent(
+          new CustomEvent("generation-completed", {
+            detail: {
+              jobId: id,
+              projectId: job.projectId,
+              cardId: job.cardId,
+              results: job.results,
+            },
+          }),
+        );
+      } catch (e) {
+        console.error(
+          "[StatusService] Error dispatching generation-completed:",
+          e.message,
+        );
+      }
 
       // Electron notification
       if (window.electronAPI && window.electronAPI.showNotification) {

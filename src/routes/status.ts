@@ -13,11 +13,12 @@ export interface GenerationJob {
   startedAt: number;
   completedAt?: number;
   results?: string[]; // Array of web paths (data/...)
+  aspectRatio?: string;
 }
 
 export function createStatusRouter(
   activeJobs: Map<string, GenerationJob>,
-  sseClients: Set<Response>
+  sseClients: Set<Response>,
 ) {
   const router = Router();
 
@@ -36,14 +37,14 @@ export function createStatusRouter(
     // Send current active jobs to the new client
     // Only send jobs that are still generating (not completed/error)
     const activeJobsArray = Array.from(activeJobs.values()).filter(
-      (job) => job.status === "generating"
+      (job) => job.status === "generating",
     );
     if (activeJobsArray.length > 0) {
       res.write(
         `data: ${JSON.stringify({
           type: "initial",
           jobs: activeJobsArray,
-        })}\n\n`
+        })}\n\n`,
       );
     }
 
@@ -57,7 +58,7 @@ export function createStatusRouter(
       clearInterval(heartbeat);
       sseClients.delete(res);
       logger.info(
-        `[SSE] Client disconnected. Total clients: ${sseClients.size}`
+        `[SSE] Client disconnected. Total clients: ${sseClients.size}`,
       );
     });
   });
