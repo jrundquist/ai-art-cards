@@ -7,7 +7,7 @@ import { logger } from "../lib/logger";
 
 export function createImagesRouter(
   dataService: DataService,
-  resolvedDataRoot: string
+  resolvedDataRoot: string,
 ) {
   const router = Router();
 
@@ -130,12 +130,17 @@ export function createImagesRouter(
       const { images } = await dataService.listCardImages(
         projectId,
         cardId,
-        includeArchived
+        includeArchived,
       );
 
       // Frontend expects array of string paths
       const paths = images.map((img) => img.path);
 
+      // Disable caching for this dynamic list
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate",
+      );
       res.json(paths);
     } catch (e: any) {
       res.status(500).json({ error: e.message });

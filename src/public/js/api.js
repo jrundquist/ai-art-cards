@@ -41,7 +41,8 @@ export async function fetchCardImages(
   cardId,
   includeArchived = false,
 ) {
-  const url = `/api/projects/${projectId}/cards/${cardId}/images?includeArchived=${includeArchived}`;
+  // Add timestamp to prevent caching
+  const url = `/api/projects/${projectId}/cards/${cardId}/images?includeArchived=${includeArchived}&t=${Date.now()}`;
   const res = await fetch(url);
   return await res.json();
 }
